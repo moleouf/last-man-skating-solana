@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Last Man Skating</string>
+    <string name="title_activity_main">Last Man Skating</string>
+    <string name="package_name">fr.kristen.lastmanskating</string>
+    <string name="custom_url_scheme">fr.kristen.lastmanskating</string>
+</resources>

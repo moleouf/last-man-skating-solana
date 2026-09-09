@@ -1,0 +1,16 @@
+# Android build artifacts
+android/build/
+android/app/build/
+android/.gradle/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Node
+node_modules/
+
+# IDE
+.idea/
+*.iml
+local.properties
