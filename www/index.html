@@ -1366,6 +1366,43 @@ canvas{display:block;}
 /* v1968 : même correctif de scroll que les autres overlays EN LIGNE. */
 #online-duel-wait-overlay{display:none;position:fixed;inset:0;z-index:210;background:rgba(0,4,16,.94);flex-direction:column;align-items:center;gap:16px;padding:24px 12px 40px;box-sizing:border-box;text-align:center;overflow-y:auto;overscroll-behavior:contain;}
 #online-duel-wait-overlay.active{display:flex;}
+/* ── v2110 : mix v2106 (fix) + v2109 (mise en page manche/placeholder) — portraits PERSO ENTIER
+   dans un cadre rond (pas une tête recadrée) : garde le côté compact/"versus" du cercle tout en
+   montrant le perso complet équipé (skin visible), comme discuté avec moleouf. ── */
+#online-duel-wait-round{display:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;color:#8fd7ff;margin-bottom:2px;}
+#online-duel-wait-overlay.odw-vs-mode #online-duel-wait-round{display:block;}
+#online-duel-wait-vs{display:none;align-items:center;justify-content:center;gap:18px;margin-bottom:6px;animation:onlineDuelVsIn .35s ease-out;}
+#online-duel-wait-overlay.odw-vs-mode #online-duel-wait-vs{display:flex;}
+@keyframes onlineDuelVsIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+.odw-side{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:120px;}
+.odw-avatar{width:110px;height:110px;border-radius:50%;box-sizing:border-box;background:rgba(0,20,45,.6);filter:drop-shadow(0 4px 14px rgba(0,180,255,.25));}
+.odw-avatar-me{border:2px solid #00d4ff;}
+.odw-avatar-opp{border:2px solid #ff2255;}
+.odw-avatar-stack{display:grid;grid-template-areas:"stack";}
+.odw-avatar-stack>*{grid-area:stack;}
+.odw-avatar-placeholder{display:none;width:110px;height:110px;border-radius:50%;border:2px solid #ff2255;background:rgba(45,10,20,.6);align-items:center;justify-content:center;font-size:35px;}
+#online-duel-wait-opp-side.odw-pending .odw-avatar-opp.odw-avatar{visibility:hidden;}
+#online-duel-wait-opp-side.odw-pending .odw-avatar-placeholder{display:flex;}
+.odw-label{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;letter-spacing:0.5px;color:#e8f6ff;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;}
+.odw-vs-badge{position:relative;font-family:'Black Han Sans',sans-serif;font-size:22px;color:#ffd700;letter-spacing:1px;text-shadow:0 0 12px rgba(255,215,0,.65);flex:none;}
+/* v2111 : entrée "combat moderne" — portraits qui claquent depuis les côtés + VS qui percute au
+   milieu avec un flash, au lieu du fade discret précédent. Rejoue à chaque manche car la classe
+   .odw-vs-mode est retirée puis réappliquée à chaque _lmsOnlineDuelShowWait (overlay masqué entre
+   les deux, display:none → le navigateur relance bien les keyframes au réaffichage). */
+#online-duel-wait-overlay.odw-vs-mode #online-duel-wait-me-side{animation:odwSlideInLeft .5s cubic-bezier(.17,.89,.32,1.28) both;}
+#online-duel-wait-overlay.odw-vs-mode #online-duel-wait-opp-side{animation:odwSlideInRight .5s cubic-bezier(.17,.89,.32,1.28) both;}
+@keyframes odwSlideInLeft{0%{opacity:0;transform:translateX(-70px) scale(.75);}100%{opacity:1;transform:translateX(0) scale(1);}}
+@keyframes odwSlideInRight{0%{opacity:0;transform:translateX(70px) scale(.75);}100%{opacity:1;transform:translateX(0) scale(1);}}
+#online-duel-wait-overlay.odw-vs-mode .odw-vs-badge{animation:odwVsImpact .55s cubic-bezier(.34,1.7,.64,1) .28s both;}
+@keyframes odwVsImpact{
+  0%{opacity:0;transform:scale(2.4) rotate(-10deg);}
+  55%{opacity:1;transform:scale(1) rotate(5deg);text-shadow:0 0 28px rgba(255,215,0,1),0 0 48px rgba(255,255,255,.85);}
+  78%{transform:scale(1.14) rotate(-2deg);}
+  100%{transform:scale(1) rotate(0deg);text-shadow:0 0 12px rgba(255,215,0,.65);}
+}
+.odw-vs-badge::before{content:'';position:absolute;inset:-16px;border-radius:50%;background:radial-gradient(circle,rgba(255,215,0,.6),transparent 70%);z-index:-1;opacity:0;}
+#online-duel-wait-overlay.odw-vs-mode .odw-vs-badge::before{animation:odwVsFlash .5s ease-out .28s both;}
+@keyframes odwVsFlash{0%{opacity:0;transform:scale(.3);}35%{opacity:1;transform:scale(1.7);}100%{opacity:0;transform:scale(2.6);}}
 #online-duel-wait-spinner{width:44px;height:44px;border-radius:50%;border:4px solid rgba(0,212,255,.25);border-top-color:#00d4ff;animation:onlineDuelWaitSpin .8s linear infinite;}
 @keyframes onlineDuelWaitSpin{to{transform:rotate(360deg);}}
 #online-duel-wait-text{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:1px;color:#ffd700;}
@@ -1500,6 +1537,21 @@ canvas{display:block;}
 </div>
 <!-- ── Duel en ligne — barrière de démarrage synchronisé (skins validés / manche suivante) ── -->
 <div id="online-duel-wait-overlay">
+  <div id="online-duel-wait-round"></div>
+  <div id="online-duel-wait-vs">
+    <div class="odw-side" id="online-duel-wait-me-side">
+      <canvas id="online-duel-wait-me-icon" class="odw-avatar odw-avatar-me" width="220" height="220"></canvas>
+      <div class="odw-label" id="online-duel-wait-me-label"></div>
+    </div>
+    <div class="odw-vs-badge">VS</div>
+    <div class="odw-side" id="online-duel-wait-opp-side">
+      <div class="odw-avatar-stack">
+        <canvas id="online-duel-wait-opp-icon" class="odw-avatar odw-avatar-opp" width="220" height="220"></canvas>
+        <div class="odw-avatar-placeholder">🕐</div>
+      </div>
+      <div class="odw-label" id="online-duel-wait-opp-label"></div>
+    </div>
+  </div>
   <div id="online-duel-wait-spinner"></div>
   <div id="online-duel-wait-text"></div>
   <button id="online-duel-wait-cancel" onclick="_lmsOnlineDuelWaitCancel()"></button>
@@ -3489,6 +3541,10 @@ const I18N = {
     onlineDuelConnError: '⚠️ Erreur de connexion — réessaie.',
     onlineDuelUnavailable: 'Firebase indisponible — vérifie ta connexion internet.',
     onlineDuelWaitingOpponent: '🕐 En attente de l\'adversaire…',
+    onlineDuelWaitRound: (n, total) => 'MANCHE ' + n + ' / ' + total,
+    onlineDuelWaitMe: 'Toi',
+    onlineDuelWaitOpp: 'Adversaire',
+    onlineDuelWaitOppPending: 'Choix en cours…',
     onlineHubTitle: '🌐 EN LIGNE',
     onlineHubSub: 'Choisis ton mode',
     onlineHubDuelTitle: 'DUEL 1v1',
@@ -4109,6 +4165,10 @@ const I18N = {
     onlineDuelConnError: '⚠️ Connection error — try again.',
     onlineDuelUnavailable: 'Firebase unavailable — check your internet connection.',
     onlineDuelWaitingOpponent: '🕐 Waiting for opponent…',
+    onlineDuelWaitRound: (n, total) => 'ROUND ' + n + ' / ' + total,
+    onlineDuelWaitMe: 'You',
+    onlineDuelWaitOpp: 'Opponent',
+    onlineDuelWaitOppPending: 'Picking…',
     onlineHubTitle: '🌐 ONLINE',
     onlineHubSub: 'Choose your mode',
     onlineHubDuelTitle: '1v1 DUEL',
@@ -12533,6 +12593,14 @@ function _lmsFFABeginSync(roomRef){
 
   // Publie mon perso/skin une fois, tôt (avant que players[] ne soit construit).
   const myKidRef = roomRef.child('match/kid/p' + _lmsFFAMyRoomSlot);
+  // FIX v2112 : contrairement au duel classique (_lmsOnlineDuelBeginSync, voir plus bas), ce ref
+  // n'était JAMAIS rangé dans _lmsOnlineDuelMyKidRef — la variable générique que
+  // _lmsOnlineDuelPublishMyKid() utilise pour republier (changement d'arme/casque/perso EN COURS
+  // DE PARTIE, voir setEquipped()/selectChar()). Résultat : en FFA, toute republication en cours
+  // de match était un no-op silencieux (le guard `if(!_lmsOnlineDuelMyKidRef) return;` sortait
+  // toujours vrai), alors qu'en duel classique ça fonctionnait déjà. Même variable, même fonction
+  // de publication pour les 2 modes — un seul endroit à tenir à jour.
+  _lmsOnlineDuelMyKidRef = myKidRef;
   myKidRef.set({
     kid: (typeof selectedKid !== 'undefined' && selectedKid) ? selectedKid : 'blond',
     skin: (typeof getEquipped === 'function') ? (getEquipped('skins') || 'normal') : 'normal',
@@ -13860,12 +13928,64 @@ function _lmsOnlineDuelWaitCancel(){
   if(typeof _lmsOnlineDuelSyncCancelFn === 'function') _lmsOnlineDuelSyncCancelFn();
   if(typeof returnToMenu === 'function') returnToMenu();
 }
+// ── v2110 : mix v2106 (fix duel) + v2109 (manche/placeholder) — bloc "VS" de l'attente entre
+// les manches ── Résout le PNG à afficher pour un perso donné : skin IA équipé en priorité,
+// sinon perso de base — le perso ENTIER (front_idle/front), pas une tête recadrée : le cadre
+// rond ne fait que "cropper" visuellement le cercle autour du perso complet, façon écusson,
+// contrairement à v2109 qui utilisait la pose "travel" (marche) moins lisible en statique.
+// Retourne null si rien n'est encore connu (adversaire pas synchronisé) — l'appelant affiche
+// alors le placeholder ⏳ à la place (voir .odw-pending), plutôt qu'un skin potentiellement
+// obsolète ou une icône vide.
+function _lmsDuelWaitResolveIcon(kid, skin){
+  if(skin && skin !== 'none' && skin !== 'normal' && typeof AI_SKIN_REGISTRY !== 'undefined' && AI_SKIN_REGISTRY[skin]){
+    const dict = (typeof _getBuiltSkinDict === 'function') ? _getBuiltSkinDict(skin) : null;
+    if(dict && dict.front_idle) return dict.front_idle;
+  }
+  if(!kid) return null;
+  const kidEntry = (typeof KID_DISPLAY !== 'undefined') ? KID_DISPLAY[kid] : null;
+  if(!kidEntry) return null;
+  const dict = kidEntry.dict();
+  return (dict && dict.front) || null;
+}
+// Remplit le bloc VS (numéro de manche + les 2 avatars) juste avant l'affichage de l'overlay
+// d'attente. Mon avatar est toujours connu tout de suite (selectedKid/getEquipped, 100% local) ;
+// celui de l'adversaire dépend de _lmsOnlineDuelOpponentKid/Skin, synchronisés via Firebase —
+// tant qu'aucun paquet n'est encore arrivé pour cette manche, on affiche le placeholder ⏳.
+function _lmsOnlineDuelUpdateWaitVS(){
+  const roundEl = document.getElementById('online-duel-wait-round');
+  if(roundEl && typeof duelRoundIndex !== 'undefined'){
+    const totalRounds = (typeof duelSkinQueue !== 'undefined' && duelSkinQueue.human && duelSkinQueue.human.length) ? duelSkinQueue.human.length : 3;
+    const roundNum = Math.min(duelRoundIndex.human + duelRoundIndex.ai + 1, totalRounds);
+    roundEl.textContent = t('onlineDuelWaitRound', roundNum, totalRounds);
+  }
+  const meCv = document.getElementById('online-duel-wait-me-icon');
+  const meLabel = document.getElementById('online-duel-wait-me-label');
+  const myKid = (typeof selectedKid !== 'undefined' && selectedKid) ? selectedKid : 'blond';
+  const mySkin = (typeof getEquipped === 'function') ? getEquipped('skins') : 'normal';
+  const myImg = _lmsDuelWaitResolveIcon(myKid, mySkin);
+  if(meCv && myImg && typeof _drawSkinIconPreview === 'function') _drawSkinIconPreview(meCv, myImg);
+  if(meLabel) meLabel.textContent = t('onlineDuelWaitMe');
+  const oppSide = document.getElementById('online-duel-wait-opp-side');
+  const oppCv = document.getElementById('online-duel-wait-opp-icon');
+  const oppLabel = document.getElementById('online-duel-wait-opp-label');
+  const oppKid = (typeof _lmsOnlineDuelOpponentKid !== 'undefined') ? _lmsOnlineDuelOpponentKid : null;
+  const oppSkin = (typeof _lmsOnlineDuelOpponentSkin !== 'undefined') ? _lmsOnlineDuelOpponentSkin : null;
+  const oppImg = _lmsDuelWaitResolveIcon(oppKid, oppSkin);
+  if(oppSide) oppSide.classList.toggle('odw-pending', !oppImg);
+  if(oppImg && oppCv && typeof _drawSkinIconPreview === 'function') _drawSkinIconPreview(oppCv, oppImg);
+  if(oppLabel) oppLabel.textContent = oppImg ? t('onlineDuelWaitOpp') : t('onlineDuelWaitOppPending');
+}
 function _lmsOnlineDuelShowWait(show){
   const el = document.getElementById('online-duel-wait-overlay');
   const txt = document.getElementById('online-duel-wait-text');
   const cancelBtn = document.getElementById('online-duel-wait-cancel');
   if(txt) txt.textContent = t('onlineDuelWaitingOpponent');
   if(cancelBtn) cancelBtn.textContent = t('duelSkinSelectCancel');
+  // Le bloc VS n'a de sens qu'en duel 1v1 — masqué en FFA (3-4 joueurs, même overlay/fonction
+  // réutilisés, voir _lmsFFAMode) où l'ancien spinner + texte simple reste inchangé.
+  const isDuelVS = show && (typeof _lmsFFAMode === 'undefined' || !_lmsFFAMode);
+  if(el) el.classList.toggle('odw-vs-mode', !!isDuelVS);
+  if(isDuelVS) _lmsOnlineDuelUpdateWaitVS();
   // DEBUG : trace l'état AVANT bascule + l'appelant (2 lignes de stack suffisent pour
   // identifier la fonction appelante sans noyer la console) — voir _lmsDuelLog plus haut.
   const _wasActive = !!(el && el.classList.contains('active'));
@@ -14516,9 +14636,18 @@ function onPlayPress(){
   // sinon players[1] resterait piloté par un flux réseau obsolète pour cette nouvelle partie locale.
   if(typeof _lmsOnlineDuelActive !== 'undefined' && _lmsOnlineDuelActive && typeof _lmsOnlineDuelEndSync === 'function') _lmsOnlineDuelEndSync();
   if(duelMode){
+    // FIX v2106 : ce garde-fou datait d'avant l'ajout des 4 persos (kidIds) dans le picker
+    // (_openDuelSkinSelect) — il ne comptait QUE les skins ('normal' + owned), jamais les
+    // persos de base. Résultat : dès qu'aucun skin IA n'était possédé, uniquePool.size === 1
+    // et on sautait tout droit vers startGame() sans jamais montrer l'écran des 3 choix,
+    // alors que le choix entre Éloan/Myloh/Eyleen/Romy reste toujours pertinent (4 options,
+    // jamais "rien à choisir"). On recalcule maintenant le MÊME pool que _openDuelSkinSelect
+    // (kidIds + skins possédés) pour décider s'il y a vraiment un choix à proposer.
     const owned = getOwnedItems('skins');
-    const uniquePool = new Set(['normal', ...owned]);
-    if(uniquePool.size <= 1){ startGame(); return; } // seul 'normal' dispo → rien à choisir
+    const kidIds = ['__kid_blond', '__kid_brun', '__kid_eyleen', '__kid_romy'];
+    const skinPool = Array.from(new Set(owned.filter(id => id !== 'normal')));
+    const pool = [...kidIds, ...skinPool];
+    if(pool.length <= 1){ startGame(); return; } // cas théorique seulement, gardé par cohérence
     _openDuelSkinSelect();
     return;
   }
@@ -23711,6 +23840,7 @@ function _updatePreGhostCinematic(){
     dynamicZoomTarget  = _preGhostZoomStart;
     // Activer ghost mode maintenant
     ghostMode = true;
+    if(typeof _lmsGhostAnimResizeCanvas === 'function') _lmsGhostAnimResizeCanvas(); // canvas ghost à la bonne taille dès le départ (voir plus bas)
     // Réduire le volume à 50% pendant le ghost (si musique pas manuellement coupée)
     if(!_musicMuted && _masterGain && audioCtx){
       const _gt = audioCtx.currentTime;
@@ -27718,6 +27848,7 @@ function updateGhostMode(){
 function ghostReviveNow(){
   if(ghostBreaking) return;
   ghostBreaking = true;
+  if(typeof _lmsGhostAnimResizeCanvas === 'function') _lmsGhostAnimResizeCanvas(); // même raison que ghostMode=true plus haut
   const _ghpl1 = players[0]; if(_ghpl1) _ghpl1._cacaStunTimer = 0;
   ghostBreakFrame = 0;
   const _ghpl = players[0];
@@ -27791,7 +27922,11 @@ function ghostReviveFinish(){
   checkWin();
 }
 
-function drawGhostAnimation(){
+// Canvas partagé par drawGhostAnimation()/drawGhostBreaking() (#ghost-anim-canvas) — création
+// paresseuse + resize géré à part (voir _lmsGhostAnimResizeCanvas), au lieu de réassigner
+// gc.width/gc.height à chaque frame comme avant (coûteux : réallocation du buffer 60x/s pendant
+// tout le ghost mode/l'animation de brisage). Même bug/fix que la démo Racki (voir _rackiDemoResizeCanvas).
+function _lmsGhostAnimCanvas(){
   let gc = document.getElementById('ghost-anim-canvas');
   if(!gc){
     gc = document.createElement('canvas');
@@ -27800,8 +27935,22 @@ function drawGhostAnimation(){
     const overlay = document.getElementById('ghost-overlay');
     if(overlay) overlay.appendChild(gc);
   }
-  gc.width = window.innerWidth;
+  return gc;
+}
+function _lmsGhostAnimResizeCanvas(){
+  const gc = _lmsGhostAnimCanvas();
+  gc.width  = window.innerWidth;
   gc.height = window.innerHeight;
+}
+window.addEventListener('resize', ()=>{
+  if((typeof ghostMode!=='undefined' && ghostMode) || (typeof ghostBreaking!=='undefined' && ghostBreaking)) _lmsGhostAnimResizeCanvas();
+});
+window.addEventListener('orientationchange', ()=>{
+  if((typeof ghostMode!=='undefined' && ghostMode) || (typeof ghostBreaking!=='undefined' && ghostBreaking)) setTimeout(_lmsGhostAnimResizeCanvas, 300);
+});
+
+function drawGhostAnimation(){
+  const gc = _lmsGhostAnimCanvas();
   const gx = gc.getContext('2d');
   const W2 = gc.width, H2 = gc.height;
   const cx = W2/2, cy = H2*0.52;
@@ -28408,16 +28557,7 @@ function drawGhostAnimation(){
 }
 
 function drawGhostBreaking(){
-  let gc = document.getElementById('ghost-anim-canvas');
-  if(!gc){
-    gc = document.createElement('canvas');
-    gc.id = 'ghost-anim-canvas';
-    gc.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;';
-    const overlay = document.getElementById('ghost-overlay');
-    if(overlay) overlay.appendChild(gc);
-  }
-  gc.width = window.innerWidth;
-  gc.height = window.innerHeight;
+  const gc = _lmsGhostAnimCanvas();
   const gx = gc.getContext('2d');
   const W2 = gc.width, H2 = gc.height;
   const cx = W2/2;
@@ -58289,6 +58429,12 @@ function _lmsClaimTempSkin(){
   const skinId = _lmsPickTempSkin();
   if(!skinId) return; // ne devrait jamais arriver (tous les skins sauf le premium sont éligibles)
   _lmsTempSkinId = skinId;
+  // FIX même famille que setEquipped() ci-dessous : le skin temporaire (récompense pub) est
+  // accessible en cours de match (menu pause → armurerie, voir openIngameArmory()) mais ne
+  // passait par aucun des 2 chemins déjà republiés (ni setEquipped() classique, ni le picker
+  // duel) — l'adversaire gardait donc l'ancien skin jusqu'à l'élimination, même bug que
+  // l'arme/casque. No-op si aucun duel/FFA en ligne actif (guard en tête de la fonction).
+  if(typeof _lmsOnlineDuelPublishMyKid === 'function') _lmsOnlineDuelPublishMyKid();
   refreshTokenHUD();
   if(typeof renderShop === 'function') renderShop();
   const entry = AI_SKIN_REGISTRY[skinId];
@@ -69364,6 +69510,7 @@ let rackiDemoTapReadyAtFrame = null; // valeur de rackiDemoRealFrame à laquelle
 let rackiDemoRealFrame  = 0; // compteur de frames réel (toujours +1/tick, non affecté par RACKI_DEMO_SPEED) — sert uniquement à mesurer les 2s réelles du minuteur
 const RACKI_DEMO_AUTO_ADVANCE_FRAMES = 120; // 2s réelles à 60fps sans clic → avance auto (ou sortie si dernière scène)
 const RACKI_DEMO_SPEED = 1.25; // Toutes les animations de la démo tournent 25% plus vite
+let _rackiDemoLastTime = null; // performance.now() du tick précédent — sert à calculer un tickScale basé sur le temps réel (fix TV lentes)
 
 // Scènes : durée en frames à 60fps, titre Racki, sous-titre instructionnel
 function _getDemoScenes(){
@@ -69377,6 +69524,17 @@ function _getDemoScenes(){
 }
 const DEMO_SCENES = _getDemoScenes(); // snapshot initial (recalculé à chaque frame)
 
+// Redimensionne le canvas de la démo une seule fois (au lancement/replay/resize),
+// au lieu de le faire à chaque frame dans la boucle (coûteux : réallocation du buffer)
+function _rackiDemoResizeCanvas(){
+  const cvs = document.getElementById('racki-demo-canvas');
+  if(!cvs) return;
+  cvs.width  = window.innerWidth;
+  cvs.height = window.innerHeight;
+}
+window.addEventListener('resize', ()=>{ if(rackiDemoActive) _rackiDemoResizeCanvas(); });
+window.addEventListener('orientationchange', ()=>{ if(rackiDemoActive) setTimeout(_rackiDemoResizeCanvas, 300); });
+
 function maybeShowRackiDemo(){
   if(localStorage.getItem(RACKI_DEMO_KEY)) return; // déjà vu
   rackiDemoActive = true;
@@ -69384,6 +69542,8 @@ function maybeShowRackiDemo(){
   rackiDemoScene  = 0;
   rackiDemoTapReady = false;
   rackiDemoTapReadyAtFrame = null;
+  _rackiDemoLastTime = null; // repart de zéro pour éviter un saut de tickScale au 1er tick
+  _rackiDemoResizeCanvas();
   const ov = document.getElementById('racki-demo-overlay');
   if(ov){ ov.style.display = 'block'; }
   // Forcer la langue depuis localStorage avant d'afficher le bouton SKIP
@@ -69419,6 +69579,8 @@ function replayRackiDemo(){
   rackiDemoScene   = 0;
   rackiDemoTapReady = false;
   rackiDemoTapReadyAtFrame = null;
+  _rackiDemoLastTime = null; // repart de zéro pour éviter un saut de tickScale au 1er tick
+  _rackiDemoResizeCanvas();
   const tapEl = document.getElementById('racki-demo-tap');
   if(tapEl){ tapEl.style.color='rgba(255,255,255,0)'; tapEl.style.opacity='1'; }
   const ov = document.getElementById('racki-demo-overlay');
@@ -69459,13 +69621,25 @@ function _rackiDemoAdvance(){
 function _rackiDemoLoop(){
   if(!rackiDemoActive) return;
   rackiDemoRAF = requestAnimationFrame(_rackiDemoLoop);
-  rackiDemoFrame      += RACKI_DEMO_SPEED; // frame globale — continue de tourner pour les animations (+25% plus rapide)
-  rackiDemoSceneFrame += RACKI_DEMO_SPEED; // frame locale — remise à 0 à chaque nouvelle scène (+25% plus rapide)
+
+  // ── Tick basé sur le temps réel écoulé (et non sur le nombre d'appels RAF) ──
+  // Même principe que _tickScale dans loop() : sur une TV lente qui ne fait que
+  // 20 vrais appels RAF/s au lieu de 60, chaque tick doit compter pour ~3 "frames
+  // virtuelles" pour que la durée réelle de la démo reste stable (~ex. 160 frames
+  // = 160/60 = 2.66s réelles, quel que soit le framerate réel de l'appareil).
+  const _demoNow = performance.now();
+  if(_rackiDemoLastTime === null) _rackiDemoLastTime = _demoNow;
+  const _demoElapsed = _demoNow - _rackiDemoLastTime;
+  _rackiDemoLastTime = _demoNow;
+  const _demoTickScale = Math.min(_demoElapsed / (1000/60), 3.0); // cap pour éviter un saut après un lag/tab en arrière-plan
+
+  rackiDemoFrame      += RACKI_DEMO_SPEED * _demoTickScale; // frame globale — continue de tourner pour les animations (+25% plus rapide)
+  rackiDemoSceneFrame += RACKI_DEMO_SPEED * _demoTickScale; // frame locale — remise à 0 à chaque nouvelle scène (+25% plus rapide)
 
   const cvs = document.getElementById('racki-demo-canvas');
   if(!cvs) return;
-  cvs.width  = window.innerWidth;
-  cvs.height = window.innerHeight;
+  // Le canvas n'est plus redimensionné ici à chaque frame (coûteux : réallocation
+  // du buffer) — voir _rackiDemoResizeCanvas(), appelé au lancement/replay/resize.
   const ctx = cvs.getContext('2d');
   const W = cvs.width, H = cvs.height;
   const cx = W/2, cy = H/2;
@@ -70073,6 +70247,15 @@ function setEquipped(cat,id){
   // on considère que c'est une décision délibérée du joueur, donc elle annule l'essai en cours.
   if(cat==='skins' && _lmsTempSkinId) _lmsTempSkinId = null;
   _lsSet('eq_'+cat,id);applyEquipmentBonuses();
+  // FIX v2112 "adversaire(s) qui voient mon ancienne arme/casque jusqu'à ce que je sois éliminé,
+  // en duel en ligne ET en FFA" : un changement fait ICI (armurerie ouverte PENDANT un match, ex.
+  // depuis le menu pause) ne passait que par le localStorage local — jamais republié à
+  // l'adversaire, qui gardait donc la dernière valeur Firebase connue (celle du début de la
+  // manche/du match) jusqu'à la prochaine republication naturelle (picker duel après une perte,
+  // ou reconstruction de players[] à l'élimination). Même remède que le fix "perso différent
+  // entre les 2 écrans" déjà appliqué à selectChar() (voir plus bas) : republier immédiatement.
+  // No-op si aucun duel/FFA en ligne actif (guard en tête de _lmsOnlineDuelPublishMyKid()).
+  if(typeof _lmsOnlineDuelPublishMyKid === 'function') _lmsOnlineDuelPublishMyKid();
 }
 function getUpgradeLevel(id){return _lsGet('upg_'+id,0);}
 function setUpgradeLevel(id,lv){_lsSet('upg_'+id,lv);}
