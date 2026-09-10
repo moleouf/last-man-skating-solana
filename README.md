@@ -3,7 +3,7 @@
 Adaptation de [Last Man Skating](https://play.google.com/store/apps/details?id=fr.kristen.lastmanskating)
 (2000+ installs organiques sur Google Play) pour le **Clock In Hackathon** (RadiantsDAO / Solana Mobile).
 
-Last Man Skating est un battle royale de skate isométrique en HTML5 canvas (13 mondes,
+Last Man Skating est un battle royale de skate isométrique en HTML5 canvas (9 mondes,
 boss, système de skins, missions quotidiennes, multi temps réel via Firebase),
 packagé nativement pour Android via Capacitor.
 
