@@ -1,0 +1,155 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "duelRooms": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "$code.matches(/^[A-Z2-9]{3,8}$/)"
+      }
+    },
+    "ffaRooms": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "$code.matches(/^[A-Z2-9]{3,8}$/)"
+      }
+    },
+
+    "syncCodes": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!newData.exists() || newData.child('uid').val() === auth.uid)",
+        ".validate": "$code.matches(/^[A-Z2-9]{3,8}$/) && newData.hasChildren(['uid','ts'])",
+        "uid": {
+          ".validate": "newData.isString() && newData.val() === auth.uid"
+        },
+        "ts": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        }
+      }
+    },
+
+    "presence": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && auth.uid === $id",
+        ".validate": "newData.hasChildren(['ts','name','mode'])",
+        "ts": {
+          ".validate": "newData.isNumber()"
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12"
+        },
+        "mode": {
+          ".validate": "newData.isString() && newData.val().matches(/^(hub|duel|ffa)$/)"
+        }
+      }
+    },
+
+    "invites": {
+      ".read": false,
+      ".write": false,
+      "$targetId": {
+        ".read": "auth != null && auth.uid === $targetId",
+        "$inviteId": {
+          ".write": "auth != null && ((auth.uid === $targetId && !newData.exists()) || (newData.exists() && newData.child('fromId').val() === auth.uid && (!data.exists() || data.child('fromId').val() === auth.uid)) || (!newData.exists() && data.exists() && data.child('fromId').val() === auth.uid))",
+          ".validate": "newData.hasChildren(['fromId','fromName','kind','roomCode','ts'])",
+          "fromId": {
+            ".validate": "newData.isString() && newData.val() === auth.uid"
+          },
+          "fromName": {
+            ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12"
+          },
+          "kind": {
+            ".validate": "newData.isString() && newData.val().matches(/^(duel|ffa)$/)"
+          },
+          "roomCode": {
+            ".validate": "newData.isString() && newData.val().matches(/^[A-Z2-9]{3,8}$/)"
+          },
+          "ts": {
+            ".validate": "newData.isNumber() && newData.val() <= now"
+          }
+        }
+      }
+    },
+
+    "leaderboard": {
+      ".read": true,
+      "weekly": {
+        "$week": {
+          ".validate": "$week.matches(/^[0-9]{4}-W[0-9]{2}$/)",
+          ".indexOn": "xp",
+          "$device": {
+            ".write": "auth != null && auth.uid === $device && newData.child('xp').isNumber() && (!data.exists() || newData.child('xp').val() > data.child('xp').val())",
+            ".validate": "newData.hasChildren(['name','xp','ts'])",
+            "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12" },
+            "xp": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999999" },
+            "ts": { ".validate": "newData.isNumber()" }
+          }
+        }
+      },
+      "alltime": {
+        ".indexOn": "xp",
+        "$device": {
+          ".write": "auth != null && auth.uid === $device && newData.child('xp').isNumber() && (!data.exists() || newData.child('xp').val() > data.child('xp').val())",
+          ".validate": "newData.hasChildren(['name','xp','ts'])",
+          "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12" },
+          "xp": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999999" },
+          "ts": { ".validate": "newData.isNumber()" }
+        }
+      }
+    },
+
+    "speedrun": {
+      ".read": true,
+      "$world": {
+        ".validate": "$world.matches(/^(1|2|3|4|6|9|10|12|13)$/)",
+        ".indexOn": "timeMs",
+        "$device": {
+          ".write": "auth != null && auth.uid === $device && newData.child('timeMs').isNumber() && (!data.exists() || newData.child('timeMs').val() < data.child('timeMs').val())",
+          ".validate": "newData.hasChildren(['name','timeMs','ts'])",
+          "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12" },
+          "timeMs": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 3600000" },
+          "ts": { ".validate": "newData.isNumber()" }
+        }
+      }
+    },
+
+    "duelStats": {
+      ".read": true,
+      "$device": {
+        ".write": "auth != null && auth.uid === $device && newData.child('wins').isNumber() && newData.child('losses').isNumber() && (!data.exists() || (newData.child('wins').val() + newData.child('losses').val()) >= (data.child('wins').val() + data.child('losses').val()))",
+        ".validate": "newData.hasChildren(['name','wins','losses','ts'])",
+        "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12" },
+        "wins": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
+        "losses": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
+        "ts": { ".validate": "newData.isNumber()" }
+      }
+    },
+
+    "wallets": {
+  "$uid": {
+    ".read": "auth != null && auth.uid === $uid",
+    ".write": "auth != null && auth.uid === $uid",
+    ".validate": "newData.hasChildren(['address','ts'])",
+    "address": { ".validate": "newData.isString() && newData.val().matches(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)" },
+    "ts": { ".validate": "newData.isNumber()" }
+  }
+},
+
+    "ffaStats": {
+      ".read": true,
+      "$device": {
+        ".write": "auth != null && auth.uid === $device && newData.child('wins').isNumber() && newData.child('losses').isNumber() && (!data.exists() || (newData.child('wins').val() + newData.child('losses').val()) >= (data.child('wins').val() + data.child('losses').val()))",
+        ".validate": "newData.hasChildren(['name','wins','losses','ts'])",
+        "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12" },
+        "wins": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
+        "losses": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
+        "ts": { ".validate": "newData.isNumber()" }
+      }
+    }
+  }
+}
