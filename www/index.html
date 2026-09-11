@@ -16440,6 +16440,32 @@ function _lmsShortAddr(addr){
   return addr.slice(0,4) + '…' + addr.slice(-4);
 }
 
+// Le plugin Android (SolanaWalletPlugin.kt) encode la clé publique en Base64
+// (Base64.encodeToString(...)) — mais une adresse Solana s'exprime toujours en
+// Base58 par convention (c'est aussi ce que valident les Rules Firebase sur
+// wallets/$uid). Sans cette conversion, la chaîne Base64 contient des
+// caractères ('+', '/', '=') absents de l'alphabet Base58 : la regex des
+// Rules la rejette et l'écriture RTDB échoue en PERMISSION_DENIED, même si
+// l'UI affiche correctement la valeur brute reçue.
+function _lmsBase64ToBase58(b64){
+  const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  let digits = [0];
+  for(let i = 0; i < bytes.length; i++){
+    let carry = bytes[i];
+    for(let j = 0; j < digits.length; j++){
+      carry += digits[j] << 8;
+      digits[j] = carry % 58;
+      carry = (carry / 58) | 0;
+    }
+    while(carry > 0){ digits.push(carry % 58); carry = (carry / 58) | 0; }
+  }
+  let result = '';
+  for(let k = 0; bytes[k] === 0 && k < bytes.length - 1; k++) result += '1';
+  for(let q = digits.length - 1; q >= 0; q--) result += ALPHABET[digits[q]];
+  return result;
+}
+
 function _lmsSolanaWalletPlugin(){
   return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SolanaWallet;
 }
@@ -16461,7 +16487,7 @@ function _lmsConnectSolanaWallet(){
     iconUri: 'favicon.ico',
     cluster: 'devnet' // à repasser en 'mainnet-beta' au lancement réel post-hackathon
   }).then(result => {
-    _lmsWalletAddress = result && result.publicKey;
+    _lmsWalletAddress = result && result.publicKey ? _lmsBase64ToBase58(result.publicKey) : null;
     if(!_lmsWalletAddress) throw new Error('publicKey manquante dans la réponse');
     try{ localStorage.setItem('lms_wallet_address', _lmsWalletAddress); }catch(e){}
     try{ localStorage.setItem('lms_wallet_auth_token', result.authToken || ''); }catch(e){}
