@@ -1,8 +1,16 @@
 apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
 
 android {
     namespace = "fr.kristen.lastmanskating"
     compileSdk = rootProject.ext.compileSdkVersion
+	    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
     defaultConfig {
         applicationId "fr.kristen.lastmanskating"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -41,6 +49,7 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+	implementation "com.solanamobile:mobile-wallet-adapter-clientlib-ktx:2.0.2"
 }
 
 apply from: 'capacitor.build.gradle'

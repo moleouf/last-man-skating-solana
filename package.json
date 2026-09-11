@@ -22,7 +22,7 @@
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capgo/native-purchases": "^8.7.0",
-    "capacitor-solana-mwa": "file:../../capacitor-solana-mwa"
+    "capacitor-solana-mwa": "file:./capacitor-solana-mwa"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5"

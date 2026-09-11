@@ -1027,6 +1027,13 @@ canvas{display:block;}
   background:rgba(0,0,0,0.55); border-color:rgba(255,255,255,0.35);
   pointer-events:auto;
 }
+/* Zone cliquable à l'intérieur du toast (ex: "voir dans l'Armurerie" du skin provisoire,
+   voir _lmsClaimTempSkin/_lmsGoToTempSkinInArmory) — même besoin que .unlock-toast-close
+   ci-dessus : #unlock-toast a pointer-events:none par défaut, donc tout contenu cliquable
+   à l'intérieur doit explicitement remettre pointer-events:auto, sinon le clic traverse
+   le toast et retombe sur ce qu'il y a en dessous (bug initial : le tap semblait ne rien
+   faire ou activer un élément différent selon l'écran affiché derrière le toast). */
+#unlock-toast .lms-toast-tap-zone{ pointer-events:auto; cursor:pointer; }
 /* Toast monde verrouillé */
 #locked-toast{
   position:fixed; bottom:130px; left:50%; transform:translateX(-50%) translateY(20px);
@@ -1152,6 +1159,11 @@ canvas{display:block;}
 .shop-section{width:min(520px,96vw);margin-bottom:20px;}
 .lms-coin-pulse{animation:lmsCoinPulse 1.4s ease-out 2;border-radius:12px;}
 @keyframes lmsCoinPulse{0%{box-shadow:0 0 0 0 rgba(255,210,0,0.7);}70%{box-shadow:0 0 0 14px rgba(255,210,0,0);}100%{box-shadow:0 0 0 0 rgba(255,210,0,0);}}
+/* Même principe que .lms-coin-pulse, teinté violet (couleur du toast skin provisoire) —
+   utilisé pour repérer la tuile du skin gagné en pub quand on arrive depuis le toast,
+   voir _lmsGoToTempSkinInArmory(). */
+.lms-skin-highlight-pulse{animation:lmsSkinHighlightPulse 1.4s ease-out 2;}
+@keyframes lmsSkinHighlightPulse{0%{box-shadow:0 0 0 0 rgba(200,100,255,0.85);}70%{box-shadow:0 0 0 14px rgba(200,100,255,0);}100%{box-shadow:0 0 0 0 rgba(200,100,255,0);}}
 .shop-section-title{
   font-family:'Black Han Sans',sans-serif;font-size:13px;letter-spacing:3px;
   color:rgba(255,255,255,.45);text-transform:uppercase;margin-bottom:8px;
@@ -15998,6 +16010,18 @@ document.addEventListener('keyup', e => {
       const invitePop = document.getElementById('lms-invite-popup');
       if(invitePop && invitePop.classList.contains('active')) scope = invitePop;
     }
+    // unlock-toast (ex: skin provisoire gagné en pub, voir _lmsClaimTempSkin) : peut s'afficher
+    // PAR-DESSUS un overlay déjà actif (Armurerie...) grâce à son z-index gonflé (opts.zIndex),
+    // mais #unlock-toast vit hors du DOM de tous les overlays (tout en bas du <body>, voir
+    // ligne ~78830) — sans cet override, la boucle overlayIds ci-dessus aurait déjà fixé le
+    // scope sur l'overlay dessous et le D-pad n'aurait jamais pu atteindre le contenu du toast
+    // (bouton ✕, ni la zone "voir dans l'Armurerie"). Même absence de garde `scope === document`
+    // que wrapped-overlay/streak-popup ci-dessus, pour la même raison : reprendre la main même
+    // par-dessus un overlay déjà scopé.
+    {
+      const unlockToast = document.getElementById('unlock-toast');
+      if(unlockToast && unlockToast.classList.contains('show')) scope = unlockToast;
+    }
     const nodes = scope.querySelectorAll('button, [onclick], [tabindex]');
     const out = [];
     for(const el of nodes){
@@ -24135,6 +24159,19 @@ function _duelHandleSingleLoss(_loserPlayerObj, _roundWinnerIsHuman){
   if(typeof _lmsOnlineDuelActive !== 'undefined' && _lmsOnlineDuelActive && typeof _lmsOnlineDuelSnapshotAndEndSync === 'function'){
     _lmsOnlineDuelSnapshotAndEndSync();
   }
+  // FIX "duel bloqué indéfiniment après un duel en ligne, y compris lors de la partie SUIVANTE" :
+  // checkWin() pose duelRoundBusy=true en attendant le verdict de l'hôte (voir plus haut) ; ce
+  // verdict, une fois appliqué, atterrit ICI pour la manche qui termine réellement le duel — mais
+  // rien ne remettait duelRoundBusy à false sur CETTE branche (contrairement à la branche 'tie' et
+  // à son équivalent FFA, qui le font explicitement). Comme checkWin() retourne immédiatement tant
+  // que duelRoundBusy est true, et que startGame() ne réinitialise PAS ce flag (seul returnToMenu()
+  // le fait), un duel en ligne qui se terminait normalement laissait ce flag bloqué à true pour le
+  // reste de la session : plus AUCUNE fin de partie ne pouvait être détectée dans la partie
+  // suivante (rejouer/rejouer avec des amis, y compris en duel hors-ligne vs IA si l'adversaire
+  // n'était plus disponible) — quel que soit le joueur qui meure en premier, ou même si les deux
+  // meurent. _lmsOnlineDuelShowWait(false) est un no-op sûr hors ligne (rien à cacher dans ce cas).
+  duelRoundBusy = false;
+  if(typeof _lmsOnlineDuelShowWait === 'function') _lmsOnlineDuelShowWait(false);
   return false; // duel terminé — appelant doit afficher l'écran de victoire
 }
 
@@ -57794,20 +57831,20 @@ function _lmsAdMobShowRewarded(){
     // cette promesse ne rejette → ne PAS relancer le JSON par-dessus (voir commentaire
     // du flag _lmsRewardedAlreadyHandled plus haut).
     if(_lmsRewardedAlreadyHandled) return;
-    // AdMob pas prêt (préchargement pas fini) / erreur → fallback vidéo JSON perso si dispo,
-    // sinon on accorde directement (comportement dev/test, pour ne jamais bloquer le joueur).
     _AdMob.removeAllListeners();
-    if(_lmsRewarded.videoUrl){
-      // forceMuted=true ici uniquement : showRewardVideoAd() a pu déjà lancer
-      // le rendu/l'audio natif AdMob avant de rejeter (cas fréquent en connexion
-      // faible — l'activité native démarre puis échoue en cours de chargement).
-      // On ne peut pas savoir avec certitude si l'audio natif tourne encore, donc
-      // on coupe le son de la vidéo JSON de secours par précaution pour éviter
-      // la double lecture audio simultanée.
-      _lmsPlayJsonRewardedVideo(true);
-    } else {
-      setTimeout(()=> _lmsClaimRewarded(), 500);
-    }
+    // FIX "son/vidéo JSON perso entendus ou enchaînés derrière une pub AdMob rewarded" :
+    // l'ancien code rejouait ici la VRAIE vidéo JSON (kristen.fr) en fallback dès que
+    // showRewardVideoAd() rejetait — mais comme documenté ci-dessus, cette promesse peut
+    // rejeter APRÈS que l'activité native AdMob ait déjà commencé à s'afficher/jouer du
+    // son (connexion faible : l'activité démarre puis échoue en cours de chargement).
+    // forceMuted=true coupait bien le son de la vidéo JSON, mais ne l'empêchait pas de se
+    // charger et s'afficher quand même, muette, par-dessus ou juste après AdMob — visible
+    // à l'écran même sans le son. Exactement le même risque que documenté pour l'interstitielle
+    // (voir _lmsAdMobShowInterstitial ci-dessous), qui elle ne rejoue JAMAIS de vraie vidéo
+    // depuis son propre catch() : elle affiche un simple placeholder local. On applique
+    // maintenant le même principe ici — on accorde directement la récompense plutôt que de
+    // risquer une 2e pub par-dessus une pub AdMob potentiellement encore active.
+    setTimeout(()=> _lmsClaimRewarded(), 500);
   });
 }
 
@@ -58446,9 +58483,16 @@ function _lmsClaimTempSkin(){
     // de l'armurerie (_drawSkinIconPreview), qui déclenche aussi le chargement paresseux du sprite.
     // Bouton fermer (voir _lmsShowUnlockToastHTML) ajouté automatiquement par le helper.
     _lmsShowUnlockToastHTML(
-      `<div style="display:flex;align-items:center;justify-content:center;gap:10px;">`
+      // Toast cliquable (voir _lmsGoToTempSkinInArmory) : ouvre l'Armurerie — si besoin —
+      // puis scrolle jusqu'à la tuile du skin gagné pour ne pas laisser le joueur la
+      // chercher lui-même dans la grille. event.stopPropagation() pour ne pas interférer
+      // avec le bouton fermer (✕), ajouté à côté par le helper, hors de ce div.
+      `<div class="lms-toast-tap-zone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;" onclick="_lmsGoToTempSkinInArmory('${skinId}');event.stopPropagation();" ontouchstart="_lmsGoToTempSkinInArmory('${skinId}');event.stopPropagation();event.preventDefault();">`
+        + `<div style="display:flex;align-items:center;justify-content:center;gap:10px;">`
         + `<canvas id="temp-skin-toast-icon" width="112" height="112" style="width:38px;height:38px;flex-shrink:0;filter:drop-shadow(0 0 4px rgba(255,255,255,.6));"></canvas>`
-        + `<span>${t('tempSkinUnlockToast', label)}</span></div>`,
+        + `<span>${t('tempSkinUnlockToast', label)}</span></div>`
+        + `<div style="font-size:11px;opacity:.75;">${_lang==='en' ? "Tap to see it in the Armory" : "Touche pour la voir dans l'Armurerie"}</div>`
+        + `</div>`,
       {
         background: 'linear-gradient(135deg,rgba(80,0,120,0.95),rgba(30,0,60,0.95))',
         border: '2px solid rgba(200,100,255,0.9)',
@@ -58466,6 +58510,22 @@ function _lmsClaimTempSkin(){
     const iconCv = document.getElementById('temp-skin-toast-icon');
     if(builtDict) _drawSkinIconPreview(iconCv, builtDict.front_idle);
   }
+}
+// Appelé au clic sur le toast de skin provisoire (voir _lmsClaimTempSkin ci-dessus) : ouvre
+// l'Armurerie si elle n'est pas déjà affichée (le claim peut venir de l'écran de fin de
+// manche, où la boutique n'est pas ouverte) puis scrolle jusqu'à la tuile du skin gagné et
+// la met en évidence — même principe que _lmsPromptBuyCoins() pour la section pièces.
+function _lmsGoToTempSkinInArmory(skinId){
+  _lmsCloseUnlockToast();
+  const overlay = document.getElementById('shop-overlay');
+  // openShop() appelle renderShop() de façon synchrone (pas de promesse/async) : la grille
+  // #shop-skins est donc déjà à jour dès que openShop() retourne, pas besoin d'attendre un frame.
+  if(!overlay || !overlay.classList.contains('active')) openShop();
+  const tile = document.querySelector('#shop-skins [data-skin-id="' + skinId + '"]');
+  if(!tile) return;
+  tile.scrollIntoView({behavior:'smooth', block:'center'});
+  tile.classList.remove('lms-skin-highlight-pulse'); void tile.offsetWidth; // force le restart de l'anim si déjà en cours
+  tile.classList.add('lms-skin-highlight-pulse');
 }
 // Tire un skin au hasard parmi tous ceux éligibles à l'essai temporaire — exclut uniquement
 // le skin premium (racki_ultime1, IAP payant — voir entry.premium) pour ne pas cannibaliser cet
@@ -71217,6 +71277,9 @@ function _renderShopSkins(){
     // "✓ ÉQUIPÉ" ET reste grisée avec un cadenas en même temps, contradictoire.
     const showUnlocked = isOwned || isEq;
     const div = document.createElement('div');
+    // Permet de retrouver/scroller vers cette tuile précise depuis l'extérieur — voir
+    // _lmsGoToTempSkinInArmory(), appelé au clic sur le toast de skin provisoire (pub).
+    div.dataset.skinId = id;
     const rObj = CARD_RARITY_BY_ID[entry.rarity] || CARD_RARITY_BY_ID.commune;
     const col = rObj.col;
     // ── Déverrouillé/équipé : bordure pleine couleur rareté + léger glow.

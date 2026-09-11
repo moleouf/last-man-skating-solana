@@ -30,4 +30,4 @@ include ':capgo-native-purchases'
 project(':capgo-native-purchases').projectDir = new File('../node_modules/@capgo/native-purchases/android')
 
 include ':capacitor-solana-mwa'
-project(':capacitor-solana-mwa').projectDir = new File('../../../capacitor-solana-mwa/android')
+project(':capacitor-solana-mwa').projectDir = new File('../capacitor-solana-mwa/android')
