@@ -13,6 +13,7 @@ import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.RpcCluster
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
+import com.solana.mobilewalletadapter.clientlib.successPayload
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,6 +33,18 @@ class SolanaWalletPlugin : Plugin() {
 
     private var authToken: String? = null
     private val pluginScope = CoroutineScope(Dispatchers.Main)
+
+    // IMPORTANT : ActivityResultSender s'appuie sur registerForActivityResult(),
+    // qui DOIT être enregistré avant que l'Activity n'atteigne l'état STARTED.
+    // Le créer à la demande (dans authorize()/etc., déclenché par un tap utilisateur
+    // bien après le démarrage) provoque un crash IllegalStateException — c'est ce
+    // qui causait le plantage au clic sur "Connecter mon wallet". On le crée une
+    // seule fois ici, dans load(), appelé tôt par Capacitor pendant l'init de l'activité.
+    private lateinit var sender: ActivityResultSender
+
+    override fun load() {
+        sender = ActivityResultSender(activity)
+    }
 
     private fun clusterFromString(name: String?): RpcCluster = when (name) {
         "mainnet-beta" -> RpcCluster.MainnetBeta
@@ -54,7 +67,6 @@ class SolanaWalletPlugin : Plugin() {
 
     @PluginMethod
     fun authorize(call: PluginCall) {
-        val sender = ActivityResultSender(activity)
         val adapter = buildAdapter(call)
         val cluster = clusterFromString(call.getString("cluster"))
 
@@ -95,7 +107,6 @@ class SolanaWalletPlugin : Plugin() {
             call.reject("MISSING_AUTH_TOKEN")
             return
         }
-        val sender = ActivityResultSender(activity)
         val adapter = buildAdapter(call)
         val cluster = clusterFromString(call.getString("cluster"))
 
@@ -131,7 +142,6 @@ class SolanaWalletPlugin : Plugin() {
             call.resolve() // rien à faire
             return
         }
-        val sender = ActivityResultSender(activity)
         val adapter = buildAdapter(call)
 
         pluginScope.launch {
@@ -156,7 +166,6 @@ class SolanaWalletPlugin : Plugin() {
             Base64.decode(txArray.getString(i), Base64.DEFAULT)
         }
 
-        val sender = ActivityResultSender(activity)
         val adapter = buildAdapter(call)
 
         pluginScope.launch {
@@ -200,7 +209,6 @@ class SolanaWalletPlugin : Plugin() {
         val addressBytes = Array(addresses.length()) { i -> Base64.decode(addresses.getString(i), Base64.DEFAULT) }
         val payloadBytes = Array(payloads.length()) { i -> Base64.decode(payloads.getString(i), Base64.DEFAULT) }
 
-        val sender = ActivityResultSender(activity)
         val adapter = buildAdapter(call)
 
         pluginScope.launch {
