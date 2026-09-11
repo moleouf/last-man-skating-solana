@@ -16428,6 +16428,73 @@ function toggleVibrations(){
   if(_vibrationsEnabled) vibrate(18); // petit retour de confirmation quand on réactive
   _syncSettingsUI();
 }
+// ── Wallet Solana (Clock In Hackathon) ────────────────────────────────────
+// Adresse publique mise en cache localement pour un affichage immédiat au
+// prochain lancement (pas d'attente réseau) ; la RTDB reste la source de
+// vérité pour le Worker qui calcule/soumet le score on-chain.
+let _lmsWalletAddress = null;
+try{ _lmsWalletAddress = localStorage.getItem('lms_wallet_address') || null; }catch(e){}
+
+function _lmsShortAddr(addr){
+  if(!addr || addr.length < 10) return addr || '';
+  return addr.slice(0,4) + '…' + addr.slice(-4);
+}
+
+function _lmsSolanaWalletPlugin(){
+  return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SolanaWallet;
+}
+
+function _lmsConnectSolanaWallet(){
+  const plugin = _lmsSolanaWalletPlugin();
+  if(!plugin){
+    // Absent en build Play Store pur (module non inclus) ou si l'app n'a
+    // pas encore été resync/rebuild avec le plugin actif.
+    alert('Wallet Solana indisponible dans cette version de l\'app.');
+    return;
+  }
+  const btn = document.getElementById('settings-wallet-btn');
+  if(btn){ btn.textContent = '...'; btn.disabled = true; }
+
+  plugin.authorize({
+    identityName: 'Last Man Skating',
+    identityUri: 'https://lastmanskating.app',
+    iconUri: 'favicon.ico',
+    cluster: 'devnet' // à repasser en 'mainnet-beta' au lancement réel post-hackathon
+  }).then(result => {
+    _lmsWalletAddress = result && result.publicKey;
+    if(!_lmsWalletAddress) throw new Error('publicKey manquante dans la réponse');
+    try{ localStorage.setItem('lms_wallet_address', _lmsWalletAddress); }catch(e){}
+    try{ localStorage.setItem('lms_wallet_auth_token', result.authToken || ''); }catch(e){}
+    // Écriture RTDB — même convention que le reste du jeu (_lmsFbDb.ref(...).set(...)).
+    // Nécessite une règle Firebase dédiée sur le nœud "wallets" (pas encore ajoutée
+    // dans rules.json au moment où ce code est écrit — à faire avant de tester).
+    if(_lmsFbDb && _lmsAuthUid){
+      _lmsFbDb.ref('wallets/' + _lmsAuthUid).set({
+        address: _lmsWalletAddress,
+        ts: Date.now()
+      }).catch(e => console.error('[wallet] échec écriture RTDB:', e));
+    } else {
+      console.warn('[wallet] auth Firebase pas encore prête — adresse gardée en local uniquement pour l\'instant.');
+    }
+    _syncSettingsUI();
+  }).catch(err => {
+    console.error('[wallet] authorize() a échoué:', err);
+    const msg = String(err && err.message || err);
+    if(msg.indexOf('NO_WALLET_FOUND') !== -1){
+      alert('Aucune app wallet compatible détectée sur ce téléphone (Phantom, Solflare...). Installe-en une pour connecter ton wallet.');
+    } else {
+      alert('Connexion au wallet impossible pour le moment.');
+    }
+    _syncSettingsUI();
+  });
+}
+
+function _lmsSyncWalletButton(){
+  const btn = document.getElementById('settings-wallet-btn');
+  if(!btn) return;
+  btn.disabled = false;
+  btn.textContent = _lmsWalletAddress ? _lmsShortAddr(_lmsWalletAddress) : 'CONNECTER';
+}
 // ── Taille des boutons (Petit / Moyen / Grand) ──
 const _BTN_SIZE_OPTS = [0.85, 1, 1.15];
 const _BTN_SIZE_KEYS = ['settingsBtnSizeSmall','settingsBtnSizeMedium','settingsBtnSizeLarge'];
@@ -16709,6 +16776,7 @@ function _syncSettingsUI(){
   if(f('settings-commentator-btn')) f('settings-commentator-btn').textContent = _commentatorEnabled ? t('settingsOn') : t('settingsOff');
   if(f('settings-vibrations-label')) f('settings-vibrations-label').textContent = t('settingsVibrationsLabel');
   if(f('settings-vibrations-btn')) f('settings-vibrations-btn').textContent = _vibrationsEnabled ? t('settingsOn') : t('settingsOff');
+  _lmsSyncWalletButton();
   // Sensibilité joystick
   if(f('settings-joysens-label')) f('settings-joysens-label').textContent = t('settingsJoySensLabel');
   {
@@ -76391,6 +76459,12 @@ if(typeof window !== 'undefined'){
           oninput="_onPlayerNameInput(this.value)" onblur="_onPlayerNameCommit(this.value)"
           onkeydown="if(event.key==='Enter'){this.blur();}"
           style="flex:1;min-width:0;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(160,60,255,0.35);border-radius:8px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;padding:7px 10px;outline:none;text-align:right;">
+      </div>
+      <!-- ── Wallet Solana (Clock In Hackathon) ── connexion MWA native, jamais de clé privée
+           côté JS — le plugin Kotlin gère tout l'échange avec l'app wallet installée. -->
+      <div class="settings-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:10px 12px;">
+        <div id="settings-wallet-label" style="font-size:12px;letter-spacing:1px;color:rgba(220,180,255,0.9);flex:1;min-width:0;">🔗 WALLET SOLANA</div>
+        <button type="button" tabindex="0" id="settings-wallet-btn" onclick="_lmsConnectSolanaWallet()" style="flex-shrink:0;background:rgba(160,60,255,0.15);border:1px solid rgba(160,60,255,0.35);border-radius:20px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-width:110px;text-align:center;">CONNECTER</button>
       </div>
       <!-- Côté joystick -->
       <div class="settings-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:10px 12px;">
