@@ -14,3 +14,4 @@ node_modules/
 .idea/
 *.iml
 local.properties
+capacitor-solana-mwa/android/build/
