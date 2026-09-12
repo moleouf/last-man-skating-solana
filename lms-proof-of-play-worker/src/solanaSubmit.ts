@@ -68,7 +68,14 @@ export async function submitWeeklyScoresOnChain(
   weekId: string,
   players: PlayerScoreInput[]
 ): Promise<SubmitResult[]> {
-  const connection = new Connection(rpcUrl, "confirmed");
+  // Timeout de confirmation augmenté à 60s (défaut 30s) — un RPC plus lent
+  // (ou devnet congestionné) peut dépasser 30s pour confirmer alors que la
+  // transaction a bien été acceptée on-chain (constaté en test : succès
+  // confirmé sur Solana Explorer malgré un timeout à 30s côté client).
+  const connection = new Connection(rpcUrl, {
+    commitment: "confirmed",
+    confirmTransactionInitialTimeout: 60000,
+  });
   const wallet = walletFromSecretKey(authoritySecretKeyBase58);
   const provider = new anchor.AnchorProvider(connection, wallet, { commitment: "confirmed" });
   const programId = new PublicKey(programIdStr); // toujours utile plus bas pour les PDA
