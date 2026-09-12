@@ -1,0 +1,122 @@
+{
+  "address": "GQeKyxHQGFv46z8hM5KocYa5hrUSea1hYJrDXyH41caH",
+  "metadata": {
+    "name": "lms_proof_of_play",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Converti à la main depuis un export legacy (pré-0.30) du 10/09/2026"
+  },
+  "instructions": [
+    {
+      "name": "initializeWeeklyPool",
+      "discriminator": [199, 4, 78, 236, 163, 252, 137, 199],
+      "accounts": [
+        { "name": "authority", "writable": true, "signer": true },
+        { "name": "weeklyPool", "writable": true, "signer": false },
+        { "name": "mint", "writable": false, "signer": false },
+        { "name": "vault", "writable": true, "signer": false },
+        { "name": "tokenProgram", "writable": false, "signer": false },
+        { "name": "systemProgram", "writable": false, "signer": false },
+        { "name": "rent", "writable": false, "signer": false }
+      ],
+      "args": [{ "name": "weekId", "type": "string" }]
+    },
+    {
+      "name": "fundPool",
+      "discriminator": [36, 57, 233, 176, 181, 20, 87, 159],
+      "accounts": [
+        { "name": "funder", "writable": true, "signer": true },
+        { "name": "funderTokenAccount", "writable": true, "signer": false },
+        { "name": "weeklyPool", "writable": true, "signer": false },
+        { "name": "vault", "writable": true, "signer": false },
+        { "name": "tokenProgram", "writable": false, "signer": false }
+      ],
+      "args": [{ "name": "amount", "type": "u64" }]
+    },
+    {
+      "name": "submitScore",
+      "discriminator": [212, 128, 45, 22, 112, 82, 85, 235],
+      "accounts": [
+        { "name": "authority", "writable": true, "signer": true },
+        { "name": "player", "writable": false, "signer": false },
+        { "name": "weeklyPool", "writable": true, "signer": false },
+        { "name": "playerScore", "writable": true, "signer": false },
+        { "name": "systemProgram", "writable": false, "signer": false }
+      ],
+      "args": [
+        { "name": "weekId", "type": "string" },
+        { "name": "newScore", "type": "u64" }
+      ]
+    },
+    {
+      "name": "finalizePool",
+      "discriminator": [74, 182, 193, 101, 92, 152, 202, 142],
+      "accounts": [
+        { "name": "authority", "writable": false, "signer": true },
+        { "name": "weeklyPool", "writable": true, "signer": false }
+      ],
+      "args": [{ "name": "weekId", "type": "string" }]
+    },
+    {
+      "name": "claimScratch",
+      "discriminator": [73, 72, 174, 116, 49, 218, 108, 8],
+      "accounts": [
+        { "name": "player", "writable": true, "signer": true },
+        { "name": "weeklyPool", "writable": false, "signer": false },
+        { "name": "playerScore", "writable": true, "signer": false },
+        { "name": "vault", "writable": true, "signer": false },
+        { "name": "playerTokenAccount", "writable": true, "signer": false },
+        { "name": "tokenProgram", "writable": false, "signer": false }
+      ],
+      "args": [{ "name": "weekId", "type": "string" }]
+    }
+  ],
+  "accounts": [
+    { "name": "WeeklyPool", "discriminator": [3, 195, 44, 82, 96, 32, 221, 165] },
+    { "name": "PlayerScore", "discriminator": [9, 136, 69, 222, 93, 178, 186, 241] }
+  ],
+  "types": [
+    {
+      "name": "WeeklyPool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "authority", "type": "pubkey" },
+          { "name": "mint", "type": "pubkey" },
+          { "name": "vault", "type": "pubkey" },
+          { "name": "weekId", "type": "string" },
+          { "name": "totalScore", "type": "u64" },
+          { "name": "totalPot", "type": "u64" },
+          { "name": "eligibleCount", "type": "u64" },
+          { "name": "finalized", "type": "bool" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "PlayerScore",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "player", "type": "pubkey" },
+          { "name": "weekId", "type": "string" },
+          { "name": "score", "type": "u64" },
+          { "name": "eligible", "type": "bool" },
+          { "name": "claimed", "type": "bool" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    { "code": 6000, "name": "WeekIdTooLong", "msg": "week_id dépasse la longueur max prévue pour les seeds" },
+    { "code": 6001, "name": "PoolAlreadyFinalized", "msg": "Cette pool hebdomadaire est déjà finalisée" },
+    { "code": 6002, "name": "PoolNotFinalized", "msg": "Cette pool hebdomadaire n'est pas encore finalisée" },
+    { "code": 6003, "name": "UnauthorizedAuthority", "msg": "Seule l'autorité backend peut effectuer cette action" },
+    { "code": 6004, "name": "UnauthorizedClaimant", "msg": "Ce compte de score n'appartient pas au joueur signataire" },
+    { "code": 6005, "name": "AlreadyClaimed", "msg": "Ce score a déjà été réclamé" },
+    { "code": 6006, "name": "EmptyPool", "msg": "Aucun score enregistré dans cette pool" },
+    { "code": 6007, "name": "PayoutTooSmall", "msg": "Le montant à réclamer est nul après calcul" },
+    { "code": 6008, "name": "MathOverflow", "msg": "Overflow arithmétique" }
+  ]
+}

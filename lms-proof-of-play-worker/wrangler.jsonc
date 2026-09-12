@@ -1,0 +1,39 @@
+{
+  "name": "lms-proof-of-play-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  // nodejs_compat est activé par défaut depuis cette compatibility_date,
+  // mais on le liste quand même explicitement pour la clarté / si tu baisses
+  // la date plus tard. Nécessaire pour Buffer/crypto utilisés par
+  // @solana/web3.js et @coral-xyz/anchor.
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Ajuste le jour/heure selon la fin de semaine réelle de ton système
+  // week_id (YYYY-Www) — exemple ici : lundi 03:00 UTC
+  "triggers": {
+    "crons": ["0 3 * * 1"]
+  },
+
+  "vars": {
+    "SOLANA_RPC_URL": "https://api.devnet.solana.com",
+    "SOLANA_PROGRAM_ID": "GQeKyxHQGFv46z8hM5KocYa5hrUSea1hYJrDXyH41caH",
+    // Trouvée dans LMS_v2115.html (_lmsFirebaseConfig.databaseURL) — pas
+    // secrète, déjà publique côté client, donc OK en "vars" en clair.
+    "FIREBASE_RTDB_URL": "https://last-man-skating-default-rtdb.europe-west1.firebasedatabase.app"
+  },
+
+  // Crée le namespace avec `npx wrangler kv namespace create WEEK_SNAPSHOT_KV`
+  // puis colle l'id retourné ci-dessous (remplace "METS-TON-KV-ID-ICI").
+  "kv_namespaces": [
+    { "binding": "WEEK_SNAPSHOT_KV", "id": "22d3cf9e9cf64b059980c14e3a18ffb0" }
+  ]
+
+  // Secrets à définir via `wrangler secret put <NOM>` (jamais dans ce fichier,
+  // jamais commités) :
+  //   FIREBASE_SERVICE_ACCOUNT_JSON  -> JSON complet du compte de service
+  //   SOLANA_AUTHORITY_SECRET_KEY    -> clé privée base58 du wallet authority
+  //   MANUAL_TRIGGER_SECRET          -> secret perso pour protéger /run-settlement
+  //                                      (déplacé depuis "vars" : une valeur en
+  //                                      dur "change-me-avant-prod" dans un
+  //                                      fichier commité n'était pas un secret)
+}
