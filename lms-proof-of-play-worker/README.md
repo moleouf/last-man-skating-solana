@@ -41,8 +41,13 @@ Solana Explorer, statut "Success", finalisée).
   cet historique (victoires contre un adversaire distinct uniquement)
   plutôt que du compteur agrégé actuel.
 
+✅ Fait (suite) :
+7. **`fund_pool` réel** — pool `2026-W37` alimentée avec succès le
+   12/09/2026 (1000 tokens de test, mint devnet 6 décimales). Testé via
+   script Solana Playground (mint + fundPool), pas encore automatisé
+   dans le worker (voir "Ce que ce worker suppose déjà fait ailleurs").
+
 ⏳ Reste à faire avant soumission finale :
-- `fund_pool` réel (la pool `2026-W37` n'a pas encore été alimentée)
 - Lien `claim_scratch` ↔ animation front (carte à gratter)
 - Décision mint devnet (simulation) vs SKR mainnet réel pour la démo
 - Déplacer `SOLANA_RPC_URL` de `vars` (clair) vers un secret Cloudflare
@@ -127,9 +132,9 @@ ton worker > Triggers).
 - `initialize_weekly_pool` et `fund_pool` pour le `weekId` de la semaine —
   pas automatisé ici volontairement, tant que le montant de la cagnotte
   n'est pas déterminé par une logique automatique (sponsoring, tips...).
-  Pour `2026-W37`, la pool a été initialisée manuellement via un script de
-  test Solana Playground avec un mint devnet de test (6 décimales) simulant
-  SKR — pas encore alimentée (`fund_pool` en attente).
+  Pour `2026-W37`, la pool a été initialisée et alimentée manuellement
+  via des scripts de test Solana Playground, avec un mint devnet de test
+  (6 décimales) simulant SKR — fait.
 - Le noeud `wallets/{uid}` — fait.
 
 ## Premier run après déploiement (ou après tout reset du KV)
