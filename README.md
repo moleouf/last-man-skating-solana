@@ -46,8 +46,27 @@ apparaître dans le classement live.
 - Programme : `lms_proof_of_play`
 - Réseau : Devnet
 - Program ID : `GQeKyxHQGFv46z8hM5KocYa5hrUSea1hYJrDXyH41caH`
-- Code source : `programs/lms_proof_of_play/src/lib.rs`
-- Tests : `tests/lms_proof_of_play.test.ts`
+- Code source : [`programs/lms_proof_of_play/`](./programs/lms_proof_of_play)
+- Tests : [`programs/lms_proof_of_play/tests/anchor.test.ts`](./programs/lms_proof_of_play/tests/anchor.test.ts)
+  — 8 tests unitaires passants (init pool, fund, submit_score, finalize,
+  claim 75/25, anti double-claim, anti-usurpation)
+
+## Backend de règlement (Cloudflare Worker)
+
+Le calcul des scores hebdomadaires et la soumission on-chain (`submit_score`,
+`finalize_pool`) tournent sur un Cloudflare Worker dédié — voir
+[`lms-proof-of-play-worker/`](./lms-proof-of-play-worker) pour le code
+complet et son propre README.
+
+Statut au 12/09/2026 :
+- Worker fonctionnel en local (`wrangler dev`), lit les stats depuis Firebase
+  RTDB, calcule le delta hebdo via un snapshot KV, soumet on-chain via
+  `@coral-xyz/anchor`.
+- Pool hebdomadaire réelle initialisée on-chain pour `weekId = 2026-W37`
+  (mint de test devnet à 6 décimales, simulant SKR).
+- Reste à faire avant soumission finale : alimenter la pool (`fund_pool`),
+  câbler `claim_scratch` sur l'animation front de la carte à gratter, décider
+  mint devnet vs SKR mainnet réel pour la démo.
 
 ## Licence / Auteur
 

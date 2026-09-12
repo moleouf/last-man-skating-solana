@@ -4,24 +4,21 @@ Plugin Capacitor natif pour brancher LMS sur Mobile Wallet Adapter (Android/Seek
 
 ## Statut
 
-Squelette fonctionnel, PAS testé sur device — à valider avant tout usage en hackathon.
-Points à vérifier en priorité :
+Testé avec succès sur device physique (Android, wallet MWA compatible) —
+connexion, autorisation, récupération de l'adresse publique et écriture
+dans Firebase RTDB toutes confirmées fonctionnelles en devnet au 11/09/2026.
 
-1. **Version exacte du SDK MWA.** L'API de `MobileWalletAdapter().transact(sender) { }`
-   (noms des méthodes `authorize`/`reauthorize`/`signAndSendTransactions`/`signMessages`,
-   forme des objets retournés `TransactionResult.Success.authResult` /
-   `.successPayload`) a changé entre versions majeures du SDK
-   `com.solanamobile:mobile-wallet-adapter-clientlib-ktx`. Le code de
-   `SolanaWalletPlugin.kt` correspond au pattern de la 2.0.x — compile-le contre
-   la doc/CHANGELOG à jour sur
-   https://github.com/solana-mobile/mobile-wallet-adapter avant de faire confiance
-   au moindre appel.
-2. **`activity` dans `ActivityResultSender`** doit être une `ComponentActivity`
-   (c'est le cas de la `BridgeActivity` Capacitor par défaut) — sinon caster/adapter.
-3. **Encodage.** MWA échange des `ByteArray` (clé publique, transactions, signatures) ;
-   ce plugin les encode en base64 pour transiter en JSON vers le JS. Côté JS, décoder
-   avec `atob`/`Buffer` puis reconstruire en `Uint8Array` avant de les passer à
-   `@solana/web3.js`.
+Point de vigilance validé en usage réel : bien laisser le wallet effectuer
+son retour automatique dans l'app après authorization — un retour manuel
+avant ce callback peut laisser la coroutine dans un état bloqué (MWA attend
+`onActivityResult`). À montrer clairement dans la vidéo de démo.
+
+Points encore à vérifier/durcir :
+1. Version exacte du SDK MWA (voir ci-dessous) — fonctionne en l'état, mais
+   pas revalidé contre un changelog SDK récent.
+2. `activity` dans `ActivityResultSender` — OK avec la `BridgeActivity`
+   Capacitor par défaut.
+3. Encodage base64→Uint8Array — fonctionne, adresse bien reconstruite côté JS.
 
 ## Installation dans le projet LMS (Capacitor existant)
 
