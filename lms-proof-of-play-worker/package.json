@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --persist-to=\"C:\\wrangler-state\"",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail"
   },
@@ -13,8 +13,8 @@
     "bs58": "^6.0.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260702.1",
+    "@cloudflare/workers-types": "^5.20260911.1",
     "typescript": "^5.5.0",
-    "wrangler": "^3.90.0"
+    "wrangler": "^4.131.1"
   }
 }

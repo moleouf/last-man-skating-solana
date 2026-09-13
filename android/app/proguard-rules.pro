@@ -59,26 +59,53 @@
 # ══════════════════════════════════════════════════════════════════
 # Google Mobile Ads (AdMob)
 # ══════════════════════════════════════════════════════════════════
-# RETIRÉ : les 2 anciennes règles "-keep public class com.google.android.gms.ads.** { *; }"
-# et "...gms.internal.ads.** { *; }" gardaient TOUT le SDK AdMob intact (aucune
-# optimisation/obfuscation/réduction possible dessus) — c'était probablement la
-# cause principale des taux à 34%. Le SDK Google Mobile Ads embarque son propre
-# consumer-rules.txt dans l'AAR (règles fines, déjà maintenues par Google), R8
-# les applique automatiquement sans rien à ajouter ici. On garde seulement un
-# -dontwarn pour éviter des warnings de build sans rien exempter d'optimisation :
+# HISTORIQUE DE CE BLOC (pour ne pas refaire le même aller-retour une 3e fois) :
+#   1. À l'origine : "-keep public class com.google.android.gms.ads.** { *; }" (tout,
+#      y compris l'interne) — fonctionnait, mais empêchait toute optimisation/
+#      obfuscation du SDK (taux d'optimisation du build pénalisé).
+#   2. Retiré complètement, en pariant sur le consumer-rules.txt embarqué dans l'AAR
+#      pour couvrir automatiquement les besoins de R8 → RÉGRESSION : "No adapters
+#      found" dans Ad Inspector (les classes d'adapter, chargées par réflexion par
+#      le SDK GMA — y compris pour son PROPRE réseau, pas seulement la médiation
+#      tierce — étaient invisibles pour l'analyse statique de R8 et donc supprimées).
+#   3. Ajout ciblé du 17/07 (juste .mediation.**) : insuffisant → RÉGRESSION ENCORE
+#      PIRE (plus aucune pub du tout, même Ad Inspector ne s'ouvre plus au
+#      secouement) : d'autres classes, hors du seul périmètre mediation.**, étaient
+#      elles aussi strippées.
+#   4. ICI : la règle officiellement recommandée par Google pour AdMob + R8 —
+#      compromis entre les 2 extrêmes déjà testés. "public *" (pas "*") : seule
+#      l'API PUBLIQUE du SDK est protégée (ce dont la réflexion du SDK GMA et le
+#      pont JS<->natif du plugin Capacitor ont besoin), R8 reste libre d'optimiser/
+#      renommer tout le reste (membres privés, classes internes non exposées) —
+#      contrairement au point 1, l'optimisation du SDK n'est donc pas totalement
+#      désactivée, juste restreinte à ce qui doit rester stable.
+-keep public class com.google.android.gms.ads.** {
+    public *;
+}
+-keep public class com.google.ads.** {
+    public *;
+}
 -dontwarn com.google.android.gms.**
+
+# Règles ciblées du 17/07 conservées (redondantes avec la règle publique ci-dessus dans la
+# plupart des cas, mais sans risque de les garder — portée volontairement étroite, elles ne
+# désactivent l'optimisation que sur les 3 packages listés, pas sur tout com.google.android.gms.ads) :
+-keep class com.google.android.gms.ads.mediation.** { *; }
+-keep class com.google.ads.mediation.admob.** { *; }
+-keep class com.google.android.gms.ads.internal.mediation.** { *; }
+
+# ══════════════════════════════════════════════════════════════════
+# Google Play Billing (utilisé par @capgo/native-purchases — bouton "Retirer les
+# pubs" + achats de pièces/skins premium)
+# ══════════════════════════════════════════════════════════════════
+# Pas encore de règle dédiée dans ce fichier avant aujourd'hui — la librairie Billing
+# embarque normalement son propre consumer-rules.txt, mais vu que le MÊME pari (compter
+# sur le consumer-rules.txt d'un SDK tiers sans règle explicite) vient de casser AdMob
+# deux fois de suite ci-dessus, on ajoute un filet de sécurité explicite ici aussi
+# plutôt que d'attendre un 3e aller-retour découvert en prod sur l'IAP cette fois.
+-keep class com.android.billingclient.api.** { *; }
+-dontwarn com.android.billingclient.api.**
 
 # Si (et seulement si) tu vois des crashs liés aux pubs en release après ce
 # changement, remets une règle bien plus ciblée plutôt que le blanket total,
 # par exemple juste sur les classes qui posent problème d'après le stacktrace.
-
-# AJOUT — 17/07 : test suite à "No adapters found" dans Ad Inspector en prod.
-# Ces classes sont chargées par réflexion par le SDK GMA (y compris pour le
-# réseau Google lui-même, pas seulement pour la médiation tierce). La chaîne
-# de consumer-rules.txt peut ne pas se propager correctement ici car
-# play-services-ads arrive via le module wrapper capacitor-community-admob
-# et non en dépendance Maven directe dans ce module app. Règle volontairement
-# étroite (pas de blanket .** { *; } sur tout com.google.android.gms.ads) :
--keep class com.google.android.gms.ads.mediation.** { *; }
--keep class com.google.ads.mediation.admob.** { *; }
--keep class com.google.android.gms.ads.internal.mediation.** { *; }

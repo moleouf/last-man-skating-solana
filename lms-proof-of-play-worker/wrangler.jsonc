@@ -15,7 +15,7 @@
   },
 
   "vars": {
-    "SOLANA_RPC_URL": "https://api.devnet.solana.com",
+    "SOLANA_RPC_URL": "https://smart-wispy-shape.solana-devnet.quiknode.pro/85f42701189289f958c8e8303412f0ec0c687d6a/",
     "SOLANA_PROGRAM_ID": "GQeKyxHQGFv46z8hM5KocYa5hrUSea1hYJrDXyH41caH",
     // Trouvée dans LMS_v2115.html (_lmsFirebaseConfig.databaseURL) — pas
     // secrète, déjà publique côté client, donc OK en "vars" en clair.
