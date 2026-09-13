@@ -1312,6 +1312,9 @@ canvas{display:block;}
 .lms-x-pill:hover,.lms-x-pill:active{background:rgba(0,80,180,0.75);border-color:rgba(0,212,255,.9);color:#fff;}
 .lms-x-pill:active,.lms-x-pill.lms-btn-pressed{transform:scale(0.92);}
 .lms-x-pill.lms-btn-pressed{background:rgba(0,80,180,0.75);border-color:rgba(0,212,255,.9);color:#fff;opacity:0.85;}
+.lms-x-pill.lms-btn-loading{pointer-events:none;opacity:0.75;}
+#wrapped-share-icon.lms-share-spin{display:inline-block;animation:lms-share-spin-kf 0.9s linear infinite;}
+@keyframes lms-share-spin-kf{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 /* Achievement panel */
 .achiev-row{
   display:flex;align-items:center;gap:10px;
@@ -1523,6 +1526,7 @@ canvas{display:block;}
     }
   }catch(e){ console.error('[Firebase] init error:', e); }
 </script>
+<script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
 </head>
 <body style="background:#00001a;">
 <!-- ── DEBUG : compteur FPS (version de test uniquement) ── -->
@@ -1749,7 +1753,7 @@ canvas{display:block;}
 <div id="wrapped-overlay" style="display:none;position:fixed;inset:0;z-index:9999;pointer-events:all;touch-action:pan-y;background:rgba(0,0,20,0.95);align-items:center;justify-content:safe center;flex-direction:column;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);">
   <canvas id="wrapped-canvas" width="1080" height="1780" style="width:min(400px,92vw);height:auto;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,0.6);border:1.5px solid rgba(255,200,80,0.4);"></canvas>
   <div style="display:flex;gap:10px;margin-top:16px;">
-    <button class="lms-x-pill" id="wrapped-share-btn" onclick="_lmsShareWrappedCard()" ontouchstart="_lmsShareWrappedCard();event.stopPropagation();" style="background:linear-gradient(135deg,rgba(120,40,0,0.85),rgba(200,140,0,0.85));border-color:rgba(255,200,80,.7);margin-top:0;">📤 <span id="wrapped-share-label">PARTAGER</span></button>
+    <button class="lms-x-pill" id="wrapped-share-btn" onclick="_lmsShareWrappedCard()" ontouchstart="_lmsShareWrappedCard();event.stopPropagation();" style="background:linear-gradient(135deg,rgba(120,40,0,0.85),rgba(200,140,0,0.85));border-color:rgba(255,200,80,.7);margin-top:0;"><span id="wrapped-share-icon">📤</span> <span id="wrapped-share-label">PARTAGER</span></button>
     <button class="lms-x-pill" id="wrapped-close-btn" onclick="closeWrappedCard()" ontouchstart="closeWrappedCard();event.stopPropagation();event.preventDefault();" style="margin-top:0;">✕ <span id="wrapped-close-label">FERMER</span></button>
   </div>
 </div>
@@ -2064,7 +2068,7 @@ canvas{display:block;}
             <canvas id="preview-blond" width="80" height="95" style="width:80px;height:95px;position:absolute;top:0;left:0;z-index:1;pointer-events:none;"></canvas>
           </div>
           <div class="char-name">ELOAN</div>
-          <div class="char-badge-link" onclick="event.stopPropagation();openPlayerCard('blond');" ontouchstart="event.stopPropagation();openPlayerCard('blond');"><div class="char-badge">🎯 Sniper</div><div class="char-num">#96</div></div>
+          <div class="char-badge-link" onclick="event.stopPropagation();openPlayerCard('blond');" ontouchstart="event.stopPropagation();event.preventDefault();openPlayerCard('blond');"><div class="char-badge">🎯 Sniper</div><div class="char-num">#96</div></div>
         </div>
         <div class="char-card" id="card-brun" onclick="selectChar('brun')" ontouchstart="selectChar('brun');event.stopPropagation();" style="position:relative;">
 
@@ -2076,7 +2080,7 @@ canvas{display:block;}
             <canvas id="preview-brun" width="80" height="95" style="width:80px;height:95px;position:absolute;top:0;left:0;z-index:1;pointer-events:none;"></canvas>
           </div>
           <div class="char-name">MYLOH</div>
-          <div class="char-badge-link" onclick="event.stopPropagation();openPlayerCard('brun');" ontouchstart="event.stopPropagation();openPlayerCard('brun');"><div class="char-badge">💪 Grinder</div><div class="char-num">#17</div></div>
+          <div class="char-badge-link" onclick="event.stopPropagation();openPlayerCard('brun');" ontouchstart="event.stopPropagation();event.preventDefault();openPlayerCard('brun');"><div class="char-badge">💪 Grinder</div><div class="char-num">#17</div></div>
         </div>
         <div class="char-card" id="card-eyleen" onclick="selectChar('eyleen')" ontouchstart="selectChar('eyleen');event.stopPropagation();" style="position:relative;">
 
@@ -2088,7 +2092,7 @@ canvas{display:block;}
             <canvas id="preview-eyleen" width="80" height="95" style="width:80px;height:95px;position:absolute;top:0;left:0;z-index:1;pointer-events:none;"></canvas>
           </div>
           <div class="char-name">EYLEEN</div>
-          <div class="char-badge-link" onclick="event.stopPropagation();openPlayerCard('eyleen');" ontouchstart="event.stopPropagation();openPlayerCard('eyleen');"><div class="char-badge">🎲 Enforcer</div><div class="char-num">#11</div></div>
+          <div class="char-badge-link" onclick="event.stopPropagation();openPlayerCard('eyleen');" ontouchstart="event.stopPropagation();event.preventDefault();openPlayerCard('eyleen');"><div class="char-badge">🎲 Enforcer</div><div class="char-num">#11</div></div>
         </div>
         <div class="char-card" id="card-romy" onclick="selectChar('romy')" ontouchstart="selectChar('romy');event.stopPropagation();" style="position:relative;">
 
@@ -2100,7 +2104,7 @@ canvas{display:block;}
             <canvas id="preview-romy" width="80" height="95" style="width:80px;height:95px;position:absolute;top:0;left:0;z-index:1;pointer-events:none;"></canvas>
           </div>
           <div class="char-name">ROMY</div>
-          <div class="char-badge-link" onclick="event.stopPropagation();openPlayerCard('romy');" ontouchstart="event.stopPropagation();openPlayerCard('romy');"><div class="char-badge">🧠 Clever</div><div class="char-num">#1</div></div>
+          <div class="char-badge-link" onclick="event.stopPropagation();openPlayerCard('romy');" ontouchstart="event.stopPropagation();event.preventDefault();openPlayerCard('romy');"><div class="char-badge">🧠 Clever</div><div class="char-num">#1</div></div>
         </div>
         <div class="char-card" id="card-kristen" onclick="selectChar('kristen')" ontouchstart="selectChar('kristen');event.stopPropagation();" style="position:relative;">
 
@@ -2113,7 +2117,7 @@ canvas{display:block;}
             <canvas id="preview-kristen" width="80" height="95" style="width:80px;height:95px;display:block;pointer-events:none;"></canvas>
           </div>
           <div class="char-name" id="kristen-display-name">KRISTEN</div>
-          <div class="char-badge-link" onclick="event.stopPropagation();openPlayerCard('kristen');" ontouchstart="event.stopPropagation();openPlayerCard('kristen');"><div class="char-badge">💀 Killer</div><div class="char-num">#56</div></div>
+          <div class="char-badge-link" onclick="event.stopPropagation();openPlayerCard('kristen');" ontouchstart="event.stopPropagation();event.preventDefault();openPlayerCard('kristen');"><div class="char-badge">💀 Killer</div><div class="char-num">#56</div></div>
           <button id="btn-kristen-edit" aria-label="Edit Kristen's avatar" onclick="event.stopPropagation();openKristenEditor();" ontouchstart="event.stopPropagation();openKristenEditor();" style="display:none;position:absolute;top:4px;right:4px;z-index:10;background:rgba(80,0,180,0.75);border:1px solid rgba(180,80,255,.6);border-radius:10px;color:rgba(255,200,255,0.9);font-size:11px;padding:2px 6px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;-webkit-tap-highlight-color:transparent;">✏️</button>
         </div>
       </div>
@@ -5319,6 +5323,34 @@ let _w10SkyCanvas=null,_w10SkyCtx=null,_w10SkyW=0,_w10SkyH=0,_w10SkyCamX=0,_w10S
 // remonter en qualité si l'appareil encaisse bien (voir _perfQuality plus bas).
 const _isCapacitorApp = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
 
+// ── Garde-fou "Bridge natif fraîchement rattaché" ───────────────────────────
+// Root cause identifiée via Crashlytics (NPE com.getcapacitor.Bridge.getPermissionStates,
+// même famille que le crash déjà corrigé sur le bouton wallet Solana) : juste après un
+// retour au premier plan (background → foreground, ou fermeture d'une pub AdMob), le
+// Bridge Capacitor peut être momentanément détaché de l'Activity. Un appel natif
+// (requestPermissions(), authorize(), etc.) déclenché dans cette fenêtre plante l'app
+// AVANT même de repasser la main au JS — un try/catch ne suffit donc pas, il faut éviter
+// l'appel tant que le Bridge n'est pas sûrement stabilisé. _lmsLastResumeTs est mis à
+// jour par le listener 'resume' plus bas ; _lmsMsSinceResume()/_lmsAwaitBridgeSettled()
+// sont réutilisés par tous les points d'appel natifs sensibles (streak, wallet...).
+// Initialisé à Date.now() (pas 0) : le lancement à froid de l'app doit être traité
+// comme un "resume" pour ce garde-fou — le Bridge natif n'est pas plus fiable au tout
+// premier chargement du script qu'après un retour de background, et un appel natif
+// sensible (checkPermissions/requestPermissions) peut être déclenché très tôt (ex.
+// visibilitychange avec document.hidden=true pendant la transition splash→WebView),
+// avant que _lmsLastResumeTs n'ait jamais été mis à jour par le listener 'resume'
+// (ligne ~5517) — avec 0, ce cas passait à travers le garde-fou sans aucun délai.
+let _lmsLastResumeTs = Date.now();
+const _LMS_BRIDGE_SETTLE_MS = 900; // délai empirique de stabilisation après un resume
+function _lmsMsSinceResume(){ return _lmsLastResumeTs ? (Date.now() - _lmsLastResumeTs) : Infinity; }
+// Attend, si besoin, que le Bridge soit "posé" avant d'exécuter un appel natif sensible.
+// Si aucun resume récent : exécute fn() immédiatement (cas normal, immense majorité des appels).
+function _lmsAwaitBridgeSettled(fn){
+  const elapsed = _lmsMsSinceResume();
+  if(elapsed >= _LMS_BRIDGE_SETTLE_MS){ fn(); return; }
+  setTimeout(fn, _LMS_BRIDGE_SETTLE_MS - elapsed);
+}
+
 // ── TEMP TEST — permet de tester les systèmes d'achat (IAP) sur PC/web ──────
 // Une fois testé et validé par Kristen, repasser à false pour ne plus afficher
 // les achats (retirer pubs, coin packs, prompt "il te manque X pièces") que
@@ -5449,6 +5481,22 @@ if(window.matchMedia){
   if(window.Capacitor){
     try{
       const { App, AdMob } = window.Capacitor.Plugins;
+      // Alimente le garde-fou _lmsAwaitBridgeSettled() (voir plus haut) : chaque retour
+      // au premier plan remet le compteur à zéro, ce qui retarde de _LMS_BRIDGE_SETTLE_MS
+      // tout appel natif sensible (ex: LN.requestPermissions() côté streak) déclenché
+      // juste après. 'resume' se déclenche aussi après la fermeture d'une pub AdMob
+      // plein écran (interstitiel/rewarded), qui repasse par le même cycle de vie Android.
+      if(App) App.addListener('resume', ()=>{ _lmsLastResumeTs = Date.now(); });
+      // Même logique côté sortie : 'pause' se déclenche seulement APRÈS que l'Activity ait
+      // réellement fini son onPause() natif — contrairement à 'visibilitychange' (DOM/WebView)
+      // qui peut se déclencher AVANT la fin de cette transition. On programme le rappel de
+      // streak ici plutôt que sur visibilitychange (voir plus bas), car c'est le signal le plus
+      // proche du moment réel où le Bridge peut être instable (ex: bascule vers Phantom pour
+      // l'auth wallet, cause du crash NPE getPermissionStates observé en prod).
+      if(App) App.addListener('pause', ()=>{
+        _lmsLastResumeTs = Date.now();
+        if(typeof _lmsScheduleStreakReminder === 'function') _lmsScheduleStreakReminder();
+      });
       if(AdMob){
         AdMob.initialize().then(()=>{
           // ── Consentement RGPD (UMP) — obligatoire avant toute requête de pub en zone EEA/UK ──
@@ -5575,7 +5623,14 @@ document.addEventListener('visibilitychange', function(){
       }
     }
     // Programme (ou reprogramme) le rappel de streak — no-op si le plugin n'est pas installé.
-    if(typeof _lmsScheduleStreakReminder === 'function') _lmsScheduleStreakReminder();
+    // Sur l'app native, ce n'est plus déclenché ici : le listener App.addListener('pause', ...)
+    // ci-dessus (plus haut dans le fichier) s'en charge, car il reflète le VRAI moment où
+    // l'Activity a fini sa transition — 'visibilitychange' (DOM) peut se déclencher trop tôt
+    // et appeler checkPermissions() pendant que le Bridge Capacitor est encore en train de
+    // se détacher, d'où le crash NPE getPermissionStates observé en prod (bascule vers Phantom
+    // pour l'auth wallet). On garde cet appel ici uniquement pour le fallback web (test sans
+    // Capacitor, où le plugin LocalNotifications est de toute façon absent — no-op réel).
+    if(!_isCapacitorApp && typeof _lmsScheduleStreakReminder === 'function') _lmsScheduleStreakReminder();
   } else {
     // Retour au premier plan en partie : reprendre timer + audio via closeConfirmMenu
     // si la pause a été ouverte par visibilitychange, on ne la ferme pas auto —
@@ -5616,6 +5671,19 @@ const _LMS_SCREEN_SNAPSHOT_LIST = [
   { id: 'shop-overlay',             restoreAs: 'shop-overlay' },
   { id: 'hof-overlay',              restoreAs: 'hof-overlay' },
 ];
+// Même besoin que la liste ci-dessus, mais pour les popups qui basculent via
+// style.display ('flex'/'none') au lieu de la classe .active — sync-popup est
+// volontairement absent : comme les écrans réseau ci-dessus, il dépend d'un
+// code d'appairage / état de connexion Firebase qui ne survivrait pas au
+// rechargement, le restaurer donnerait un écran cassé plutôt qu'utile.
+const _LMS_SCREEN_SNAPSHOT_DISPLAY_LIST = [
+  { id: 'missions-popup',    restoreAs: 'missions-popup' },
+  { id: 'daily-card-popup',  restoreAs: 'daily-card-popup' },
+  { id: 'mastery-popup',     restoreAs: 'mastery-popup' },
+  { id: 'settings-popup',    restoreAs: 'settings-popup' },
+  { id: 'streak-popup',      restoreAs: 'streak-popup' },
+  { id: 'wrapped-overlay',   restoreAs: 'wrapped-overlay' },
+];
 
 // Fonctions de (re)ouverture, vérifiées existantes et sans paramètre requis pour
 // chacun des `restoreAs` ci-dessus.
@@ -5625,6 +5693,12 @@ const _LMS_SCREEN_RESTORE = {
   'ffa-overlay':         () => { if(typeof _lmsFFAOpen === 'function') _lmsFFAOpen(); },
   'shop-overlay':        () => { if(typeof openShop === 'function') openShop(); },
   'hof-overlay':         () => { if(typeof openHOF === 'function') openHOF(); },
+  'missions-popup':      () => { if(typeof openMissionsPopup === 'function') openMissionsPopup(); },
+  'daily-card-popup':    () => { if(typeof openDailyCardPopup === 'function') openDailyCardPopup(); },
+  'mastery-popup':       () => { if(typeof openMasteryPopup === 'function') openMasteryPopup(); },
+  'settings-popup':      () => { if(typeof openSettingsPopup === 'function') openSettingsPopup(); },
+  'streak-popup':        () => { if(typeof openStreakPopup === 'function') openStreakPopup(); },
+  'wrapped-overlay':     () => { if(typeof openWrappedCard === 'function') openWrappedCard(); },
 };
 
 function _lmsSaveLastScreen(){
@@ -5632,6 +5706,13 @@ function _lmsSaveLastScreen(){
     for(const s of _LMS_SCREEN_SNAPSHOT_LIST){
       const el = document.getElementById(s.id);
       if(el && el.classList.contains('active')){
+        localStorage.setItem(_LMS_LAST_SCREEN_KEY, JSON.stringify({ screen: s.restoreAs, ts: Date.now() }));
+        return;
+      }
+    }
+    for(const s of _LMS_SCREEN_SNAPSHOT_DISPLAY_LIST){
+      const el = document.getElementById(s.id);
+      if(el && el.style.display === 'flex'){
         localStorage.setItem(_LMS_LAST_SCREEN_KEY, JSON.stringify({ screen: s.restoreAs, ts: Date.now() }));
         return;
       }
@@ -8917,9 +8998,9 @@ const STREAK_REWARDS = [
 ];
 const _STREAK_I18N = {
   fr: { title:'🔥 SÉRIE DE CONNEXION', sub:'Reviens chaque jour pour des récompenses croissantes !', claim:'RÉCLAMER', claimed:'DÉJÀ RÉCLAMÉ', day:'J', welcome:n=>`👋 Content de te revoir ! +${n} 🪙`, strip:n=> n<=1 ? `🔥 Série : jour 1 — touche pour voir` : `🔥 Série de ${n} jours — touche pour voir`, reminderTitle:'🔥 Ta série va expirer !', reminderBody:n=>`Reviens jouer avant minuit pour garder ta série de ${n} jour${n>1?'s':''} !`,
-    primeTitle:'🔔 Ne perds jamais ta série !', primeBody:n=>`On peut t'envoyer un petit rappel si tu es sur le point de perdre ta série de ${n} jours. Activer les notifications ?`, primeAccept:'ACTIVER', primeLater:'Plus tard' },
+    primeTitle:'🔔 Ne perds jamais ta série !', primeBody:n=>`On peut t'envoyer un petit rappel si tu es sur le point de perdre ta série de ${n} jours. Activer les notifications ?`, primeAccept:'ACTIVER', primeLater:'Plus tard', primeEnabledToast:'🔔 Notifications activées !' },
   en: { title:'🔥 LOGIN STREAK', sub:'Come back every day for growing rewards!', claim:'CLAIM', claimed:'ALREADY CLAIMED', day:'D', welcome:n=>`👋 Welcome back! +${n} 🪙`, strip:n=> n<=1 ? `🔥 Streak: day 1 — tap to view` : `🔥 ${n}-day streak — tap to view`, reminderTitle:'🔥 Your streak is about to expire!', reminderBody:n=>`Come back before midnight to keep your ${n}-day streak!`,
-    primeTitle:'🔔 Never lose your streak!', primeBody:n=>`We can send you a quick reminder if you're about to lose your ${n}-day streak. Turn on notifications?`, primeAccept:'TURN ON', primeLater:'Later' },
+    primeTitle:'🔔 Never lose your streak!', primeBody:n=>`We can send you a quick reminder if you're about to lose your ${n}-day streak. Turn on notifications?`, primeAccept:'TURN ON', primeLater:'Later', primeEnabledToast:'🔔 Notifications turned on!' },
 };
 function _streakLang(){ return (typeof _lang !== 'undefined' && _lang === 'en') ? 'en' : 'fr'; }
 function _todayKey(d){ d=d||new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -9080,19 +9161,26 @@ function _lmsScheduleStreakReminder(){
   try{
     const s = getStreakData();
     if(!s.lastDay) return; // pas encore de streak en cours, rien à rappeler
-    (LN.checkPermissions ? LN.checkPermissions() : Promise.resolve({display:'granted'})).then(perm=>{
-      if(!perm || perm.display !== 'granted') return; // pas autorisé : on ne programme rien, on ne redemande pas ici
-      const txt = _STREAK_I18N[_streakLang()];
-      const fireAt = new Date(Date.now() + 20 * 60 * 60 * 1000); // ~20h après la mise en arrière-plan
-      LN.schedule({
-        notifications: [{
-          id: STREAK_REMINDER_NOTIF_ID,
-          title: txt.reminderTitle,
-          body: txt.reminderBody(Math.max(1, s.count || 1)),
-          schedule: { at: fireAt, allowWhileIdle: true },
-        }]
-      }).catch(e=>console.error('[streak] schedule error:', e));
-    }).catch(e=>console.error('[streak] checkPermissions error:', e));
+    // Même garde-fou que requestPermissions()/wallet (voir _lmsAwaitBridgeSettled,
+    // déclaré plus haut) : checkPermissions() peut lui aussi déclencher le NPE
+    // com.getcapacitor.Bridge.getPermissionStates si le Bridge natif est fraîchement
+    // rattaché (retour de background / fermeture d'une pub AdMob) — jusqu'ici cet
+    // appel-ci n'était pas protégé, contrairement à requestPermissions().
+    _lmsAwaitBridgeSettled(()=>{
+      (LN.checkPermissions ? LN.checkPermissions() : Promise.resolve({display:'granted'})).then(perm=>{
+        if(!perm || perm.display !== 'granted') return; // pas autorisé : on ne programme rien, on ne redemande pas ici
+        const txt = _STREAK_I18N[_streakLang()];
+        const fireAt = new Date(Date.now() + 20 * 60 * 60 * 1000); // ~20h après la mise en arrière-plan
+        LN.schedule({
+          notifications: [{
+            id: STREAK_REMINDER_NOTIF_ID,
+            title: txt.reminderTitle,
+            body: txt.reminderBody(Math.max(1, s.count || 1)),
+            schedule: { at: fireAt, allowWhileIdle: true },
+          }]
+        }).catch(e=>console.error('[streak] schedule error:', e));
+      }).catch(e=>console.error('[streak] checkPermissions error:', e));
+    });
   }catch(e){ console.error('[streak] schedule error:', e); }
 }
 function _lmsCancelStreakReminder(){
@@ -9123,6 +9211,33 @@ function _lmsMaybeShowNotifPriming(streakCount){
   if(st.status === 'granted' || st.status === 'denied') return; // déjà tranché, on ne relance pas
   const DAY = 24*60*60*1000;
   if(st.status === 'later' && (Date.now() - (st.lastShown||0)) < 3*DAY) return; // pas plus d'1 relance / 3 jours
+  // ── Sync avec l'état RÉEL Android avant d'afficher notre écran ─────────────
+  // st.status ne reflète que NOTRE propre historique (a-t-on déjà montré CET
+  // écran, qu'a répondu le joueur dessus) — pas la permission système elle-même.
+  // Si le joueur a autorisé les notifs par un autre chemin (réglages Android,
+  // un autre prompt de l'app...) sans jamais passer par notre popup, st.status
+  // reste 'unset' et on l'afficherait inutilement une fois. On vérifie donc
+  // l'état réel en amont : déjà tranché côté Android → on aligne notre flag et
+  // on sort sans rien montrer (pas de popup ET pas de toast, le joueur n'a rien
+  // demandé ici, un toast surgissant du néant serait déroutant).
+  // Même garde-fou que requestPermissions()/wallet (voir _lmsAwaitBridgeSettled) :
+  // checkPermissions() peut aussi déclencher le NPE getPermissionStates juste après
+  // un retour de background/fermeture de pub — pas protégé jusqu'ici.
+  _lmsAwaitBridgeSettled(()=>{
+    (LN.checkPermissions ? LN.checkPermissions() : Promise.resolve(null)).then(perm=>{
+      if(perm && (perm.display === 'granted' || perm.display === 'denied')){
+        _saveNotifPrimeState({status: perm.display, lastShown: Date.now()});
+        if(perm.display === 'granted') _lmsScheduleStreakReminder(); // déjà autorisé ailleurs : on programme quand même le rappel
+        return;
+      }
+      _lmsShowNotifPrimingPopup(streakCount);
+    }).catch(e=>{
+      console.error('[streak] checkPermissions (priming) error:', e);
+      _lmsShowNotifPrimingPopup(streakCount); // en cas d'échec de la vérif, comportement d'avant (on affiche quand même)
+    });
+  });
+}
+function _lmsShowNotifPrimingPopup(streakCount){
   const popup = document.getElementById('notif-prime-popup');
   if(!popup) return;
   const txt = _STREAK_I18N[_streakLang()];
@@ -9173,21 +9288,46 @@ function _lmsNotifPrimeAccept(){
     console.warn('[streak] requestPermissions() sans réponse après 5s — boutons réactivés.');
     _restoreBtns();
   }, 5000);
-  LN.requestPermissions().then(perm=>{
-    clearTimeout(_safetyTimer);
-    if(_lmsNotifPrimeTimedOut) return; // popup déjà rendue à l'utilisateur, ne pas la refermer sous ses pieds
-    const granted = perm && perm.display === 'granted';
-    _saveNotifPrimeState({status: granted ? 'granted' : 'denied', lastShown: Date.now()});
-    if(granted) _lmsScheduleStreakReminder(); // au cas où l'app repasserait en arrière-plan juste après
-    _restoreBtns();
-    _lmsCloseNotifPriming();
-  }).catch(e=>{
-    clearTimeout(_safetyTimer);
-    console.error('[streak] requestPermissions error:', e);
-    _saveNotifPrimeState({status:'later', lastShown: Date.now()});
-    if(_lmsNotifPrimeTimedOut) return;
-    _restoreBtns();
-    _lmsCloseNotifPriming();
+  // ── Fix crash NPE com.getcapacitor.Bridge.getPermissionStates (Crashlytics,
+  // v44/v45, "Blocage") ────────────────────────────────────────────────────
+  // Même famille que le crash déjà corrigé sur le bouton wallet Solana : le tap
+  // "ACTIVER" arrive souvent juste après un retour de background ou la fermeture
+  // d'une pub AdMob, un moment où le Bridge Capacitor peut être temporairement
+  // détaché de l'Activity — appeler LN.requestPermissions() dans cette fenêtre
+  // fait planter l'app nativement, avant même de repasser la main au JS (donc pas
+  // rattrapable par le .catch() ci-dessous). On retarde l'appel natif via
+  // _lmsAwaitBridgeSettled() (voir déclaration en haut du fichier) le temps que le
+  // Bridge se stabilise ; dans l'immense majorité des cas (pas de resume récent)
+  // ça ne retarde rien du tout.
+  _lmsAwaitBridgeSettled(()=>{
+    if(_lmsNotifPrimeTimedOut) return; // le filet de 5s a déjà rendu la main pendant l'attente
+    LN.requestPermissions().then(perm=>{
+      clearTimeout(_safetyTimer);
+      if(_lmsNotifPrimeTimedOut) return; // popup déjà rendue à l'utilisateur, ne pas la refermer sous ses pieds
+      const granted = perm && perm.display === 'granted';
+      _saveNotifPrimeState({status: granted ? 'granted' : 'denied', lastShown: Date.now()});
+      if(granted){
+        _lmsScheduleStreakReminder(); // au cas où l'app repasserait en arrière-plan juste après
+        // Confirmation visible : si la permission était déjà accordée avant l'appel,
+        // requestPermissions() répond directement sans passer par la popup système
+        // Android — sans ce toast, notre popup se ferme sans aucun retour pour le joueur.
+        const toast = document.getElementById('unlock-toast');
+        if(toast){
+          toast.textContent = _STREAK_I18N[_streakLang()].primeEnabledToast;
+          toast.style.background = 'linear-gradient(135deg, rgba(160,60,255,.95), rgba(90,20,180,.95))';
+          toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2600);
+        }
+      }
+      _restoreBtns();
+      _lmsCloseNotifPriming();
+    }).catch(e=>{
+      clearTimeout(_safetyTimer);
+      console.error('[streak] requestPermissions error:', e);
+      _saveNotifPrimeState({status:'later', lastShown: Date.now()});
+      if(_lmsNotifPrimeTimedOut) return;
+      _restoreBtns();
+      _lmsCloseNotifPriming();
+    });
   });
 }
 function _lmsNotifPrimeLater(){
@@ -9359,17 +9499,31 @@ function _lmsDrawWrappedCard(){
   ctx.fillText(t('wrappedWorld'), colXWorld, colY);
   ctx.fillText(t('wrappedCharacter'), colXChar, colY);
 
+  // Portrait perso à droite : boîte de charPortraitTop à charPortraitTop+CHAR_BOX_H (voir
+  // _lmsFinishWrappedCharacter, boxH doit rester synchro avec cette constante). L'icône du
+  // monde préféré est descendue sous son libellé pour être verticalement centrée sur cette
+  // même boîte plutôt que collée juste sous le texte — plus équilibré avec le portrait perso.
+  const CHAR_BOX_H = 375;
+  const charPortraitTop = colY + 90;
+  const charBoxCenterY = charPortraitTop + CHAR_BOX_H/2;
+  const worldNameY = charPortraitTop + 445; // même ligne que le nom du personnage (charLabelY)
+
   if(favWorld){
     const names = (_LW_WORLD_NAMES[lang] || _LW_WORLD_NAMES.fr);
-    ctx.font = '90px sans-serif';
-    ctx.fillText(_HOF_SR_EMOJI[favWorld] || '🏒', colXWorld, colY + 110);
+    const worldIconSize = 200;
+    const worldIconTop = charBoxCenterY - worldIconSize/2;
+    _lmsWrappedWorldIconReady = false;
+    _lmsWrappedPendingWorldIcon = favWorld;
+    _lmsFinishWrappedWorldIcon(ctx, colXWorld, worldIconTop, worldIconSize, favWorld);
     ctx.fillStyle = '#fff';
     ctx.font = '800 50px Barlow Condensed, sans-serif';
-    ctx.fillText(names[favWorld] || '', colXWorld, colY + 170);
+    ctx.fillText(names[favWorld] || '', colXWorld, worldNameY);
   } else {
+    _lmsWrappedPendingWorldIcon = null;
+    _lmsWrappedWorldIconReady = true; // pas d'icône à charger cette fois — sans ce reset, un état "non prêt" laissé par un rendu précédent (monde favori différent) resterait bloqué à false
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.font = '600 32px Barlow Condensed, sans-serif';
-    ctx.fillText(t('wrappedNoWorld'), colXWorld, colY + 110);
+    ctx.fillText(t('wrappedNoWorld'), colXWorld, charBoxCenterY + 20);
   }
 
   // Le portrait (PNG chargé de façon paresseuse pour un skin IA, ou déjà prêt pour un
@@ -9377,8 +9531,7 @@ function _lmsDrawWrappedCard(){
   // Cascade : historique skin IA joué > skin IA actuellement équipé > historique perso de base
   // joué > perso de base actuellement sélectionné (toujours défini, défaut 'blond'/Eloan) —
   // il y a donc TOUJOURS quelque chose à afficher, dès la 1ère ouverture, 0 partie requise.
-  const charPortraitTop = colY + 90;
-  const charLabelY = charPortraitTop + 445; // v1965 : nom encore descendu (était +360) pour compenser le PNG agrandi
+  const charLabelY = worldNameY;
   let charLabel = '', charKind = null, charId = null;
   if(favSkin && favSkin !== 'none' && favSkin !== 'normal' && AI_SKIN_REGISTRY[favSkin]){
     charKind = 'skin'; charId = favSkin;
@@ -9453,21 +9606,78 @@ function _lmsFinishWrappedCharacter(ctx, cx, boxTop){
   };
   draw();
 }
-let _lmsShareWrappedInFlight = false; // anti-double-appel (onclick+ontouchstart déclenchent tous les deux navigator.share() sur Android)
+
+// ── Icône du monde préféré (carte "Wrapped") ──
+// Réutilise les vrais icon.webp par monde (déjà chargés/servis pour le sélecteur de mondes,
+// voir #world-btn-N .wc-icon) plutôt que l'émoji générique utilisé jusqu'ici — cohérent avec
+// l'identité visuelle propre à chaque monde. Chargement paresseux + cache, même schéma que
+// _getBuiltSkinDict/_lmsFinishWrappedCharacter ci-dessus.
+const _WRAPPED_WORLD_ICON_FOLDER = {
+  1:'lac', 2:'spatial', 3:'japon', 4:'volcan', 6:'sea',
+  9:'himalaya', 10:'halloween', 12:'chateau', 13:'ultime',
+};
+const _wrappedWorldIconCache = {};
+function _getWrappedWorldIconImg(worldNum){
+  const folder = _WRAPPED_WORLD_ICON_FOLDER[worldNum];
+  if(!folder) return null;
+  if(_wrappedWorldIconCache[worldNum]) return _wrappedWorldIconCache[worldNum];
+  const img = new Image();
+  img.src = 'assets/sprites/' + folder + '/icon.webp';
+  img.onerror = () => console.warn('[wrapped] icône monde introuvable :', img.src);
+  _wrappedWorldIconCache[worldNum] = img;
+  return img;
+}
+let _lmsWrappedPendingWorldIcon = null;
+let _lmsWrappedWorldIconReady = true;
+function _lmsFinishWrappedWorldIcon(ctx, cx, boxTop, boxSize, worldNum){
+  const target = worldNum;
+  const img = _getWrappedWorldIconImg(worldNum);
+  const draw = () => {
+    if(_lmsWrappedPendingWorldIcon !== target) return; // la carte a été redessinée entre-temps (monde favori différent), on annule
+    if(!img || !_pngReady(img)){ requestAnimationFrame(draw); return; }
+    const iw = _pngW(img), ih = _pngH(img);
+    if(iw && ih){
+      const scale = Math.min(boxSize/iw, boxSize/ih);
+      const dw = iw*scale, dh = ih*scale;
+      ctx.drawImage(img, cx - dw/2, boxTop + (boxSize-dh)/2, dw, dh);
+    }
+    _lmsWrappedWorldIconReady = true;
+  };
+  draw();
+}
+let _lmsShareWrappedInFlight = false; // déclaration manquante — cassait TOUT le bouton (ReferenceError avant même le try/catch)
 async function _lmsShareWrappedCard(){
   if(_lmsShareWrappedInFlight) return; // évite le double-appel onclick+ontouchstart (Android) qui faisait planter navigator.share()
   _lmsShareWrappedInFlight = true;
   hapticLight();
   const btn = document.getElementById('wrapped-share-btn');
-  if(btn) btn.classList.add('lms-btn-pressed');
+  const icon = document.getElementById('wrapped-share-icon');
+  const iconOriginal = icon ? icon.textContent : null;
+  if(btn) btn.classList.add('lms-btn-pressed', 'lms-btn-loading');
+  if(icon){ icon.textContent = '⏳'; icon.classList.add('lms-share-spin'); }
+  // Laisse le navigateur peindre le sablier avant d'attaquer le travail lourd (toBlob) —
+  // sans ce yield, le changement de texte/classe reste en attente de paint et n'apparaît
+  // jamais visuellement si toBlob() est rapide (petit canvas / cache chaud).
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   try{
   const cv = document.getElementById('wrapped-canvas');
   if(!cv) return;
-  // Si le portrait du skin favori est encore en cours de chargement (1ère fois qu'il est
-  // affiché dans la session), on patiente avant de figer l'image — sinon la case reste vide.
-  if(!_lmsWrappedCardReady){
+  // Si le portrait du skin favori et/ou l'icône du monde favori sont encore en cours de
+  // chargement (1ère fois qu'ils sont affichés dans la session), on patiente avant de figer
+  // l'image — sinon la case reste vide.
+  if(!_lmsWrappedCardReady || !_lmsWrappedWorldIconReady){
+    // FIX : cette attente n'avait aucun timeout — si un sprite (perso/skin OU icône monde) ne
+    // charge jamais (chemin cassé, 404), son flag "ready" ne passe jamais à true et le bouton
+    // PARTAGER restait bloqué en boucle silencieusement, pour toujours (même piège déjà connu
+    // et corrigé au cas par cas pour Kristen, voir _lmsFinishWrappedCharacter). On abandonne
+    // maintenant l'attente après 2.5s et on partage la carte telle qu'elle est
+    // (sans le visuel manquant plutôt que jamais de partage).
+    const _wrappedWaitStart = performance.now();
     await new Promise(resolve=>{
-      const check = () => { if(_lmsWrappedCardReady) resolve(); else requestAnimationFrame(check); };
+      const check = () => {
+        if((_lmsWrappedCardReady && _lmsWrappedWorldIconReady) || (performance.now() - _wrappedWaitStart) > 2500) resolve();
+        else requestAnimationFrame(check);
+      };
       check();
     });
   }
@@ -9475,6 +9685,32 @@ async function _lmsShareWrappedCard(){
   if(!blob) return;
   const kills = (getPStats().totalKills)||0;
   const shareText = t('wrappedShareText', kills);
+  // Dans la WebView Android (app Capacitor), l'API Web Share standard ne gère pas le partage
+  // de fichiers (Web Share API Level 2) : navigator.canShare({files}) est absent/false, et le
+  // repli <a download> plus bas ne déclenche aucun téléchargement réel dans une WebView (pas de
+  // gestionnaire natif pour ça) — d'où le bouton qui semble ne "rien faire" sur mobile. On passe
+  // par les plugins Capacitor Filesystem + Share quand l'app tourne en natif.
+  const _CapShare = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
+  const _CapFS = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem;
+  if(_isCapacitorApp && _CapShare && _CapFS){
+    try{
+      const base64Data = await new Promise((resolve, reject)=>{
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      const fileName = 'wrapped-' + Date.now() + '.png';
+      const written = await _CapFS.writeFile({ path: fileName, data: base64Data, directory: 'CACHE' });
+      await _CapShare.share({ text: shareText, url: written.uri, dialogTitle: shareText });
+      return;
+    }catch(e){
+      // Annulation utilisateur dans la feuille de partage native : pas une erreur.
+      if(e && (e.message === 'Share canceled' || e.errorMessage === 'Share canceled')) return;
+      console.error('[wrapped] Capacitor share error:', e);
+      // sinon on continue vers le repli Web Share / téléchargement ci-dessous
+    }
+  }
   try{
     const file = new File([blob], 'wrapped.png', { type: 'image/png' });
     if(navigator.canShare && navigator.canShare({ files:[file] })){
@@ -9494,9 +9730,13 @@ async function _lmsShareWrappedCard(){
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(()=>URL.revokeObjectURL(url), 4000);
   }catch(e){ console.error('[wrapped] share/download error:', e); alert(t('wrappedShareFail')); }
+  }catch(e){
+    console.error('[wrapped] fatal error before/during toBlob:', e);
+    alert(t('wrappedShareFail'));
   }finally{
     _lmsShareWrappedInFlight = false;
-    if(btn) btn.classList.remove('lms-btn-pressed');
+    if(btn) btn.classList.remove('lms-btn-pressed', 'lms-btn-loading');
+    if(icon){ icon.classList.remove('lms-share-spin'); icon.textContent = iconOriginal || '📤'; }
   }
 }
 // ── Onglets Local / Hebdo / Global du popup Hall of Fame ──
@@ -11531,6 +11771,16 @@ function _lmsInviteAccept(){
   if(_lmsAuthUid && _lmsFbDb) _lmsFbDb.ref('invites/' + _lmsAuthUid + '/' + id).remove().catch(()=>{});
   _lmsInviteAdvanceQueue();
   if(!roomCode) return;
+  // FIX (écran noir asymétrique — un seul des 2 joueurs bloqué en chargement quand on enchaîne
+  // une partie par invitation juste après une autre) : une invitation peut arriver et être
+  // acceptée avant que le nettoyage de fin de la partie précédente (_lmsOnlineDuelEndSync,
+  // déclenché de façon asynchrone à la fin du match) ait fini de tourner sur CET appareil — ses
+  // anciens listeners/refs réseau restaient alors actifs en même temps que ceux de la nouvelle
+  // partie qu'on s'apprête à démarrer, créant un conflit d'état qui bloquait ce joueur sur l'écran
+  // de chargement jusqu'à la fin de la manche. On force ici un nettoyage complet et synchrone
+  // AVANT d'ouvrir la nouvelle salle, que la partie précédente ait déjà été nettoyée ou non —
+  // sans risque : _lmsOnlineDuelEndSync() ne fait rien si tout est déjà à l'état neutre.
+  if(typeof _lmsOnlineDuelEndSync === 'function') _lmsOnlineDuelEndSync();
   // Même geste que _lmsOnlineHubPick : on rejoint directement par code, aucune nouvelle logique
   // réseau — juste le champ pré-rempli avec le code déjà connu de l'invite.
   if(document.getElementById('online-hub-overlay') && document.getElementById('online-hub-overlay').classList.contains('active')) _lmsOnlineHubClose();
@@ -12701,6 +12951,16 @@ function _lmsFFABeginSync(roomRef){
   // FFA au lieu de la room duel suffit à les faire fonctionner ici SANS AUCUNE modification de
   // ces fonctions. Bénéfice supplémentaire : le nettoyage de fin de partie (_lmsOnlineDuelEndSync)
   // détache déjà ces mêmes refs génériquement — aucun nouveau code de cleanup nécessaire pour FFA.
+  // FIX (fioles en surnombre, FFA enchaîné trop vite après un Duel) : réassigner directement les
+  // variables _lmsOnlineDuelPowerupsRef/CaissesRef/CacaRef ci-dessous SANS détacher l'ancien
+  // listener au préalable ne le détache PAS — la réaffectation de variable perd juste la
+  // référence JS, mais Firebase continue d'appeler l'ancien callback sur l'ancienne salle pour
+  // toujours. Si le nettoyage de fin de partie précédente (_lmsOnlineDuelEndSync, appelé de façon
+  // asynchrone) n'a pas eu le temps de tourner avant que cette nouvelle salle FFA démarre
+  // (rematch/invite très rapide), l'ancien listener restait donc actif ET continuait d'injecter
+  // des spawns dans powerupSpawns/caisses/cacaTraps en plus du nouveau — d'où des doublons.
+  // On détache explicitement ici, juste avant la réassignation, en filet de sécurité.
+  _lmsDetachSharedMatchListeners();
   _lmsOnlineDuelPowerupsRef = roomRef.child('match/powerups');
   _lmsOnlineDuelPowerupsAddListener = _lmsOnlineDuelPowerupsRef.on('child_added', (snap) => {
     _lmsOnlineDuelApplyPowerupSpawn(snap.key, snap.val());
@@ -13200,6 +13460,29 @@ let _lmsOnlineDuelCacaRemoveListener = null;
 let _lmsOnlineDuelDecorRef = null;
 let _lmsOnlineDuelDecorListener = null;
 
+// FIX (fioles/caisses/caca en surnombre quand une partie enchaîne trop vite sur une autre) :
+// réassigner _lmsOnlineDuelPowerupsRef/CaissesRef/CacaRef (voir usages plus bas) sans détacher
+// l'ancien listener au préalable NE le détache PAS — Firebase continue d'appeler l'ancien
+// callback sur l'ancienne salle indéfiniment, la variable JS écrasée n'y change rien. Si le
+// nettoyage de fin de partie précédente (_lmsOnlineDuelEndSync, asynchrone) n'a pas eu le temps
+// de tourner avant qu'une nouvelle salle démarre (rematch/invite très rapide), l'ancien listener
+// restait actif et injectait des spawns fantômes dans powerupSpawns/caisses/cacaTraps en plus du
+// nouveau. Appelée en filet de sécurité juste avant chaque réassignation (voir usages), et reprend
+// exactement la même logique de détachement que _lmsOnlineDuelEndSync — sans y toucher, pour ne
+// pas risquer de régression sur le reste de son nettoyage.
+function _lmsDetachSharedMatchListeners(){
+  if(_lmsOnlineDuelPowerupsRef && _lmsOnlineDuelPowerupsAddListener){ _lmsOnlineDuelPowerupsRef.off('child_added', _lmsOnlineDuelPowerupsAddListener); }
+  if(_lmsOnlineDuelPowerupsRef && _lmsOnlineDuelPowerupsRemoveListener){ _lmsOnlineDuelPowerupsRef.off('child_removed', _lmsOnlineDuelPowerupsRemoveListener); }
+  _lmsOnlineDuelPowerupsRef = null; _lmsOnlineDuelPowerupsAddListener = null; _lmsOnlineDuelPowerupsRemoveListener = null;
+  if(_lmsOnlineDuelCaissesRef && _lmsOnlineDuelCaissesAddListener){ _lmsOnlineDuelCaissesRef.off('child_added', _lmsOnlineDuelCaissesAddListener); }
+  if(_lmsOnlineDuelCaissesRef && _lmsOnlineDuelCaissesChangeListener){ _lmsOnlineDuelCaissesRef.off('child_changed', _lmsOnlineDuelCaissesChangeListener); }
+  if(_lmsOnlineDuelCaissesRef && _lmsOnlineDuelCaissesRemoveListener){ _lmsOnlineDuelCaissesRef.off('child_removed', _lmsOnlineDuelCaissesRemoveListener); }
+  _lmsOnlineDuelCaissesRef = null; _lmsOnlineDuelCaissesAddListener = null; _lmsOnlineDuelCaissesChangeListener = null; _lmsOnlineDuelCaissesRemoveListener = null;
+  if(_lmsOnlineDuelCacaRef && _lmsOnlineDuelCacaAddListener){ _lmsOnlineDuelCacaRef.off('child_added', _lmsOnlineDuelCacaAddListener); }
+  if(_lmsOnlineDuelCacaRef && _lmsOnlineDuelCacaRemoveListener){ _lmsOnlineDuelCacaRef.off('child_removed', _lmsOnlineDuelCacaRemoveListener); }
+  _lmsOnlineDuelCacaRef = null; _lmsOnlineDuelCacaAddListener = null; _lmsOnlineDuelCacaRemoveListener = null;
+}
+
 // true si pl doit bénéficier des mêmes traitements que le joueur humain local (scale mini/berserk,
 // tête chèvre, etc.) — c'est-à-dire soit le vrai joueur humain, soit l'adversaire d'un duel en
 // ligne en cours (players[1], piloté par le réseau). Centralise ce qui était `pl.human` en dur
@@ -13559,6 +13842,10 @@ function _lmsOnlineDuelBeginSync(roomRef, myRole){
   // ── Power-ups partagés (voir FIX plus haut) ──
   // Purge les items d'une éventuelle session précédente (reconnexion) avant de réabonner —
   // sinon un vieux spawn resterait visible en double lors du prochain 'child_added'.
+  // FIX (même course que côté FFA, voir son commentaire jumeau plus haut dans ce fichier) :
+  // détache l'ancien listener avant de réassigner les variables, au cas où le nettoyage de la
+  // partie précédente n'aurait pas eu le temps de tourner (Duel enchaîné trop vite).
+  _lmsDetachSharedMatchListeners();
   _lmsOnlineDuelPowerupsRef = roomRef.child('match/powerups');
   _lmsOnlineDuelPowerupsAddListener = _lmsOnlineDuelPowerupsRef.on('child_added', (snap) => {
     _lmsOnlineDuelApplyPowerupSpawn(snap.key, snap.val());
@@ -14854,6 +15141,12 @@ function startGame(){
   // Bloquer le démarrage si une pub interstitielle est en cours d'affichage
   const _interOvl = document.getElementById('lms-inter-overlay');
   if(_interOvl && _interOvl.style.display !== 'none') return;
+  // FIX (menu d'accueil affiché par-dessus la 1ère manche après une invitation acceptée trop
+  // vite) : annule tout minuteur/callback "Last Words" encore en attente de la partie
+  // PRÉCÉDENTE — voir le commentaire détaillé sur _lmsCancelPendingLastWords(). Sans ça, ce
+  // minuteur périmé finissait par se déclencher au milieu de cette nouvelle partie et rouvrait
+  // le menu d'accueil (msg) par-dessus le jeu.
+  if(typeof _lmsCancelPendingLastWords === 'function') _lmsCancelPendingLastWords();
   // _lmsRematchEndedWasFFA (snapshot "la dernière partie en ligne était une FFA", utilisé par le
   // bouton "Rejouer avec des amis" ET par la cadence pub _lmsHandleEndAds) n'est jamais remis à
   // false ailleurs — sans ce reset ici, une FFA suivie d'un solo/duel classique dans la même
@@ -16481,6 +16774,13 @@ function _lmsConnectSolanaWallet(){
   const btn = document.getElementById('settings-wallet-btn');
   if(btn){ btn.textContent = '...'; btn.disabled = true; }
 
+  // Même garde-fou que pour la popup streak (voir _lmsAwaitBridgeSettled, déclaré en
+  // haut du fichier) : si "CONNECTER" est tapé juste après un retour de background ou
+  // la fermeture d'une pub AdMob, on laisse le Bridge se stabiliser avant l'appel natif
+  // authorize() — même famille de risque que la NPE Bridge.getPermissionStates, même
+  // si le fix natif principal côté wallet (ActivityResultSender créé dans load(), pas
+  // à la demande) couvre déjà la cause la plus probable de ce côté-là.
+  _lmsAwaitBridgeSettled(()=>{
   plugin.authorize({
     identityName: 'Last Man Skating',
     identityUri: 'https://lastmanskating.app',
@@ -16513,6 +16813,7 @@ function _lmsConnectSolanaWallet(){
     }
     _syncSettingsUI();
   });
+  });
 }
 
 function _lmsSyncWalletButton(){
@@ -16520,6 +16821,181 @@ function _lmsSyncWalletButton(){
   if(!btn) return;
   btn.disabled = false;
   btn.textContent = _lmsWalletAddress ? _lmsShortAddr(_lmsWalletAddress) : 'CONNECTER';
+}
+
+// ── Claim de la cagnotte Solana (claim_scratch) ──────────────────────────
+const LMS_SOLANA_PROGRAM_ID = 'GQeKyxHQGFv46z8hM5KocYa5hrUSea1hYJrDXyH41caH';
+const LMS_SOLANA_MINT = '64TQTAykeYQmRmeqMDKB2kWJGGSp8FuGLpEkcJfdwSY6'; // mint de test devnet — à remplacer par SKR en prod
+const LMS_SOLANA_RPC = 'https://smart-wispy-shape.solana-devnet.quiknode.pro/85f42701189289f958c8e8303412f0ec0c687d6a/';
+const TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+const ASSOCIATED_TOKEN_PROGRAM_ID = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
+const CLAIM_SCRATCH_DISCRIMINATOR = [73, 72, 174, 116, 49, 218, 108, 8]; // depuis lms_proof_of_play.json
+
+// Appel JSON-RPC brut (bypass la validation stricte superstruct de web3.js,
+// qui rejette certaines réponses de RPC tiers comme Ankr avec un StructError
+// même quand la réponse est en fait valide/exploitable).
+async function _lmsRpcCall(method, params){
+  const res = await fetch(LMS_SOLANA_RPC, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+  });
+  const json = await res.json();
+  if(json.error) throw new Error(json.error.message || JSON.stringify(json.error));
+  return json.result;
+}
+
+function _lmsBase64ToBytes(b64){
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+async function _lmsRawGetAccountInfo(pubkeyBase58){
+  const result = await _lmsRpcCall('getAccountInfo', [pubkeyBase58, { encoding: 'base64' }]);
+  if(!result || !result.value) return null;
+  return _lmsBase64ToBytes(result.value.data[0]);
+}
+
+function _lmsBorshString(str){
+  const bytes = new TextEncoder().encode(str);
+  const buf = new Uint8Array(4 + bytes.length);
+  new DataView(buf.buffer).setUint32(0, bytes.length, true);
+  buf.set(bytes, 4);
+  return buf;
+}
+function _lmsReadBorshString(buf, offset){
+  const len = new DataView(buf.buffer, buf.byteOffset + offset, 4).getUint32(0, true);
+  const bytes = buf.slice(offset + 4, offset + 4 + len);
+  return { value: new TextDecoder().decode(bytes), next: offset + 4 + len };
+}
+function _lmsReadU64LE(buf, offset){
+  return new DataView(buf.buffer, buf.byteOffset + offset, 8).getBigUint64(0, true);
+}
+
+async function _lmsGetClaimContext(){
+  const web3 = window.solanaWeb3;
+  const programId = new web3.PublicKey(LMS_SOLANA_PROGRAM_ID);
+  const weekId = _lmsWeekKey();
+  const playerPubkey = new web3.PublicKey(_lmsWalletAddress);
+
+  const [weeklyPoolPda] = web3.PublicKey.findProgramAddressSync(
+    [new TextEncoder().encode('pool'), new TextEncoder().encode(weekId)], programId);
+  const [playerScorePda] = web3.PublicKey.findProgramAddressSync(
+    [new TextEncoder().encode('player_score'), new TextEncoder().encode(weekId), playerPubkey.toBytes()], programId);
+
+  const [poolBytes, scoreBytes] = await Promise.all([
+    _lmsRawGetAccountInfo(weeklyPoolPda.toBase58()),
+    _lmsRawGetAccountInfo(playerScorePda.toBase58()),
+  ]);
+  if(!poolBytes) return { status:'no_pool', weekId };
+  if(!scoreBytes) return { status:'no_score', weekId };
+  const poolInfo = { data: poolBytes };
+  const scoreInfo = { data: scoreBytes };
+
+  let off = 8 + 32 + 32; // discriminator + authority + mint
+  const vault = new web3.PublicKey(poolInfo.data.slice(off, off+32)); off += 32;
+  const wk = _lmsReadBorshString(poolInfo.data, off); off = wk.next;
+  off += 8; // total_score
+  off += 8; // total_pot
+  off += 8; // eligible_count
+  const finalized = poolInfo.data[off] === 1;
+
+  let soff = 8 + 32; // discriminator + player
+  const swk = _lmsReadBorshString(scoreInfo.data, soff); soff = swk.next;
+  const score = _lmsReadU64LE(scoreInfo.data, soff); soff += 8;
+  const eligible = scoreInfo.data[soff] === 1; soff += 1;
+  const claimed = scoreInfo.data[soff] === 1;
+
+  return {
+    status:'ok', weekId, programId, playerPubkey,
+    weeklyPoolPda, playerScorePda, vault,
+    mint: new web3.PublicKey(LMS_SOLANA_MINT),
+    finalized, score: Number(score), eligible, claimed
+  };
+}
+
+async function _lmsGetOrCreateAtaIx(web3, owner, mint, payer){
+  const [ata] = web3.PublicKey.findProgramAddressSync(
+    [owner.toBytes(), new web3.PublicKey(TOKEN_PROGRAM_ID).toBytes(), mint.toBytes()],
+    new web3.PublicKey(ASSOCIATED_TOKEN_PROGRAM_ID));
+  const info = await _lmsRawGetAccountInfo(ata.toBase58());
+  if(info) return { ata, ix: null };
+  const ix = new web3.TransactionInstruction({
+    programId: new web3.PublicKey(ASSOCIATED_TOKEN_PROGRAM_ID),
+    keys: [
+      { pubkey: payer, isSigner: true, isWritable: true },
+      { pubkey: ata, isSigner: false, isWritable: true },
+      { pubkey: owner, isSigner: false, isWritable: false },
+      { pubkey: mint, isSigner: false, isWritable: false },
+      { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: new web3.PublicKey(TOKEN_PROGRAM_ID), isSigner: false, isWritable: false },
+    ],
+    data: new Uint8Array(0),
+  });
+  return { ata, ix };
+}
+
+async function _lmsClaimPoolReward(){
+  const btn = document.getElementById('settings-claim-btn');
+  if(!_lmsWalletAddress){ alert('Connecte ton wallet avant de réclamer.'); return; }
+  if(btn){ btn.textContent = '...'; btn.disabled = true; }
+  try{
+    const web3 = window.solanaWeb3;
+    if(!web3) throw new Error('solanaWeb3 non chargé');
+    const ctx = await _lmsGetClaimContext();
+    if(ctx.status === 'no_pool'){ alert('Aucune cagnotte trouvée pour cette semaine.'); return; }
+    if(ctx.status === 'no_score'){ alert("Tu n'as pas encore de score enregistré cette semaine."); return; }
+    if(!ctx.finalized){ alert("La cagnotte de cette semaine n'est pas encore finalisée."); return; }
+    if(ctx.claimed){ alert('Tu as déjà réclamé ta part cette semaine.'); return; }
+    if(ctx.score <= 0){ alert('Aucune récompense à réclamer cette semaine.'); return; }
+
+    const { programId, playerPubkey, weeklyPoolPda, playerScorePda, vault, mint, weekId } = ctx;
+    const { ata: playerTokenAccount, ix: createAtaIx } = await _lmsGetOrCreateAtaIx(web3, playerPubkey, mint, playerPubkey);
+
+    const weekIdBytes = _lmsBorshString(weekId);
+    const data = new Uint8Array(8 + weekIdBytes.length);
+    data.set(CLAIM_SCRATCH_DISCRIMINATOR, 0);
+    data.set(weekIdBytes, 8);
+
+    const claimIx = new web3.TransactionInstruction({
+      programId,
+      keys: [
+        { pubkey: playerPubkey, isSigner: true, isWritable: true },
+        { pubkey: weeklyPoolPda, isSigner: false, isWritable: false },
+        { pubkey: playerScorePda, isSigner: false, isWritable: true },
+        { pubkey: vault, isSigner: false, isWritable: true },
+        { pubkey: playerTokenAccount, isSigner: false, isWritable: true },
+        { pubkey: new web3.PublicKey(TOKEN_PROGRAM_ID), isSigner: false, isWritable: false },
+      ],
+      data,
+    });
+
+    const tx = new web3.Transaction();
+    if(createAtaIx) tx.add(createAtaIx);
+    tx.add(claimIx);
+    tx.feePayer = playerPubkey;
+    const latestBlockhash = await _lmsRpcCall('getLatestBlockhash', [{ commitment: 'confirmed' }]);
+    tx.recentBlockhash = latestBlockhash.value.blockhash;
+
+    const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
+    const txBase64 = btoa(String.fromCharCode(...serialized));
+
+    const plugin = _lmsSolanaWalletPlugin();
+    const authToken = localStorage.getItem('lms_wallet_auth_token') || '';
+    const result = await plugin.signAndSendTransactions({
+      authToken, transactions: [txBase64],
+      identityName: 'Last Man Skating', identityUri: 'https://lastmanskating.app', iconUri: 'favicon.ico',
+    });
+    console.log('[claim] signatures:', result.signatures);
+    alert('Récompense réclamée avec succès !');
+  } catch(err){
+    console.error('[claim] échec:', err);
+    alert('Échec de la réclamation : ' + (err && err.message || err));
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'RÉCLAMER'; }
+  }
 }
 // ── Taille des boutons (Petit / Moyen / Grand) ──
 const _BTN_SIZE_OPTS = [0.85, 1, 1.15];
@@ -56922,6 +57398,21 @@ function _lwPickQuote(worldId, killerName, rank, total){
 let _lwTimerID = null;
 let _lwCallback = null;
 
+// FIX (menus de l'accueil affichés par-dessus la 1ère manche, quand une invitation est acceptée
+// très vite après l'écran de fin) : showLastWords() programme un fade-out différé (~3.5-4s) dont
+// le callback ré-affiche le menu d'accueil (msg.style.display='') une fois terminé. Si une
+// nouvelle partie démarre (startGame(), qui masque déjà msg) AVANT que ce minuteur de la partie
+// PRÉCÉDENTE ait fini de s'exécuter, il finit quand même par se déclencher au milieu de la
+// nouvelle partie et rouvre le menu d'accueil par-dessus — jusqu'à ce que la manche suivante
+// (où ce minuteur périmé n'existe plus) redevienne normale. On annule donc tout minuteur/
+// callback Last Words encore en attente dès qu'une nouvelle partie démarre pour de vrai.
+function _lmsCancelPendingLastWords(){
+  if(_lwTimerID){ clearTimeout(_lwTimerID); _lwTimerID = null; }
+  _lwCallback = null;
+  const _lwOverlay = document.getElementById('lms-last-words');
+  if(_lwOverlay) _lwOverlay.style.display = 'none';
+}
+
 function showLastWords(onDone){
   _lwCallback = onDone || null;
 
@@ -57191,19 +57682,23 @@ function _lmsShowInterstitial(rewardCoins, callback){
   // Overlay HTML ouvert seulement pour vidéo JSON ou placeholder
   overlay.style.display = 'flex';
 
+  // ── FIX : ne JAMAIS enchaîner une vraie pub JSON juste après une pub AdMob ──
+  // L'ancien code ne coupait que le SON de la vidéo JSON (forceMuted) si le repli
+  // intervenait juste après la fermeture d'une pub AdMob native, mais la laissait
+  // quand même s'afficher/jouer muette — visible à l'écran juste après l'AdMob,
+  // donc toujours perçu comme "une 2e pub qui s'enchaîne" par le joueur. On saute
+  // maintenant complètement la vidéo JSON dans cette fenêtre et on tombe direct sur
+  // le placeholder (aucune 2e pub, juste un court "Stay on the ice." sans vidéo).
+  const _withinNativeCloseGrace = (performance.now() - _lmsLastNativeInterCloseAt) < _LMS_NATIVE_INTER_MUTE_GRACE_MS;
+
   // ── Priorité 1 : vidéo JSON sponsor ──────────────────────────────────────
-  if(_lmsInterData.videoUrl){
+  if(_lmsInterData.videoUrl && !_withinNativeCloseGrace){
     if(phEl) phEl.style.display = 'none';
     if(videoEl){
       videoEl.style.display = '';
       videoEl.src = _lmsInterData.videoUrl; if(videoEl && typeof videoEl.decode==='function'){videoEl.decode().catch(()=>{});}
       videoEl.load();
-      // Tente d'abord le son (autoplay non-muted) ; si le navigateur/webview refuse
-      // (pas de geste utilisateur direct), repli automatique et silencieux en muted.
-      // forceMuted si ce repli JSON intervient juste après la fermeture d'une pub
-      // AdMob native (pub enchaînée) — voir _lmsLastNativeInterCloseAt plus haut.
-      const _interForceMuted = (performance.now() - _lmsLastNativeInterCloseAt) < _LMS_NATIVE_INTER_MUTE_GRACE_MS;
-      videoEl.muted = _interForceMuted;
+      videoEl.muted = false;
       const _interPlayP = videoEl.play();
       if(_interPlayP && _interPlayP.catch){
         _interPlayP.catch(()=>{ videoEl.muted = true; videoEl.play().catch(()=>{}); });
@@ -57343,6 +57838,16 @@ const _lmsInterData = { videoUrl: null }; // durée gérée par la vidéo elle-m
 // la fermeture d'une pub AdMob native (voir _lmsLastNativeInterCloseAt).
 let _lmsLastNativeInterCloseAt = -Infinity;
 const _LMS_NATIVE_INTER_MUTE_GRACE_MS = 2000;
+
+// ── Même principe que ci-dessus, côté REWARDED ── (voir _lmsWatchAdRewarded plus bas) :
+// contrairement à l'interstitiel, ce timestamp n'existait pas du tout ici — donc aucune
+// fenêtre de grâce n'était appliquée quand une 2e pub rewarded (déblocage monde, skin
+// provisoire, +30 pièces, Kristen) était demandée juste après qu'une 1ère pub AdMob
+// rewarded venait de se terminer. Résultat : _lmsAdMobRewardedLoaded pas encore rechargé →
+// _lmsWaitForAdMobReady() time-out → repli plein écran, NON muté, sur la vraie vidéo
+// JSON de secours juste après l'AdMob — exactement le "enchaînement" reporté par Mo.
+let _lmsLastNativeRewardedCloseAt = -Infinity;
+const _LMS_NATIVE_REWARDED_GRACE_MS = 2000;
 
 // ── STUB ADMOB ─────────────────────────────────────────────────────────────
 // Le câblage JS est fait (via window.Capacitor.Plugins.AdMob, pas d'import ES module).
@@ -57899,6 +58404,7 @@ function _lmsAdMobShowRewarded(){
   _AdMob.addListener('onRewardedVideoAdReward', function onRewarded(){
     _lmsRewardedAlreadyHandled = true;
     _AdMob.removeAllListeners();
+    _lmsLastNativeRewardedCloseAt = performance.now(); // voir _LMS_NATIVE_REWARDED_GRACE_MS plus haut
     _lmsClaimRewarded(); // dispatcher générique — respecte la cible en cours (_lmsRewardedTarget), libère le verrou via _lmsCancelAd()
     // Recharge la prochaine rewarded en tâche de fond pour qu'elle soit prête au prochain appel
     _lmsPrepareRewardedSafe();
@@ -57911,6 +58417,7 @@ function _lmsAdMobShowRewarded(){
   const _onRewardedDismissedNoReward = function(){
     _lmsRewardedAlreadyHandled = true;
     _AdMob.removeAllListeners();
+    _lmsLastNativeRewardedCloseAt = performance.now(); // voir _LMS_NATIVE_REWARDED_GRACE_MS plus haut
     _lmsReleaseAdSlot();
     _lmsAdAudioResume();
   };
@@ -58406,6 +58913,21 @@ function _lmsWatchAdRewarded(target, subtitle, claimLabel, titleLabel, btnEl){
       if(admobReady){
         _lmsAdAudioSuspend();
         _lmsAdMobShowRewarded();
+        return;
+      }
+      // ── FIX : ne JAMAIS enchaîner une vraie pub JSON juste après une pub AdMob
+      // rewarded — même bug que documenté pour l'interstitielle (voir
+      // _lmsShowInterstitial), mais qui n'avait ici AUCUNE fenêtre de grâce du tout
+      // (ni mute, ni skip) : _lmsAdMobRewardedLoaded reste à false le temps que
+      // _lmsPrepareRewardedSafe() recharge après une 1ère pub, donc toute 2e demande
+      // de pub rewarded peu après (déblocage monde, skin provisoire, +30 pièces,
+      // Kristen) tombait directement sur la vraie vidéo JSON, non mutée, plein écran
+      // — perçu comme une pub qui s'enchaîne juste après l'AdMob. On accorde
+      // maintenant la récompense directement dans cette fenêtre, comme le fait déjà
+      // le catch() de _lmsAdMobShowRewarded() dans le même cas de figure.
+      const _withinNativeRewardedGrace = (performance.now() - _lmsLastNativeRewardedCloseAt) < _LMS_NATIVE_REWARDED_GRACE_MS;
+      if(_withinNativeRewardedGrace){
+        _lmsClaimRewarded();
         return;
       }
       // ── PRIORITÉ 2 (AdMob indisponible) : vidéo JSON perso, si configurée ──
@@ -76491,6 +77013,7 @@ if(typeof window !== 'undefined'){
       <div class="settings-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:10px 12px;">
         <div id="settings-wallet-label" style="font-size:12px;letter-spacing:1px;color:rgba(220,180,255,0.9);flex:1;min-width:0;">🔗 WALLET SOLANA</div>
         <button type="button" tabindex="0" id="settings-wallet-btn" onclick="_lmsConnectSolanaWallet()" style="flex-shrink:0;background:rgba(160,60,255,0.15);border:1px solid rgba(160,60,255,0.35);border-radius:20px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-width:110px;text-align:center;">CONNECTER</button>
+        <button type="button" tabindex="0" id="settings-claim-btn" onclick="_lmsClaimPoolReward()" style="flex-shrink:0;background:rgba(255,200,0,0.15);border:1px solid rgba(255,200,0,0.4);border-radius:20px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-width:110px;text-align:center;">RÉCLAMER</button>
       </div>
       <!-- Côté joystick -->
       <div class="settings-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:10px 12px;">
@@ -77800,6 +78323,10 @@ const cosA = Math.cos(angle * Math.PI * 2);
     // Afficher le popup
     const pop = document.getElementById('player-card-popup');
     pop.classList.add('open');
+    // Horodatage d'ouverture : sert de garde-fou contre le clic fantôme émis par le
+    // navigateur juste après un touchstart (voir listener de fermeture sur le fond,
+    // plus bas) — évite qu'une fiche se referme instantanément après son ouverture.
+    pop._pcOpenedAt = Date.now();
     _lmsShowPlayerCardBanner();
 
     // Adapter la résolution du canvas à celle du wrapper (après affichage pour que le layout soit calculé)
@@ -78322,7 +78849,13 @@ const cosA = Math.cos(angle * Math.PI * 2);
   document.addEventListener('DOMContentLoaded', ()=>{
     const pop = document.getElementById('player-card-popup');
     if(pop) pop.addEventListener('click', function(e){
-      if(e.target === pop) closePlayerCard();
+      if(e.target !== pop) return;
+      // Garde-fou : ignore le clic fantôme que certains navigateurs mobiles émettent
+      // juste après le touchstart qui a servi à OUVRIR la fiche (même s'il tombe sur
+      // le fond une fois le popup affiché) — sans ça la fiche se referme aussitôt
+      // ouverte. 500ms couvre largement le délai de synthèse tap→click des navigateurs.
+      if(pop._pcOpenedAt && (Date.now() - pop._pcOpenedAt) < 500) return;
+      closePlayerCard();
     });
   });
 })();

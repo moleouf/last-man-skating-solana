@@ -15,3 +15,5 @@ node_modules/
 *.iml
 local.properties
 capacitor-solana-mwa/android/build/
+*.apk
+*.apk.idsig

@@ -64,3 +64,28 @@ async function connectWallet() {
 - Il ne valide rien côté serveur — la vérification anti-triche du score qui
   détermine le montant de la cagnotte reste à faire côté Cloud Functions Firebase,
   séparément.
+
+## Mise à jour — claim_scratch validé de bout en bout (13/09/2026)
+
+`signAndSendTransactions` nécessite un paramètre `params: TransactionParams`
+avec `minContextSlot` obligatoire (sinon Phantom rejette avec une erreur
+Zod `invalid_type` côté RPC router). Corrigé dans `SolanaWalletPlugin.kt` :
+
+```kotlin
+signAndSendTransactions(
+    transactions = transactionsBytes,
+    params = TransactionParams(
+        minContextSlot = 0,
+        commitment = null,
+        skipPreflight = null,
+        maxRetries = null,
+        waitForCommitmentToSendNextTransaction = null
+    )
+)
+```
+
+Testé avec succès sur device réel : connexion wallet → signature →
+transaction `claim_scratch` confirmée on-chain (devnet). Le wallet doit
+avoir un solde SOL devnet suffisant (faucet : https://faucet.solana.com)
+sinon Phantom bloque silencieusement avec une erreur générique
+"authorization request failed" qui masque la vraie cause (SOL insuffisant).

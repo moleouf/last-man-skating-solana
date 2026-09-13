@@ -47,11 +47,25 @@ Solana Explorer, statut "Success", finalisée).
    script Solana Playground (mint + fundPool), pas encore automatisé
    dans le worker (voir "Ce que ce worker suppose déjà fait ailleurs").
 
+✅ Fait (suite) :
+8. **`claim_scratch` validé de bout en bout** — flux complet testé sur
+   device réel le 13/09/2026 : wallet connecté → lecture on-chain
+   (WeeklyPool/PlayerScore) → construction transaction côté client →
+   signature via MWA/Phantom → confirmation on-chain → tokens reçus.
+   Double-claim bien bloqué par le programme (`AlreadyClaimed`) lors
+   d'une tentative répétée.
+
+Les 3 instructions critiques (submit_score, fund_pool, claim_scratch)
+sont maintenant validées en conditions réelles, pas seulement en tests
+Playground.
+
 ⏳ Reste à faire avant soumission finale :
-- Lien `claim_scratch` ↔ animation front (carte à gratter)
 - Décision mint devnet (simulation) vs SKR mainnet réel pour la démo
-- Déplacer `SOLANA_RPC_URL` de `vars` (clair) vers un secret Cloudflare
-  (l'URL QuickNode contient un token d'accès au compte)
+- Déplacer `SOLANA_RPC_URL` (worker) de `vars` vers un secret Cloudflare
+- Limitation anti-triche (collusion/self-play) toujours ouverte —
+  documentée, correctif reporté après le hackathon
+- Limitation multi-semaines : l'UI ne gère que la semaine courante,
+  pas de rattrapage de gains de semaines passées non réclamées
 
 ## Ce qui a changé par rapport à la version précédente (Firestore)
 

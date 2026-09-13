@@ -68,6 +68,11 @@ Statut au 12/09/2026 :
   câbler `claim_scratch` sur l'animation front de la carte à gratter, décider
   mint devnet vs SKR mainnet réel pour la démo.
 
+Statut au 13/09/2026 : les 3 instructions critiques (submit_score,
+fund_pool, claim_scratch) sont validées en conditions réelles sur
+device, wallet Phantom, devnet — flux complet fonctionnel du jeu
+jusqu'à la réclamation de la cagnotte.
+
 ## Licence / Auteur
 
 Développé en solo par Moleouf (Kristen Studios Games).

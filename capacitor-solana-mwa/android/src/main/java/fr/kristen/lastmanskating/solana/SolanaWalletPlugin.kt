@@ -12,6 +12,7 @@ import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.RpcCluster
+import com.solana.mobilewalletadapter.clientlib.TransactionParams
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import com.solana.mobilewalletadapter.clientlib.successPayload
 import kotlinx.coroutines.CoroutineScope
@@ -176,7 +177,16 @@ class SolanaWalletPlugin : Plugin() {
                     identityName = call.getString("identityName") ?: "Last Man Skating",
                     authToken = token
                 )
-                signAndSendTransactions(transactions = transactionsBytes)
+                signAndSendTransactions(
+                    transactions = transactionsBytes,
+                    params = TransactionParams(
+                        minContextSlot = 0,
+                        commitment = null,
+                        skipPreflight = null,
+                        maxRetries = null,
+                        waitForCommitmentToSendNextTransaction = null
+                    )
+                )
             }
 
             when (result) {
