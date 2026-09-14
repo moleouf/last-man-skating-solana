@@ -59,13 +59,33 @@ Les 3 instructions critiques (submit_score, fund_pool, claim_scratch)
 sont maintenant validées en conditions réelles, pas seulement en tests
 Playground.
 
+✅ Fait (suite) :
+9. **Fix désync cron/client (13/09/2026)** — le cron tournait à 3h UTC le
+   lundi, alors que le client bascule de semaine ISO à 0h UTC pile
+   (`_lmsWeekKey()`) : fenêtre de 3h où le bouton RÉCLAMER ne trouvait plus
+   la pool de la semaine qui venait de finir (déjà "passée" côté client,
+   pas encore réglée on-chain côté worker). Cron déplacé à 00:01 UTC
+   (`wrangler.jsonc`), `weekIdBeingSettled()` ajusté en conséquence (recul
+   de 5 min au lieu de 24h).
+10. **Fix perte de delta sur échec total** — `saveSnapshot()` avançait le
+    snapshot KV inconditionnellement juste après la soumission on-chain,
+    même quand TOUTES les soumissions de la semaine échouaient (ex. tout
+    le monde en `PoolAlreadyFinalized`). Le delta de la semaine disparaissait
+    alors sans être ni payé ni reporté. Corrigé : le snapshot n'avance que
+    si au moins une soumission a réussi (`succeeded.length > 0`) — un run
+    entièrement raté laisse le snapshot inchangé, donc rejouable au run
+    suivant. La réponse JSON du endpoint inclut maintenant `snapshotAdvanced`
+    pour vérifier ça facilement après coup.
+
 ⏳ Reste à faire avant soumission finale :
 - Décision mint devnet (simulation) vs SKR mainnet réel pour la démo
 - Déplacer `SOLANA_RPC_URL` (worker) de `vars` vers un secret Cloudflare
 - Limitation anti-triche (collusion/self-play) toujours ouverte —
   documentée, correctif reporté après le hackathon
-- Limitation multi-semaines : l'UI ne gère que la semaine courante,
-  pas de rattrapage de gains de semaines passées non réclamées
+- ~~Limitation multi-semaines~~ : réglée côté client le 13/09/2026 — le
+  bouton RÉCLAMER rattrape maintenant jusqu'à 8 semaines de gains non
+  réclamés (voir README racine, section "Réclamation multi-semaines").
+  Toujours pas de deadline on-chain au-delà de cet historique.
 
 ## Ce qui a changé par rapport à la version précédente (Firestore)
 

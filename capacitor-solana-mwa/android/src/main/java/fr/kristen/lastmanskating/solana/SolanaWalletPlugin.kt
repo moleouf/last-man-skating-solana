@@ -35,6 +35,19 @@ class SolanaWalletPlugin : Plugin() {
     private var authToken: String? = null
     private val pluginScope = CoroutineScope(Dispatchers.Main)
 
+    // Identité par défaut du dApp — doit pointer vers un domaine réel que tu
+    // possèdes (CORRIGÉ : "lastmanskating.app" n'existe pas, causait des
+    // erreurs de résolution DNS côté wallet lors de l'affichage de l'icône).
+    private val defaultIdentityUri = "https://kristen.fr/KristenStudiosGames/lms.html"
+    // DOIT être une URI RELATIVE à defaultIdentityUri (pas une URL absolue) : MWA rejette
+    // une URL absolue avec "IllegalArgumentException: iconRelativeUri must be a relative Uri".
+    // C'était la vraie cause du crash sur deauthorize() (bouton déconnexion) : ce PluginMethod
+    // ne reçoit jamais iconUri depuis le JS, donc buildAdapter() retombait toujours sur CE
+    // default — et adapter.transact(sender) { ... } ré-authentifie/associe en interne avec la
+    // ConnectionIdentity (donc cet iconUri) AVANT même d'exécuter le lambda deauthorize(...),
+    // d'où le crash malgré le fix JS côté authorize()/signAndSendTransactions().
+    private val defaultIconUri = "apple-touch-icon.png"
+
     // IMPORTANT : ActivityResultSender s'appuie sur registerForActivityResult(),
     // qui DOIT être enregistré avant que l'Activity n'atteigne l'état STARTED.
     // Le créer à la demande (dans authorize()/etc., déclenché par un tap utilisateur
@@ -55,8 +68,8 @@ class SolanaWalletPlugin : Plugin() {
 
     private fun buildAdapter(call: PluginCall): MobileWalletAdapter {
         val identityName = call.getString("identityName") ?: "Last Man Skating"
-        val identityUri = Uri.parse(call.getString("identityUri") ?: "https://lastmanskating.app")
-        val iconUri = Uri.parse(call.getString("iconUri") ?: "favicon.ico")
+        val identityUri = Uri.parse(call.getString("identityUri") ?: defaultIdentityUri)
+        val iconUri = Uri.parse(call.getString("iconUri") ?: defaultIconUri)
         return MobileWalletAdapter(
             connectionIdentity = ConnectionIdentity(
                 identityUri = identityUri,
@@ -74,8 +87,8 @@ class SolanaWalletPlugin : Plugin() {
         pluginScope.launch {
             val result = adapter.transact(sender) {
                 authorize(
-                    identityUri = Uri.parse(call.getString("identityUri") ?: "https://lastmanskating.app"),
-                    iconUri = Uri.parse(call.getString("iconUri") ?: "favicon.ico"),
+                    identityUri = Uri.parse(call.getString("identityUri") ?: defaultIdentityUri),
+                    iconUri = Uri.parse(call.getString("iconUri") ?: defaultIconUri),
                     identityName = call.getString("identityName") ?: "Last Man Skating",
                     rpcCluster = cluster
                 )
@@ -114,8 +127,8 @@ class SolanaWalletPlugin : Plugin() {
         pluginScope.launch {
             val result = adapter.transact(sender) {
                 reauthorize(
-                    identityUri = Uri.parse(call.getString("identityUri") ?: "https://lastmanskating.app"),
-                    iconUri = Uri.parse(call.getString("iconUri") ?: "favicon.ico"),
+                    identityUri = Uri.parse(call.getString("identityUri") ?: defaultIdentityUri),
+                    iconUri = Uri.parse(call.getString("iconUri") ?: defaultIconUri),
                     identityName = call.getString("identityName") ?: "Last Man Skating",
                     authToken = token
                 )
@@ -172,8 +185,8 @@ class SolanaWalletPlugin : Plugin() {
         pluginScope.launch {
             val result = adapter.transact(sender) {
                 reauthorize(
-                    identityUri = Uri.parse(call.getString("identityUri") ?: "https://lastmanskating.app"),
-                    iconUri = Uri.parse(call.getString("iconUri") ?: "favicon.ico"),
+                    identityUri = Uri.parse(call.getString("identityUri") ?: defaultIdentityUri),
+                    iconUri = Uri.parse(call.getString("iconUri") ?: defaultIconUri),
                     identityName = call.getString("identityName") ?: "Last Man Skating",
                     authToken = token
                 )
@@ -224,8 +237,8 @@ class SolanaWalletPlugin : Plugin() {
         pluginScope.launch {
             val result = adapter.transact(sender) {
                 reauthorize(
-                    identityUri = Uri.parse(call.getString("identityUri") ?: "https://lastmanskating.app"),
-                    iconUri = Uri.parse(call.getString("iconUri") ?: "favicon.ico"),
+                    identityUri = Uri.parse(call.getString("identityUri") ?: defaultIdentityUri),
+                    iconUri = Uri.parse(call.getString("iconUri") ?: defaultIconUri),
                     identityName = call.getString("identityName") ?: "Last Man Skating",
                     authToken = token
                 )

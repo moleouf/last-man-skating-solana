@@ -3609,6 +3609,39 @@ const I18N = {
     settingsRateBtn: 'OUVRIR',
     settingsRemoveAdsLabel: 'RETIRER PUBS', // pas d'emoji (comme armory/hallOfFame) : le texte dépassait du bouton sur petit téléphone
     settingsRemoveAdsBtn: 'ACHETER',
+    // ── Wallet Solana / claim hebdo (Clock In Hackathon) — v2158, i18n ajoutée après coup ──
+    settingsWalletLabel: '🔗 WALLET SOLANA',
+    settingsWalletConnect: 'CONNECTER',
+    settingsWalletConnecting: '...',
+    settingsWalletCopied: 'COPIÉ !',
+    settingsWalletTitleConnect: 'Toucher pour connecter',
+    settingsWalletTitleCopy: 'Toucher pour copier l\'adresse',
+    walletUnavailable: 'Wallet Solana indisponible dans cette version de l\'app.',
+    walletNoAppFound: 'Aucune app wallet compatible détectée sur ce téléphone (Phantom, Solflare...). Installe-en une pour connecter ton wallet.',
+    walletConnectFailed: 'Connexion au wallet impossible pour le moment.',
+    walletDisconnectConfirm: 'Déconnecter ton wallet Solana ?',
+    settingsClaimBtn: 'RÉCLAMER',
+    claimNeedWallet: 'Connecte ton wallet avant de réclamer.',
+    claimNoPool: 'Aucune cagnotte trouvée pour cette semaine.',
+    claimNoScore: 'Tu n\'as pas encore de score enregistré cette semaine.',
+    claimNotFinalized: 'La cagnotte de cette semaine n\'est pas encore finalisée.',
+    claimAlreadyClaimed: 'Tu as déjà réclamé ta part cette semaine.',
+    claimZeroReward: 'Aucune récompense à réclamer cette semaine.',
+    claimSuccess: 'Récompense réclamée avec succès !',
+    claimFailed: (msg) => 'Échec de la réclamation : ' + msg,
+    claimPendingWeekConfirm: (week) => `Tu as une cagnotte en attente de la semaine ${week} (pas celle-ci). La réclamer maintenant ?`,
+    claimScratchTitle: '💰 CAGNOTTE SOLANA',
+    claimScratchSub: (week) => `Cagnotte de la semaine ${week}`,
+    claimScratchRevealHint: 'Gratte la carte ou réclame directement',
+    claimScratchNowBtn: 'RÉCLAMER MAINTENANT',
+    claimRoundProgress: (i, n) => `CARTE ${i} / ${n}`,
+    claimRoundYou: 'TOI',
+    claimRoundPot: 'CAGNOTTE',
+    claimRoundReady: 'Pool finalisée — prête à réclamer',
+    claimDeadlineLabelDays: (d, h) => `⏳ Encore ${d}j ${h}h pour réclamer la cagnotte de cette semaine`,
+    claimDeadlineLabelHoursMinutes: (h, m) => `⏳ Encore ${h}h ${String(m).padStart(2,'0')}min pour réclamer la cagnotte de cette semaine`,
+    claimDeadlineLabelMinutes: (m) => `⏳ Encore ${m} min pour réclamer la cagnotte de cette semaine`,
+    claimDeadlineLabelLessThanMinute: '⏳ Moins d\'une minute pour réclamer la cagnotte de cette semaine !',
     interRemoveAdsLink: 'Retirer les pubs',
     // v2061 : sync de compte cross-device (classements/stats en ligne, via code éphémère)
     settingsSyncLabel: '🔗 LIER MON COMPTE',
@@ -4233,6 +4266,39 @@ const I18N = {
     settingsRateBtn: 'OPEN',
     settingsRemoveAdsLabel: 'REMOVE ADS',
     settingsRemoveAdsBtn: 'BUY',
+    // ── Solana wallet / weekly claim (Clock In Hackathon) ──
+    settingsWalletLabel: '🔗 SOLANA WALLET',
+    settingsWalletConnect: 'CONNECT',
+    settingsWalletConnecting: '...',
+    settingsWalletCopied: 'COPIED!',
+    settingsWalletTitleConnect: 'Tap to connect',
+    settingsWalletTitleCopy: 'Tap to copy address',
+    walletUnavailable: 'Solana wallet unavailable in this version of the app.',
+    walletNoAppFound: 'No compatible wallet app detected on this phone (Phantom, Solflare...). Install one to connect your wallet.',
+    walletConnectFailed: 'Unable to connect to the wallet right now.',
+    walletDisconnectConfirm: 'Disconnect your Solana wallet?',
+    settingsClaimBtn: 'CLAIM',
+    claimNeedWallet: 'Connect your wallet before claiming.',
+    claimNoPool: 'No pool found for this week.',
+    claimNoScore: 'You don\'t have a recorded score for this week yet.',
+    claimNotFinalized: 'This week\'s pool isn\'t finalized yet.',
+    claimAlreadyClaimed: 'You already claimed your share this week.',
+    claimZeroReward: 'No reward to claim this week.',
+    claimSuccess: 'Reward claimed successfully!',
+    claimFailed: (msg) => 'Claim failed: ' + msg,
+    claimPendingWeekConfirm: (week) => `You have a pending pool reward from week ${week} (not this one). Claim it now?`,
+    claimScratchTitle: '💰 SOLANA POOL',
+    claimScratchSub: (week) => `Week ${week} pool reward`,
+    claimScratchRevealHint: 'Scratch the card or claim it right away',
+    claimScratchNowBtn: 'CLAIM NOW',
+    claimRoundProgress: (i, n) => `CARD ${i} / ${n}`,
+    claimRoundYou: 'YOU',
+    claimRoundPot: 'POOL',
+    claimRoundReady: 'Pool finalized — ready to claim',
+    claimDeadlineLabelDays: (d, h) => `⏳ ${d}d ${h}h left to claim this week's pool`,
+    claimDeadlineLabelHoursMinutes: (h, m) => `⏳ ${h}h ${String(m).padStart(2,'0')}min left to claim this week's pool`,
+    claimDeadlineLabelMinutes: (m) => `⏳ ${m} min left to claim this week's pool`,
+    claimDeadlineLabelLessThanMinute: '⏳ Less than a minute left to claim this week\'s pool!',
     interRemoveAdsLink: 'Remove ads',
     // v2061 : cross-device account sync (online rankings/stats, via ephemeral code)
     settingsSyncLabel: '🔗 LINK ACCOUNT',
@@ -4898,6 +4964,7 @@ function applyI18n(){
   const wrappedCloseLbl = document.getElementById('wrapped-close-label');
   if(wrappedCloseLbl) wrappedCloseLbl.textContent = t('hofClose').replace('✕ ','');
   if(typeof _applyCardI18N === 'function') _applyCardI18N();
+  if(typeof _applyClaimScratchI18N === 'function') _applyClaimScratchI18N();
   const btnOnlineDuelDev = document.getElementById('btn-online-duel-dev');
   if(btnOnlineDuelDev) btnOnlineDuelDev.textContent = t('onlineDuelDevBtn');
   const btnOpenSettings = document.getElementById('btn-open-settings');
@@ -5343,12 +5410,37 @@ const _isCapacitorApp = !!(window.Capacitor && typeof window.Capacitor.isNativeP
 let _lmsLastResumeTs = Date.now();
 const _LMS_BRIDGE_SETTLE_MS = 900; // délai empirique de stabilisation après un resume
 function _lmsMsSinceResume(){ return _lmsLastResumeTs ? (Date.now() - _lmsLastResumeTs) : Infinity; }
-// Attend, si besoin, que le Bridge soit "posé" avant d'exécuter un appel natif sensible.
-// Si aucun resume récent : exécute fn() immédiatement (cas normal, immense majorité des appels).
+// ── v2154 FIX : le simple délai de 900ms ne suffisait pas ─────────────────────
+// Logcat/Crashlytics montrait le crash NPE getPermissionStates survenant ~1s après
+// l'OUVERTURE d'une pub AdMob (pas seulement à sa fermeture) : App.addListener('pause')
+// se déclenche aussi quand une pub plein écran s'ouvre PAR-DESSUS l'Activity (elle est
+// bien "mise en pause" du point de vue Android, exactement comme un vrai passage en
+// arrière-plan). Le handler 'pause' remettait _lmsLastResumeTs à Date.now() ET appelait
+// aussitôt _lmsScheduleStreakReminder() → _lmsAwaitBridgeSettled() se contentait alors de
+// retarder l'appel natif de 900ms... puis l'exécutait QUAND MÊME alors que la pub était
+// encore affichée par-dessus (donc l'Activity réellement en pause, pas juste "en cours de
+// stabilisation") → NPE. Un simple délai ne peut pas distinguer "vient de reprendre le
+// premier plan" de "encore en arrière-plan/masqué" : il faut suivre l'état réel.
+let _lmsIsForeground = true;
+let _lmsPendingBridgeCalls = []; // appels natifs demandés pendant que l'app était en pause
 function _lmsAwaitBridgeSettled(fn){
+  if(!_lmsIsForeground){
+    // L'app est actuellement en pause (arrière-plan réel OU pub AdMob plein écran
+    // affichée par-dessus) : ne JAMAIS tenter l'appel natif dans cet état, quel que
+    // soit le délai écoulé — on le met en attente, il sera automatiquement rejoué
+    // (avec le même garde-fou) au prochain vrai retour au premier plan.
+    _lmsPendingBridgeCalls.push(fn);
+    return;
+  }
   const elapsed = _lmsMsSinceResume();
   if(elapsed >= _LMS_BRIDGE_SETTLE_MS){ fn(); return; }
-  setTimeout(fn, _LMS_BRIDGE_SETTLE_MS - elapsed);
+  setTimeout(()=>_lmsAwaitBridgeSettled(fn), _LMS_BRIDGE_SETTLE_MS - elapsed);
+}
+// Appelée par le listener 'resume' (voir plus bas) une fois _lmsIsForeground repassé à true.
+function _lmsFlushPendingBridgeCalls(){
+  if(!_lmsPendingBridgeCalls.length) return;
+  const calls = _lmsPendingBridgeCalls.splice(0);
+  calls.forEach(fn=>_lmsAwaitBridgeSettled(fn));
 }
 
 // ── TEMP TEST — permet de tester les systèmes d'achat (IAP) sur PC/web ──────
@@ -5478,6 +5570,7 @@ if(window.matchMedia){
   // Les éléments UI (settings, lien sous l'interstitielle) sont plus bas dans le
   // HTML et pas encore dans le DOM à ce stade du parsing → on attend DOMContentLoaded.
   document.addEventListener('DOMContentLoaded', _lmsSyncRemoveAdsUI);
+  document.addEventListener('DOMContentLoaded', _lmsSyncWalletUI);
   if(window.Capacitor){
     try{
       const { App, AdMob } = window.Capacitor.Plugins;
@@ -5486,14 +5579,27 @@ if(window.matchMedia){
       // tout appel natif sensible (ex: LN.requestPermissions() côté streak) déclenché
       // juste après. 'resume' se déclenche aussi après la fermeture d'une pub AdMob
       // plein écran (interstitiel/rewarded), qui repasse par le même cycle de vie Android.
-      if(App) App.addListener('resume', ()=>{ _lmsLastResumeTs = Date.now(); });
+      // v2154 : marque aussi l'app comme "au premier plan" (_lmsIsForeground) et rejoue
+      // les appels natifs mis en attente pendant la pause (voir _lmsAwaitBridgeSettled).
+      if(App) App.addListener('resume', ()=>{
+        _lmsIsForeground = true;
+        _lmsLastResumeTs = Date.now();
+        _lmsFlushPendingBridgeCalls();
+      });
       // Même logique côté sortie : 'pause' se déclenche seulement APRÈS que l'Activity ait
       // réellement fini son onPause() natif — contrairement à 'visibilitychange' (DOM/WebView)
       // qui peut se déclencher AVANT la fin de cette transition. On programme le rappel de
       // streak ici plutôt que sur visibilitychange (voir plus bas), car c'est le signal le plus
       // proche du moment réel où le Bridge peut être instable (ex: bascule vers Phantom pour
       // l'auth wallet, cause du crash NPE getPermissionStates observé en prod).
+      // v2154 FIX : 'pause' se déclenche AUSSI quand une pub AdMob plein écran s'ouvre
+      // par-dessus l'app (l'Activity est réellement mise en pause dans ce cas précis, pas
+      // seulement lors d'un vrai passage en arrière-plan) — donc _lmsIsForeground=false ici.
+      // _lmsScheduleStreakReminder() n'exécutera plus l'appel natif tant que ce flag n'est
+      // pas repassé à true par le 'resume' correspondant (fermeture de la pub), quel que
+      // soit le délai déjà écoulé — c'est ça qui corrige le crash "~1s après ouverture pub".
       if(App) App.addListener('pause', ()=>{
+        _lmsIsForeground = false;
         _lmsLastResumeTs = Date.now();
         if(typeof _lmsScheduleStreakReminder === 'function') _lmsScheduleStreakReminder();
       });
@@ -5586,6 +5692,11 @@ if(window.matchMedia){
         // fond que tout ce qui précède, repérés en élargissant l'audit à tout le menu.
         if(document.getElementById('mastery-popup')&&document.getElementById('mastery-popup').style.display === 'flex'){ if(typeof closeMasteryPopup==='function') closeMasteryPopup(); return; }
         if(document.getElementById('sync-popup')&&document.getElementById('sync-popup').style.display === 'flex'){ closeSyncPopup(); return; }
+        // Popup grattage cagnotte Solana : s'ouvre PAR-DESSUS settings-popup (bouton RÉCLAMER
+        // à l'intérieur des réglages), même raison de nesting que streak-popup avant daily-card-popup
+        // ci-dessus — vérifiée en premier, sinon Retour fermerait les réglages en dessous en laissant
+        // la popup de grattage ouverte par-dessus, orpheline.
+        if(document.getElementById('claim-scratch-popup')&&document.getElementById('claim-scratch-popup').style.display === 'flex'){ if(typeof closeClaimScratchPopup==='function') closeClaimScratchPopup(); return; }
         if(document.getElementById('settings-popup')&&document.getElementById('settings-popup').style.display === 'flex'){ if(typeof closeSettingsPopup==='function') closeSettingsPopup(); return; }
         if(document.getElementById('duel-skin-select-overlay')&&document.getElementById('duel-skin-select-overlay').classList.contains('active')){ if(typeof _cancelDuelSkinSelect==='function') _cancelDuelSkinSelect(); return; }
         // Popups ouverts depuis le MENU (STATE reste 'menu' tant qu'ils sont affichés) :
@@ -9186,7 +9297,15 @@ function _lmsScheduleStreakReminder(){
 function _lmsCancelStreakReminder(){
   const LN = _lmsStreakReminderPlugin();
   if(!LN) return;
-  try{ LN.cancel({ notifications:[{ id: STREAK_REMINDER_NOTIF_ID }] }).catch(()=>{}); }catch(e){}
+  // Seul appel natif LocalNotifications qui n'était PAS protégé par _lmsAwaitBridgeSettled —
+  // appelé notamment depuis la branche visibilitychange "visible" (ligne ~5683), qui peut se
+  // déclencher avant le vrai événement natif 'resume' (ex: bascule de visibilité WebView faite
+  // par le SDK AdMob au moment précis où la récompense est créditée, avant fermeture réelle de
+  // l'Activity pub) — cause très probable du crash NPE getPermissionStates observé juste après
+  // l'obtention d'une récompense de pub rewarded.
+  _lmsAwaitBridgeSettled(()=>{
+    try{ LN.cancel({ notifications:[{ id: STREAK_REMINDER_NOTIF_ID }] }).catch(()=>{}); }catch(e){}
+  });
 }
 
 // ── Priming des notifications : écran maison AVANT la popup système ──
@@ -16768,11 +16887,19 @@ function _lmsConnectSolanaWallet(){
   if(!plugin){
     // Absent en build Play Store pur (module non inclus) ou si l'app n'a
     // pas encore été resync/rebuild avec le plugin actif.
-    alert('Wallet Solana indisponible dans cette version de l\'app.');
+    alert(t('walletUnavailable'));
     return;
   }
+
+  // Déjà connecté -> ce tap copie l'adresse plutôt que de relancer authorize().
+  // La déconnexion se fait via le bouton "×" séparé (_lmsDisconnectSolanaWallet).
+  if(_lmsWalletAddress){
+    _lmsCopyWalletAddress();
+    return;
+  }
+
   const btn = document.getElementById('settings-wallet-btn');
-  if(btn){ btn.textContent = '...'; btn.disabled = true; }
+  if(btn){ btn.textContent = t('settingsWalletConnecting'); btn.disabled = true; }
 
   // Même garde-fou que pour la popup streak (voir _lmsAwaitBridgeSettled, déclaré en
   // haut du fichier) : si "CONNECTER" est tapé juste après un retour de background ou
@@ -16783,8 +16910,11 @@ function _lmsConnectSolanaWallet(){
   _lmsAwaitBridgeSettled(()=>{
   plugin.authorize({
     identityName: 'Last Man Skating',
-    identityUri: 'https://lastmanskating.app',
-    iconUri: 'favicon.ico',
+    identityUri: 'https://kristen.fr/KristenStudiosGames/lms.html',
+    // Doit être une URI RELATIVE à identityUri (pas une URL absolue) : MWA rejette une
+    // URL absolue avec "IllegalArgumentException: iconRelativeUri must be a relative Uri"
+    // (crash observé en prod, thread main, dans MobileWalletAdapterClient.authorize).
+    iconUri: 'apple-touch-icon.png',
     cluster: 'devnet' // à repasser en 'mainnet-beta' au lancement réel post-hackathon
   }).then(result => {
     _lmsWalletAddress = result && result.publicKey ? _lmsBase64ToBase58(result.publicKey) : null;
@@ -16798,6 +16928,14 @@ function _lmsConnectSolanaWallet(){
       _lmsFbDb.ref('wallets/' + _lmsAuthUid).set({
         address: _lmsWalletAddress,
         ts: Date.now()
+      }).then(()=>{
+        // Chaîné volontairement APRÈS la résolution de l'écriture "wallets" ci-dessus,
+        // et pas en fire-and-forget en parallèle : la règle RTDB de "claimPendingWeeks"
+        // (voir rules.json) vérifie root.child('wallets').child(auth.uid).child('address')
+        // — si les deux écritures partaient en même temps, celle sur claimPendingWeeks
+        // pourrait arriver côté serveur AVANT que "wallets/{uid}" existe et se faire
+        // rejeter (permission denied) par pure course de timing.
+        if(typeof _lmsSyncPendingClaimWeeksToFirebase === 'function') _lmsSyncPendingClaimWeeksToFirebase();
       }).catch(e => console.error('[wallet] échec écriture RTDB:', e));
     } else {
       console.warn('[wallet] auth Firebase pas encore prête — adresse gardée en local uniquement pour l\'instant.');
@@ -16807,20 +16945,76 @@ function _lmsConnectSolanaWallet(){
     console.error('[wallet] authorize() a échoué:', err);
     const msg = String(err && err.message || err);
     if(msg.indexOf('NO_WALLET_FOUND') !== -1){
-      alert('Aucune app wallet compatible détectée sur ce téléphone (Phantom, Solflare...). Installe-en une pour connecter ton wallet.');
+      alert(t('walletNoAppFound'));
     } else {
-      alert('Connexion au wallet impossible pour le moment.');
+      alert(t('walletConnectFailed'));
     }
     _syncSettingsUI();
   });
   });
 }
 
+function _lmsCopyWalletAddress(){
+  if(!_lmsWalletAddress) return;
+  const done = () => {
+    const btn = document.getElementById('settings-wallet-btn');
+    if(!btn) return;
+    const prev = btn.textContent;
+    btn.textContent = t('settingsWalletCopied');
+    setTimeout(()=>{ btn.textContent = prev; }, 1200);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(_lmsWalletAddress).then(done).catch(()=>{ alert(_lmsWalletAddress); });
+  } else {
+    alert(_lmsWalletAddress);
+  }
+}
+
+function _lmsDisconnectSolanaWallet(){
+  if(!confirm(t('walletDisconnectConfirm'))) return;
+
+  const disconnectBtn = document.getElementById('settings-wallet-disconnect-btn');
+  if(disconnectBtn){ disconnectBtn.disabled = true; }
+
+  const plugin = _lmsSolanaWalletPlugin();
+  const authToken = (function(){ try{ return localStorage.getItem('lms_wallet_auth_token') || ''; }catch(e){ return ''; } })();
+
+  const finishDisconnect = () => {
+    _lmsWalletAddress = null;
+    try{ localStorage.removeItem('lms_wallet_address'); }catch(e){}
+    try{ localStorage.removeItem('lms_wallet_auth_token'); }catch(e){}
+    _syncSettingsUI();
+  };
+
+  if(plugin && authToken){
+    // Même garde-fou que authorize()/signAndSendTransactions() (voir _lmsAwaitBridgeSettled) —
+    // c'était le seul appel natif wallet qui y échappait encore.
+    _lmsAwaitBridgeSettled(()=>{
+      plugin.deauthorize({ authToken }).then(finishDisconnect).catch(err => {
+        // Même si deauthorize() échoue côté wallet (session déjà expirée côté
+        // wallet, par ex.), on déconnecte quand même localement — pas de raison
+        // de bloquer l'utilisateur sur un état "connecté" qu'il ne peut plus
+        // utiliser de toute façon.
+        console.warn('[wallet] deauthorize() a échoué, déconnexion locale quand même:', err);
+        finishDisconnect();
+      });
+    });
+  } else {
+    finishDisconnect();
+  }
+}
+
 function _lmsSyncWalletButton(){
   const btn = document.getElementById('settings-wallet-btn');
+  const disconnectBtn = document.getElementById('settings-wallet-disconnect-btn');
   if(!btn) return;
   btn.disabled = false;
-  btn.textContent = _lmsWalletAddress ? _lmsShortAddr(_lmsWalletAddress) : 'CONNECTER';
+  btn.textContent = _lmsWalletAddress ? _lmsShortAddr(_lmsWalletAddress) : t('settingsWalletConnect');
+  btn.title = _lmsWalletAddress ? t('settingsWalletTitleCopy') : t('settingsWalletTitleConnect');
+  if(disconnectBtn){
+    disconnectBtn.style.display = _lmsWalletAddress ? 'inline-block' : 'none';
+    disconnectBtn.disabled = false;
+  }
 }
 
 // ── Claim de la cagnotte Solana (claim_scratch) ──────────────────────────
@@ -16830,6 +17024,15 @@ const LMS_SOLANA_RPC = 'https://smart-wispy-shape.solana-devnet.quiknode.pro/85f
 const TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 const ASSOCIATED_TOKEN_PROGRAM_ID = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
 const CLAIM_SCRATCH_DISCRIMINATOR = [73, 72, 174, 116, 49, 218, 108, 8]; // depuis lms_proof_of_play.json
+// Split 75/25 — DOIT rester identique à PROPORTIONAL_SHARE_PCT / EQUAL_SHARE_PCT dans
+// lib.rs (aucune source commune entre le programme Rust et ce client JS : c'est une
+// simple duplication à garder synchronisée à la main si jamais le split change côté
+// programme). Sert uniquement à PRÉVISUALISER le montant avant claim (voir _lmsComputeClaimPayout) —
+// si jamais désynchronisé, seul l'affichage serait faux, jamais le transfert réel
+// (calculé on-chain, indépendamment de ce que le client affiche).
+const LMS_PROPORTIONAL_SHARE_PCT = 75n;
+const LMS_EQUAL_SHARE_PCT = 25n;
+const LMS_EQUAL_SHARE_MIN_SCORE = 9n; // doit matcher EQUAL_SHARE_MIN_SCORE dans lib.rs
 
 // Appel JSON-RPC brut (bypass la validation stricte superstruct de web3.js,
 // qui rejette certaines réponses de RPC tiers comme Ankr avec un StructError
@@ -16874,10 +17077,70 @@ function _lmsReadU64LE(buf, offset){
   return new DataView(buf.buffer, buf.byteOffset + offset, 8).getBigUint64(0, true);
 }
 
-async function _lmsGetClaimContext(){
+// ── Historique des semaines "à vérifier pour un claim" ──────────────────
+// Le contrat on-chain n'a aucune notion d'expiration (voir claim_scratch) :
+// une pool reste techniquement réclamable indéfiniment tant que
+// player_score.claimed est false. La seule limite vient du client, qui ne
+// calculait jusqu'ici les PDA que pour _lmsWeekKey() (la semaine courante).
+// On mémorise donc localement, à chaque changement de semaine ISO détecté,
+// la semaine qu'on vient de quitter — pas besoin de savoir à l'avance si elle
+// contenait vraiment un score réclamable, la vérification RPC ne se fait
+// qu'à la demande dans _lmsFindClaimableContext().
+const LMS_CLAIM_PENDING_WEEKS_KEY = 'lms_claim_pending_weeks'; // JSON array de weekId, plus ancien en premier
+const LMS_CLAIM_LAST_SEEN_WEEK_KEY = 'lms_claim_last_seen_week';
+const LMS_CLAIM_PENDING_WEEKS_MAX = 8; // ~2 mois d'historique — largement suffisant, évite un localStorage qui grossit sans fin
+
+function _lmsGetPendingClaimWeeks(){
+  try{ return JSON.parse(localStorage.getItem(LMS_CLAIM_PENDING_WEEKS_KEY) || '[]'); }catch(e){ return []; }
+}
+function _lmsSavePendingClaimWeeks(list){
+  try{ localStorage.setItem(LMS_CLAIM_PENDING_WEEKS_KEY, JSON.stringify(list)); }catch(e){}
+}
+// À appeler à chaque sync UI wallet (voir _lmsSyncWalletUI) : détecte un
+// changement de semaine ISO depuis le dernier appel et archive la semaine
+// quittée dans l'historique.
+function _lmsTrackClaimWeekTransition(){
+  const current = _lmsWeekKey();
+  let lastSeen = '';
+  try{ lastSeen = localStorage.getItem(LMS_CLAIM_LAST_SEEN_WEEK_KEY) || ''; }catch(e){}
+  if(lastSeen && lastSeen !== current){
+    const list = _lmsGetPendingClaimWeeks();
+    if(!list.includes(lastSeen)){
+      list.push(lastSeen);
+      while(list.length > LMS_CLAIM_PENDING_WEEKS_MAX) list.shift();
+      _lmsSavePendingClaimWeeks(list);
+    }
+  }
+  if(lastSeen !== current){
+    try{ localStorage.setItem(LMS_CLAIM_LAST_SEEN_WEEK_KEY, current); }catch(e){}
+  }
+  _lmsSyncPendingClaimWeeksToFirebase();
+}
+// Pousse (best-effort, non bloquant) l'historique local vers Firebase —
+// résiste à une désinstall/reinstall ou à un changement d'appareil, contrairement
+// au localStorage seul. Indexé par ADRESSE WALLET (pas par uid) : l'auth
+// anonyme Firebase change d'uid à chaque reinstall/vidage de cache, alors que
+// la pubkey renvoyée par MWA authorize() est stable pour un même wallet natif
+// — c'est donc la seule clé qui survit vraiment à une réinstallation. Écriture
+// idempotente (une clé booléenne par semaine) ; si Firebase/l'auth/le wallet
+// ne sont pas encore prêts, l'historique reste utilisable en local en attendant
+// (même schéma que l'écriture du noeud "wallets/{uid}").
+// Nécessite une règle RTDB dédiée sur "claimPendingWeeks" (voir rules.json,
+// noeud indexé par $wallet et vérifié via root.child('wallets').child(auth.uid)).
+function _lmsSyncPendingClaimWeeksToFirebase(){
+  if(!_lmsFbDb || !_lmsAuthUid || !_lmsWalletAddress) return;
+  _lmsGetPendingClaimWeeks().forEach(weekId => {
+    _lmsFbDb.ref('claimPendingWeeks/' + _lmsWalletAddress + '/' + weekId).set(true)
+      .catch(e => console.warn('[claim] échec sync semaine en attente vers Firebase:', weekId, e));
+  });
+}
+
+// weekId optionnel : par défaut la semaine courante, mais _lmsFindClaimableContext()
+// s'en sert aussi pour interroger d'anciennes semaines (voir historique ci-dessus).
+async function _lmsGetClaimContext(weekId){
   const web3 = window.solanaWeb3;
   const programId = new web3.PublicKey(LMS_SOLANA_PROGRAM_ID);
-  const weekId = _lmsWeekKey();
+  weekId = weekId || _lmsWeekKey();
   const playerPubkey = new web3.PublicKey(_lmsWalletAddress);
 
   const [weeklyPoolPda] = web3.PublicKey.findProgramAddressSync(
@@ -16897,14 +17160,14 @@ async function _lmsGetClaimContext(){
   let off = 8 + 32 + 32; // discriminator + authority + mint
   const vault = new web3.PublicKey(poolInfo.data.slice(off, off+32)); off += 32;
   const wk = _lmsReadBorshString(poolInfo.data, off); off = wk.next;
-  off += 8; // total_score
-  off += 8; // total_pot
-  off += 8; // eligible_count
+  const totalScoreBI = _lmsReadU64LE(poolInfo.data, off); off += 8; // total_score
+  const totalPotBI = _lmsReadU64LE(poolInfo.data, off); off += 8; // total_pot
+  const eligibleCountBI = _lmsReadU64LE(poolInfo.data, off); off += 8; // eligible_count
   const finalized = poolInfo.data[off] === 1;
 
   let soff = 8 + 32; // discriminator + player
   const swk = _lmsReadBorshString(scoreInfo.data, soff); soff = swk.next;
-  const score = _lmsReadU64LE(scoreInfo.data, soff); soff += 8;
+  const scoreBI = _lmsReadU64LE(scoreInfo.data, soff); soff += 8;
   const eligible = scoreInfo.data[soff] === 1; soff += 1;
   const claimed = scoreInfo.data[soff] === 1;
 
@@ -16912,8 +17175,140 @@ async function _lmsGetClaimContext(){
     status:'ok', weekId, programId, playerPubkey,
     weeklyPoolPda, playerScorePda, vault,
     mint: new web3.PublicKey(LMS_SOLANA_MINT),
-    finalized, score: Number(score), eligible, claimed
+    finalized, score: Number(scoreBI), eligible, claimed,
+    // Montant exact (base units du mint) que rapportera claim_scratch — voir
+    // _lmsComputeClaimPayout : n'est fiable que si finalized === true (avant finalisation,
+    // total_score/total_pot/eligible_count peuvent encore bouger, donc ce chiffre n'a pas
+    // de sens et ne doit pas être affiché au joueur).
+    payout: _lmsComputeClaimPayout(totalPotBI, totalScoreBI, eligibleCountBI, scoreBI, eligible),
   };
+}
+
+// Reproduit fidèlement le calcul on-chain de claim_scratch (lib.rs) :
+//   proportional_share = (total_pot * 75/100) * score / total_score
+//   equal_share         = eligible ? (total_pot * 25/100) / eligible_count : 0
+//   payout              = proportional_share + equal_share
+// Entièrement en BigInt pour matcher l'arithmétique u128/u64 du programme (même ordre
+// mul-puis-div, même troncature entière) — un simple Number() introduirait des erreurs
+// d'arrondi flottant sur de grosses valeurs. Gardes anti-division-par-zéro (total_score
+// ou eligible_count à 0) qui n'existent pas côté Rust car impossibles à ce stade du
+// contrat (claim_scratch exige déjà total_score > 0, et eligible=true implique
+// eligible_count >= 1) — ajoutées ici uniquement parce que ce calcul peut aussi tourner
+// AVANT que ces garanties on-chain soient vérifiées (prévisualisation dans la popup).
+function _lmsComputeClaimPayout(totalPotBI, totalScoreBI, eligibleCountBI, scoreBI, eligible){
+  if(totalScoreBI <= 0n) return 0n;
+  const proportionalPot = (totalPotBI * LMS_PROPORTIONAL_SHARE_PCT) / 100n;
+  const equalPot = (totalPotBI * LMS_EQUAL_SHARE_PCT) / 100n;
+  const proportionalShare = (proportionalPot * scoreBI) / totalScoreBI;
+  const equalShare = (eligible && eligibleCountBI > 0n) ? (equalPot / eligibleCountBI) : 0n;
+  return proportionalShare + equalShare;
+}
+
+// Décimales du mint SKR — ne changent jamais pour un mint donné, donc mise en cache
+// session (un seul appel RPC au total, jamais répété). Layout SPL Token Mint :
+// COption<Pubkey> mintAuthority (4+32) + u64 supply (8) + u8 decimals (1) + ... —
+// décimales toujours à l'offset fixe 44 pour ce layout de compte.
+let _lmsTokenDecimalsCache = null;
+async function _lmsGetTokenDecimals(){
+  if(_lmsTokenDecimalsCache !== null) return _lmsTokenDecimalsCache;
+  try{
+    const mintBytes = await _lmsRawGetAccountInfo(LMS_SOLANA_MINT);
+    _lmsTokenDecimalsCache = mintBytes ? mintBytes[44] : 9;
+  }catch(e){
+    console.warn('[claim] lecture décimales mint échouée, repli sur 9 (défaut Solana):', e);
+    _lmsTokenDecimalsCache = 9;
+  }
+  return _lmsTokenDecimalsCache;
+}
+
+// Formatte un montant en base units (BigInt) vers une chaîne lisible, jusqu'à 4
+// décimales, zéros de fin retirés (ex. 1250000n avec 6 décimales -> "1.25").
+function _lmsFormatTokenAmount(baseUnitsBI, decimals){
+  const div = 10n ** BigInt(decimals);
+  const whole = baseUnitsBI / div;
+  const frac = baseUnitsBI % div;
+  if(frac === 0n) return whole.toString();
+  const fracStr = frac.toString().padStart(decimals, '0').slice(0, 4).replace(/0+$/, '');
+  return fracStr ? `${whole}.${fracStr}` : whole.toString();
+}
+
+// Fusionne l'historique local avec celui stocké côté Firebase (voir
+// _lmsSyncPendingClaimWeeksToFirebase) — c'est cette fusion qui apporte la
+// persistance cross-device / résistante à une désinstallation, le localStorage
+// seul étant perdu avec le cache app. Indexé par ADRESSE WALLET (pas par uid) —
+// voir _lmsSyncPendingClaimWeeksToFirebase pour l'explication. Recale aussi le
+// cache local avec ce qui est trouvé côté serveur, pour rester utilisable
+// hors-ligne la prochaine fois.
+async function _lmsGetMergedPendingClaimWeeks(){
+  const local = _lmsGetPendingClaimWeeks();
+  if(!_lmsFbDb || !_lmsAuthUid || !_lmsWalletAddress) return local;
+  try{
+    const snap = await _lmsFbDb.ref('claimPendingWeeks/' + _lmsWalletAddress).once('value');
+    const remote = [];
+    snap.forEach(child => { remote.push(child.key); });
+    const merged = Array.from(new Set([...local, ...remote]));
+    _lmsSavePendingClaimWeeks(merged.slice(-LMS_CLAIM_PENDING_WEEKS_MAX));
+    return merged;
+  }catch(e){
+    console.warn('[claim] lecture historique Firebase échouée, fallback local:', e);
+    return local;
+  }
+}
+
+// Essaie la semaine courante en premier ; si rien à réclamer dessus MAINTENANT
+// (pas de pool/score, pas encore finalisée, déjà claim), retombe sur l'historique
+// des semaines précédentes (voir _lmsTrackClaimWeekTransition /
+// _lmsGetMergedPendingClaimWeeks) pour retrouver une cagnotte laissée en attente
+// après un changement de semaine côté app. Le contrat on-chain n'a pas cette
+// limite de "maintenant seulement" — jusqu'ici seul le bouton RÉCLAMER l'avait,
+// en ne calculant les PDA que pour _lmsWeekKey().
+// Important : `finalized` fait partie du critère de sélection ici, pas
+// seulement du message d'erreur affiché ensuite dans _lmsClaimPoolReward — sinon
+// une semaine courante avec score soumis mais pas encore finalisée (l'état
+// normal la majorité du temps, tant que le Worker Cloudflare n'a pas tourné)
+// ferait sortir la fonction immédiatement sans jamais regarder l'historique,
+// ce qui viderait complètement le fallback de son intérêt.
+async function _lmsFindClaimableContext(){
+  const currentWeek = _lmsWeekKey();
+  const currentCtx = await _lmsGetClaimContext(currentWeek);
+  if(currentCtx.status === 'ok' && currentCtx.finalized && !currentCtx.claimed && currentCtx.score > 0){
+    return currentCtx;
+  }
+  const pendingWeeks = (await _lmsGetMergedPendingClaimWeeks()).filter(w => w !== currentWeek).reverse(); // plus récent d'abord
+  for(const weekId of pendingWeeks){
+    try{
+      const ctx = await _lmsGetClaimContext(weekId);
+      if(ctx.status === 'ok' && !ctx.claimed && ctx.score > 0){
+        return ctx;
+      }
+    }catch(e){
+      console.warn('[claim] vérification semaine en attente échouée:', weekId, e);
+    }
+  }
+  // Rien trouvé ailleurs -> on garde le statut de la semaine courante, pour
+  // que les messages d'erreur existants (no_pool/no_score/etc.) restent corrects.
+  return currentCtx;
+}
+
+// Comme _lmsFindClaimableContext ci-dessus, mais renvoie TOUTES les semaines réclamables
+// (courante + historique en attente), pas seulement la première trouvée — sert à enchaîner
+// toutes les cartes en retard d'une même session de réclamation (voir _lmsClaimShowRound)
+// au lieu de s'arrêter à la 1ère semaine trouvée. Même ordre "plus récent d'abord" que
+// l'original ; mêmes critères d'éligibilité (finalized, non réclamé, score > 0).
+async function _lmsFindAllClaimableContexts(){
+  const currentWeek = _lmsWeekKey();
+  const pendingWeeks = (await _lmsGetMergedPendingClaimWeeks()).filter(w => w !== currentWeek).reverse();
+  const weekIds = [currentWeek, ...pendingWeeks];
+  const out = [];
+  for(const weekId of weekIds){
+    try{
+      const ctx = await _lmsGetClaimContext(weekId);
+      if(ctx.status === 'ok' && ctx.finalized && !ctx.claimed && ctx.score > 0) out.push(ctx);
+    }catch(e){
+      console.warn('[claim] vérification semaine en attente échouée:', weekId, e);
+    }
+  }
+  return out;
 }
 
 async function _lmsGetOrCreateAtaIx(web3, owner, mint, payer){
@@ -16937,19 +17332,256 @@ async function _lmsGetOrCreateAtaIx(web3, owner, mint, payer){
   return { ata, ix };
 }
 
+// ── Popup grattage cagnotte (claim_scratch) ─────────────────────────────
+// Même mécanique visuelle que les cartes quotidienne/hebdomadaire (_setupScratchCanvas),
+// mais dupliquée ici plutôt que réutilisée telle quelle : la fonction d'origine est câblée
+// sur claimCard()/_pendingCardResult (tirage aléatoire d'une récompense de jeu), alors qu'ici
+// il n'y a rien à tirer — juste une mise en scène avant une vraie transaction on-chain déjà
+// entièrement déterminée par ctx. Deux déclencheurs équivalents : gratter à 70% (seuil plus
+// élevé que les 55% des cartes, pour laisser plus de "jeu" avant un envoi irréversible) OU
+// taper "RÉCLAMER MAINTENANT". L'éligibilité (pool finalisée, score non nul, pas déjà réclamé,
+// éventuelle semaine en attente confirmée) est entièrement vérifiée AVANT l'ouverture de cette
+// popup, dans _lmsClaimPoolReward() ci-dessous — la carte ne fait que retarder/mettre en scène
+// l'ouverture du wallet, jamais l'éligibilité elle-même.
+let _lmsClaimScratchCtx = null;        // contexte de claim déjà validé, en attente de la carte
+let _lmsClaimScratchTxStarted = false; // garde-fou anti double-déclenchement (grattage + bouton)
+let _lmsClaimQueue = [];               // contextes restants à réclamer dans CETTE session (semaines en retard incluses)
+let _lmsClaimQueueTotal = 0;           // taille de la file au démarrage, pour l'affichage "CARTE i / n"
+// Durée d'affichage de la transition "manche" avant d'enchaîner sur la carte à gratter. Testé à
+// 1150ms au départ (repris de l'écran d'attente duel) : pas assez pour lire "CARTE i/n" + la
+// semaine avant l'enchaînement automatique — +1000ms pour laisser le temps de lire.
+const LMS_CLAIM_ROUND_HOLD_MS = 2150;
+
 async function _lmsClaimPoolReward(){
   const btn = document.getElementById('settings-claim-btn');
-  if(!_lmsWalletAddress){ alert('Connecte ton wallet avant de réclamer.'); return; }
-  if(btn){ btn.textContent = '...'; btn.disabled = true; }
+  if(!_lmsWalletAddress){ alert(t('claimNeedWallet')); return; }
+  if(btn){ btn.textContent = t('settingsWalletConnecting'); btn.disabled = true; }
   try{
     const web3 = window.solanaWeb3;
     if(!web3) throw new Error('solanaWeb3 non chargé');
-    const ctx = await _lmsGetClaimContext();
-    if(ctx.status === 'no_pool'){ alert('Aucune cagnotte trouvée pour cette semaine.'); return; }
-    if(ctx.status === 'no_score'){ alert("Tu n'as pas encore de score enregistré cette semaine."); return; }
-    if(!ctx.finalized){ alert("La cagnotte de cette semaine n'est pas encore finalisée."); return; }
-    if(ctx.claimed){ alert('Tu as déjà réclamé ta part cette semaine.'); return; }
-    if(ctx.score <= 0){ alert('Aucune récompense à réclamer cette semaine.'); return; }
+    const contexts = await _lmsFindAllClaimableContexts();
+    if(!contexts.length){
+      // Rien d'éligible sur AUCUNE semaine -> on retombe sur l'ancienne détection (1 seule
+      // semaine) juste pour garder les messages d'erreur existants (no_pool/no_score/etc.)
+      // corrects et inchangés, sans les dupliquer ici.
+      const ctx = await _lmsFindClaimableContext();
+      if(ctx.status === 'no_pool'){ alert(t('claimNoPool')); return; }
+      if(ctx.status === 'no_score'){ alert(t('claimNoScore')); return; }
+      if(!ctx.finalized){ alert(t('claimNotFinalized')); return; }
+      if(ctx.claimed){ alert(t('claimAlreadyClaimed')); return; }
+      alert(t('claimZeroReward'));
+      return;
+    }
+
+    // Semaine la plus récente de la file différente de la semaine courante -> confirmation
+    // explicite, pour éviter de surprendre le joueur qui pensait réclamer "cette semaine".
+    if(contexts[0].weekId !== _lmsWeekKey()){
+      if(!confirm(t('claimPendingWeekConfirm', contexts[0].weekId))) return;
+    }
+
+    _lmsClaimQueue = contexts;
+    _lmsClaimQueueTotal = contexts.length;
+    _lmsClaimShowRound();
+  } catch(err){
+    console.error('[claim] échec vérification éligibilité:', err);
+    alert(t('claimFailed', String(err && err.message || err)));
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = t('settingsClaimBtn'); }
+  }
+}
+
+// Traduction de la popup grattage — appelée à l'ouverture ET depuis applyI18n() (même
+// pattern que _applyCardI18N() pour daily-card-popup) pour rafraîchir en direct si jamais
+// la langue est changée pendant que cette popup est déjà affichée.
+function _applyClaimScratchI18N(){
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  set('claim-scratch-title', t('claimScratchTitle'));
+  set('claim-scratch-now-label', t('claimScratchNowBtn'));
+  // La ligne d'info dépend du weekId du contexte en cours — rien à traduire si aucune
+  // réclamation n'est en attente (popup jamais ouverte cette session, ou déjà refermée).
+  if(_lmsClaimScratchCtx) set('claim-scratch-sub', t('claimScratchSub', _lmsClaimScratchCtx.weekId));
+  // Idem pour la transition "manche" si elle est affichée au moment du changement de langue.
+  if(_lmsClaimQueue.length){
+    set('claim-round-vs-progress', t('claimRoundProgress', _lmsClaimQueueTotal - _lmsClaimQueue.length + 1, _lmsClaimQueueTotal));
+    set('claim-round-vs-me-label', t('claimRoundYou'));
+    set('claim-round-vs-sub', t('claimRoundReady'));
+  }
+}
+
+// Rendu du contenu de la carte (montant + sous-texte), factorisé car utilisé à la fois à
+// l'ouverture (aperçu) et sur l'écran de succès après claim — même montant affiché dans les
+// deux cas puisque le calcul est déterministe une fois la pool finalisée (voir
+// _lmsComputeClaimPayout) : pas besoin de re-vérifier quoi que ce soit après la transaction.
+// Placeholder "…" pendant le (seul) appel RPC nécessaire pour connaître les décimales du
+// mint, mis en cache ensuite pour le reste de la session.
+function _lmsRenderClaimScratchReveal(ctx, opts){
+  const revealEl = document.getElementById('claim-scratch-reveal');
+  if(!revealEl) return;
+  const isSuccess = !!(opts && opts.success);
+  revealEl.innerHTML = '<div class="card-reward-main">' + (isSuccess ? '✅' : '🎁') + ' …</div><div class="card-reward-sub">' + t(isSuccess ? 'claimSuccess' : 'claimScratchRevealHint') + '</div>';
+  _lmsGetTokenDecimals().then(decimals => {
+    const el = document.getElementById('claim-scratch-reveal');
+    if(!el) return;
+    const amountStr = _lmsFormatTokenAmount(ctx.payout, decimals);
+    el.innerHTML = '<div class="card-reward-main">' + (isSuccess ? '✅' : '🎁') + ' ' + amountStr + ' SKR</div><div class="card-reward-sub">' + t(isSuccess ? 'claimSuccess' : 'claimScratchRevealHint') + '</div>';
+  }).catch(e => console.warn('[claim] rendu montant échoué:', e));
+}
+
+// Affiche la transition "manche" (façon VS duel) pour la prochaine semaine de _lmsClaimQueue,
+// puis enchaîne automatiquement sur la popup de grattage après LMS_CLAIM_ROUND_HOLD_MS. Le
+// perso/skin affiché à gauche est celui réellement équipé par le joueur — même résolution que
+// côté attente duel en ligne (_lmsDuelWaitResolveIcon + _drawSkinIconPreview), pas un simple
+// emoji, pour rester cohérent avec le reste du jeu (HOF, cartes grattage skins).
+function _lmsClaimShowRound(){
+  const overlay = document.getElementById('claim-round-vs-overlay');
+  const ctx = _lmsClaimQueue[0];
+  if(!ctx) return;
+  if(!overlay){ _lmsOpenClaimScratchPopup(ctx); return; } // filet de sécurité si l'overlay manque au DOM
+
+  const idx = _lmsClaimQueueTotal - _lmsClaimQueue.length + 1;
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  set('claim-round-vs-progress', t('claimRoundProgress', idx, _lmsClaimQueueTotal));
+  set('claim-round-vs-week-label', ctx.weekId);
+  set('claim-round-vs-me-label', t('claimRoundYou'));
+  set('claim-round-vs-sub', t('claimRoundReady'));
+
+  const meCv = document.getElementById('claim-round-vs-me-icon');
+  const myKid = (typeof selectedKid !== 'undefined' && selectedKid) ? selectedKid : 'blond';
+  const mySkin = (typeof getEquipped === 'function') ? getEquipped('skins') : 'normal';
+  const myImg = _lmsDuelWaitResolveIcon(myKid, mySkin);
+  if(meCv && myImg && typeof _drawSkinIconPreview === 'function') _drawSkinIconPreview(meCv, myImg);
+
+  // Relance les animations à chaque manche (même technique que .odw-vs-mode côté duel) : on
+  // retire la classe, on force un reflow, puis on la remet — sinon le navigateur ne rejoue pas
+  // les keyframes puisque les éléments restent dans le DOM entre deux semaines.
+  overlay.classList.remove('active');
+  void overlay.offsetWidth;
+  overlay.classList.add('active');
+
+  setTimeout(() => {
+    overlay.classList.remove('active');
+    _lmsOpenClaimScratchPopup(ctx);
+  }, LMS_CLAIM_ROUND_HOLD_MS);
+}
+
+// Appelée après un claim réussi (voir _lmsExecuteClaimTransaction) : referme la carte qui
+// vient d'être gagnée puis, s'il reste des semaines dans la file, relance la transition
+// "manche" pour la suivante — sinon la session de réclamation groupée est terminée.
+function _lmsClaimAdvanceQueue(){
+  closeClaimScratchPopup();
+  _lmsClaimQueue.shift();
+  if(_lmsClaimQueue.length) _lmsClaimShowRound();
+}
+
+function _lmsOpenClaimScratchPopup(ctx){
+  _lmsClaimScratchCtx = ctx;
+  _lmsClaimScratchTxStarted = false;
+  const popup = document.getElementById('claim-scratch-popup');
+  // Filet de sécurité si jamais la popup manque au DOM (build partiel, etc.) : on retombe
+  // sur l'ancien comportement direct plutôt que de perdre silencieusement la réclamation.
+  if(!popup){ _lmsExecuteClaimTransaction(ctx); return; }
+  _applyClaimScratchI18N();
+  _lmsRenderClaimScratchReveal(ctx);
+  const nowBtn = document.getElementById('claim-scratch-now-btn');
+  if(nowBtn) nowBtn.disabled = false;
+  popup.style.display = 'flex';
+  const canvas = document.getElementById('claim-scratch-canvas');
+  if(canvas) _setupClaimScratchCanvas(canvas);
+}
+
+function closeClaimScratchPopup(){
+  const popup = document.getElementById('claim-scratch-popup');
+  if(popup) popup.style.display = 'none';
+  // Fermeture sans avoir gratté ni tapé le bouton : rien n'a été envoyé on-chain, le
+  // contexte est juste abandonné — aucune perte, la cagnotte sera re-détectée par
+  // _lmsFindAllClaimableContexts() la prochaine fois que le joueur tapera RÉCLAMER. On
+  // abandonne aussi le reste de la file groupée (s'il y en avait une) plutôt que de laisser
+  // un état à moitié consommé : un nouveau RÉCLAMER la reconstruira proprement.
+  if(!_lmsClaimScratchTxStarted){ _lmsClaimScratchCtx = null; _lmsClaimQueue = []; }
+}
+
+function _setupClaimScratchCanvas(canvas){
+  canvas._fxDone = false; // reset : réutilisation du même élément canvas à chaque ouverture
+  const c = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  c.clearRect(0,0,w,h);
+  c.globalCompositeOperation = 'source-over';
+  const grad = c.createLinearGradient(0,0,w,h);
+  grad.addColorStop(0, '#ffcf5c'); grad.addColorStop(0.5, '#ffe9b0'); grad.addColorStop(1, '#ffcf5c');
+  c.fillStyle = grad;
+  c.fillRect(0,0,w,h);
+  c.fillStyle = 'rgba(255,255,255,.25)';
+  for(let i=0;i<40;i++){
+    c.beginPath();
+    c.arc(Math.random()*w, Math.random()*h, Math.random()*2+0.5, 0, Math.PI*2);
+    c.fill();
+  }
+  c.fillStyle = 'rgba(60,40,0,.55)';
+  c.font = "bold 18px 'Barlow Condensed', sans-serif";
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(_ct('scratchMe'), w/2, h/2);
+  c.globalCompositeOperation = 'destination-out';
+
+  let scratching = false, sampleCounter = 0;
+  const scratchAt = (x, y) => { c.beginPath(); c.arc(x, y, 22, 0, Math.PI*2); c.fill(); };
+  const getPos = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (cx - rect.left) * (canvas.width / rect.width), y: (cy - rect.top) * (canvas.height / rect.height) };
+  };
+  // Seuil à 70% (vs 55% pour les cartes quotidiennes/hebdo) : ici le grattage déclenche
+  // directement une vraie transaction irréversible, pas juste une révélation cosmétique.
+  const checkAutoReveal = () => {
+    sampleCounter++;
+    if(sampleCounter % 6 !== 0) return;
+    const data = c.getImageData(0,0,w,h).data;
+    let cleared = 0, total = 0;
+    for(let i=3;i<data.length;i+=4*17){ total++; if(data[i] < 40) cleared++; }
+    if(total && cleared/total > 0.70) _revealClaimScratchCanvas(canvas);
+  };
+  const onDown = (e) => { scratching = true; const p = getPos(e); scratchAt(p.x,p.y); e.preventDefault(); };
+  const onMove = (e) => { if(!scratching) return; const p = getPos(e); scratchAt(p.x,p.y); checkAutoReveal(); e.preventDefault(); };
+  const onUp   = () => { scratching = false; };
+
+  canvas.onmousedown = onDown; canvas.onmousemove = onMove;
+  canvas.ontouchstart = onDown; canvas.ontouchmove = onMove; canvas.ontouchend = onUp;
+  if(canvas._scratchUpHandler) window.removeEventListener('mouseup', canvas._scratchUpHandler);
+  canvas._scratchUpHandler = onUp;
+  window.addEventListener('mouseup', onUp);
+}
+
+function _revealClaimScratchCanvas(canvas){
+  if(canvas._fxDone) return;
+  canvas._fxDone = true;
+  canvas.style.transition = 'opacity .4s';
+  canvas.style.opacity = '0';
+  setTimeout(()=>{ canvas.style.display = 'none'; }, 400);
+  if(_lmsClaimScratchCtx) _lmsExecuteClaimTransaction(_lmsClaimScratchCtx);
+}
+
+// Bouton "RÉCLAMER MAINTENANT" : identique au grattage complet, juste sans attendre
+// le seuil de 70% pour le joueur pressé — même fonction d'arrivée (_lmsExecuteClaimTransaction).
+function _lmsClaimScratchNow(){
+  const canvas = document.getElementById('claim-scratch-canvas');
+  if(canvas) _revealClaimScratchCanvas(canvas);
+  else if(_lmsClaimScratchCtx) _lmsExecuteClaimTransaction(_lmsClaimScratchCtx);
+}
+
+// Envoi effectif de la transaction claim_scratch — reprend telle quelle la logique de
+// construction/signature/nettoyage qui vivait auparavant directement dans _lmsClaimPoolReward()
+// avant l'ajout de la popup de grattage. Protégée par _lmsClaimScratchTxStarted pour n'être
+// exécutée qu'une seule fois par cycle de popup, même si grattage et bouton se chevauchent.
+async function _lmsExecuteClaimTransaction(ctx){
+  if(_lmsClaimScratchTxStarted) return;
+  _lmsClaimScratchTxStarted = true;
+  const nowBtn = document.getElementById('claim-scratch-now-btn');
+  const nowLabel = document.getElementById('claim-scratch-now-label');
+  if(nowBtn) nowBtn.disabled = true;
+  if(nowLabel) nowLabel.textContent = t('settingsWalletConnecting');
+  try{
+    const web3 = window.solanaWeb3;
+    if(!web3) throw new Error('solanaWeb3 non chargé');
 
     const { programId, playerPubkey, weeklyPoolPda, playerScorePda, vault, mint, weekId } = ctx;
     const { ata: playerTokenAccount, ix: createAtaIx } = await _lmsGetOrCreateAtaIx(web3, playerPubkey, mint, playerPubkey);
@@ -16984,17 +17616,38 @@ async function _lmsClaimPoolReward(){
 
     const plugin = _lmsSolanaWalletPlugin();
     const authToken = localStorage.getItem('lms_wallet_auth_token') || '';
+    // Même garde-fou que authorize()/deauthorize() (voir _lmsAwaitBridgeSettled) — ce point
+    // d'appel (bouton "réclamer") en était totalement dépourvu, adapté ici en style async/await
+    // via une Promise plutôt que le callback direct utilisé ailleurs dans le fichier.
+    await new Promise(resolve => _lmsAwaitBridgeSettled(resolve));
     const result = await plugin.signAndSendTransactions({
       authToken, transactions: [txBase64],
-      identityName: 'Last Man Skating', identityUri: 'https://lastmanskating.app', iconUri: 'favicon.ico',
+      identityName: 'Last Man Skating', identityUri: 'https://kristen.fr/KristenStudiosGames/lms.html', iconUri: 'apple-touch-icon.png', // relatif — voir authorize() plus haut pour l'explication
     });
     console.log('[claim] signatures:', result.signatures);
-    alert('Récompense réclamée avec succès !');
+
+    const revealEl = document.getElementById('claim-scratch-reveal');
+    if(revealEl) _lmsRenderClaimScratchReveal(ctx, { success: true });
+
+    // Cette semaine n'est plus "en attente" une fois réclamée — local + Firebase.
+    _lmsSavePendingClaimWeeks(_lmsGetPendingClaimWeeks().filter(w => w !== weekId));
+    if(_lmsFbDb && _lmsAuthUid && _lmsWalletAddress){
+      _lmsFbDb.ref('claimPendingWeeks/' + _lmsWalletAddress + '/' + weekId).remove()
+        .catch(e => console.warn('[claim] échec suppression Firebase semaine réclamée:', weekId, e));
+    }
+    setTimeout(_lmsClaimAdvanceQueue, 1400);
   } catch(err){
     console.error('[claim] échec:', err);
-    alert('Échec de la réclamation : ' + (err && err.message || err));
+    alert(t('claimFailed', String(err && err.message || err)));
+    // On abandonne le reste de la file plutôt que d'enchaîner sur d'autres transactions
+    // après un échec — le joueur relance RÉCLAMER, qui re-détectera cette même semaine
+    // (toujours non réclamée) au lieu de risquer une cascade d'erreurs à la chaîne.
+    _lmsClaimQueue = [];
+    closeClaimScratchPopup();
   } finally {
-    if(btn){ btn.disabled = false; btn.textContent = 'RÉCLAMER'; }
+    _lmsClaimScratchCtx = null;
+    if(nowBtn) nowBtn.disabled = false;
+    if(nowLabel) nowLabel.textContent = t('claimScratchNowBtn');
   }
 }
 // ── Taille des boutons (Petit / Moyen / Grand) ──
@@ -17159,22 +17812,40 @@ function _manualRequestReview(){
   // d'ailleurs explicitement de la déclencher depuis un clic de bouton. On ouvre donc
   // directement la fiche Play Store, qui réagit toujours de façon visible.
   const storeUrl = 'https://play.google.com/store/apps/details?id=' + _LMS_PACKAGE_ID;
-  try{
-    if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App){
-      window.Capacitor.Plugins.App.openUrl({ url: 'market://details?id=' + _LMS_PACKAGE_ID })
-        .catch(() => window.Capacitor.Plugins.App.openUrl({ url: storeUrl }));
-    } else {
-      window.open(storeUrl, '_system');
+  // FIX crash NPE com.getcapacitor.Bridge.getPermissionStates (même famille que le
+  // crash déjà corrigé sur le rappel de streak / le bouton wallet Solana) : ce bouton
+  // vit dans le popup Réglages, accessible juste après avoir fermé une pub AdMob
+  // interstitielle/rewarded (retour au premier plan) — appeler App.openUrl() dans
+  // cette fenêtre plante nativement l'app AVANT même de repasser la main au JS, donc
+  // le try/catch ci-dessous ne suffit pas seul. On retarde l'appel natif via
+  // _lmsAwaitBridgeSettled() (voir déclaration en haut du fichier) le temps que le
+  // Bridge se stabilise ; dans l'immense majorité des cas (pas de resume récent) ça
+  // ne retarde rien du tout.
+  _lmsAwaitBridgeSettled(()=>{
+    try{
+      if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App){
+        window.Capacitor.Plugins.App.openUrl({ url: 'market://details?id=' + _LMS_PACKAGE_ID })
+          .catch(() => window.Capacitor.Plugins.App.openUrl({ url: storeUrl }).catch(()=>{}));
+      } else {
+        window.open(storeUrl, '_system');
+      }
+    } catch(e){
+      try{ window.open(storeUrl, '_blank'); }catch(e2){}
     }
-  } catch(e){
-    try{ window.open(storeUrl, '_blank'); }catch(e2){}
-  }
+  });
 }
 function openSettingsPopup(){
   const popup = document.getElementById('settings-popup');
   if(!popup) return;
   _syncSettingsUI();
   popup.style.display = 'flex';
+  // Rafraîchit le countdown en direct tant que les settings sont ouverts (précision
+  // à la minute, voir _lmsUpdateClaimDeadlineLabel) — sans ça, le label restait figé
+  // à la valeur calculée à l'ouverture jusqu'à la prochaine fermeture/réouverture.
+  if(_lmsClaimDeadlineTimer) clearInterval(_lmsClaimDeadlineTimer);
+  _lmsClaimDeadlineTimer = setInterval(()=>{
+    if(typeof _lmsUpdateClaimDeadlineLabel === 'function') _lmsUpdateClaimDeadlineLabel();
+  }, 30000);
 }
 function openSyncPopup(){
   _lmsDisarmSyncConfirm();
@@ -17256,6 +17927,7 @@ function closeSettingsPopup(){
   closeSyncPopup(); // évite un popup de sync orphelin si les réglages se ferment pendant qu'il est ouvert par-dessus
   const popup = document.getElementById('settings-popup');
   if(popup) popup.style.display = 'none';
+  if(_lmsClaimDeadlineTimer){ clearInterval(_lmsClaimDeadlineTimer); _lmsClaimDeadlineTimer = null; }
 }
 function _syncSettingsUI(){
   const f = id => document.getElementById(id);
@@ -17296,6 +17968,11 @@ function _syncSettingsUI(){
   if(f('settings-rate-btn')) f('settings-rate-btn').textContent = t('settingsRateBtn');
   if(f('settings-removeads-label')) f('settings-removeads-label').textContent = t('settingsRemoveAdsLabel');
   if(f('settings-removeads-btn')) f('settings-removeads-btn').textContent = t('settingsRemoveAdsBtn');
+  // Wallet Solana / claim hebdo (le bouton wallet lui-même est mis à jour par _lmsSyncWalletButton(),
+  // déjà appelé juste en dessous — ici seulement le label statique et le bouton claim).
+  if(f('settings-wallet-label')) f('settings-wallet-label').textContent = t('settingsWalletLabel');
+  if(f('settings-claim-btn') && !f('settings-claim-btn').disabled) f('settings-claim-btn').textContent = t('settingsClaimBtn');
+  if(typeof _lmsUpdateClaimDeadlineLabel === 'function') _lmsUpdateClaimDeadlineLabel();
   // Densité IA
   if(f('settings-aidensity-label')) f('settings-aidensity-label').textContent = t('settingsAiDensityLabel');
   {
@@ -54031,9 +54708,20 @@ function _lmsMaybeRequestReview(isHumanWin, racki){
     if(_shouldAsk){
       localStorage.setItem('lms_review_asked', '1');
       setTimeout(()=>{
-        if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.InAppReview){
-          window.Capacitor.Plugins.InAppReview.requestReview();
-        }
+        // FIX crash NPE com.getcapacitor.Bridge.getPermissionStates : cet appel se
+        // déclenche à la fin d'une partie, un moment où une pub AdMob interstitielle
+        // vient très souvent d'être fermée (retour au premier plan) — même risque que
+        // pour le bouton "NOTER LE JEU" et le rappel de streak (voir _lmsAwaitBridgeSettled
+        // plus haut dans le fichier). On protège donc cet appel natif de la même façon,
+        // et on encapsule dans un try/catch pour ne jamais faire planter la fin de partie
+        // si le plugin natif renvoie une erreur inattendue.
+        _lmsAwaitBridgeSettled(()=>{
+          try{
+            if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.InAppReview){
+              window.Capacitor.Plugins.InAppReview.requestReview().catch((e)=>{ console.error('[InAppReview] requestReview error:', e); });
+            }
+          }catch(e){ console.error('[InAppReview] requestReview error:', e); }
+        });
       }, 2500);
     }
   }catch(e){}
@@ -57990,6 +58678,54 @@ function _lmsSyncRemoveAdsUI(){
   if(_interLink) _interLink.style.display = (_lmsAdsRemoved || !_lmsShopBuyUIVisible) ? 'none' : 'block';
 }
 
+// Masque toute la ligne wallet/réclamer (settings) sur PC/navigateur et sur Android TV :
+// aucune app wallet Solana (Phantom, Solflare...) n'existe sur TV, et le flux MWA suppose
+// un device mobile ; sur PC/web le plugin natif n'existe simplement pas (_isCapacitorApp).
+// isAndroidTV() est déjà défini plus loin dans le fichier mais hissé (function declaration
+// globale), donc utilisable ici sans souci d'ordre.
+// Prochain basculement de semaine ISO (lundi 00:00 UTC) — même convention que
+// _lmsWeekKey() côté jeu et isoWeekId() côté worker Cloudflare.
+function _lmsNextWeekRolloverUTC(){
+  const now = new Date();
+  const day = now.getUTCDay(); // 0=dimanche ... 6=samedi
+  const daysToAdd = ((1 - day + 7) % 7) || 7;
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysToAdd, 0, 0, 0, 0));
+}
+
+let _lmsClaimDeadlineTimer = null;
+function _lmsUpdateClaimDeadlineLabel(){
+  const label = document.getElementById('settings-claim-deadline-label');
+  if(!label) return;
+  const msLeft = Math.max(0, _lmsNextWeekRolloverUTC().getTime() - Date.now());
+  const totalMinutes = Math.floor(msLeft / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if(days > 0){
+    label.textContent = t('claimDeadlineLabelDays', days, hours);
+  } else if(hours > 0){
+    label.textContent = t('claimDeadlineLabelHoursMinutes', hours, minutes);
+  } else if(minutes > 0){
+    label.textContent = t('claimDeadlineLabelMinutes', minutes);
+  } else {
+    label.textContent = t('claimDeadlineLabelLessThanMinute');
+  }
+}
+
+function _lmsSyncWalletUI(){
+  if(typeof _lmsTrackClaimWeekTransition === 'function') _lmsTrackClaimWeekTransition();
+  const _walletRow = document.getElementById('settings-wallet-row');
+  // Réactivé sur mobile pour test (13/09/2026) — masqué seulement sur PC/web
+  // (pas de plugin natif, _isCapacitorApp false) et sur Android TV (pas d'app
+  // wallet Solana possible sur TV). Repasser à 'none' inconditionnel si besoin
+  // de désactiver de nouveau la feature entière.
+  const _hide = (!_isCapacitorApp || isAndroidTV());
+  if(_walletRow) _walletRow.style.display = _hide ? 'none' : 'flex';
+  const _deadlineLabel = document.getElementById('settings-claim-deadline-label');
+  if(_deadlineLabel) _deadlineLabel.style.display = _hide ? 'none' : 'block';
+  if(!_hide) _lmsUpdateClaimDeadlineLabel();
+}
+
 // ── Toast d'échec d'achat (hors annulation) ─────────────────────────────────
 // Les 3 flux IAP (remove_ads, coin packs, skins premium) resetaient le bouton
 // en silence sur une vraie erreur (réseau, ITEM_UNAVAILABLE...) sans aucun
@@ -58426,6 +59162,12 @@ function _lmsAdMobShowRewarded(){
   // La pub actuellement chargée va être consommée par showRewardVideoAd() ci-dessous —
   // le flag repasse à false jusqu'au rechargement (onRewarded ci-dessus).
   _lmsAdMobRewardedLoaded = false;
+  // FIX crash NPE com.getcapacitor.Bridge.getPermissionStates / Bridge natif détaché :
+  // showRewardVideoAd() est un appel plugin natif comme les autres — déclenché juste
+  // après une reprise (fermeture d'une AUTRE pub, retour de background) il peut planter
+  // nativement avant même de retourner la main au JS. Même garde-fou que pour le bouton
+  // NOTER LE JEU / le rappel de streak (voir _lmsAwaitBridgeSettled plus haut).
+  _lmsAwaitBridgeSettled(()=>{
   _AdMob.showRewardVideoAd().catch((e)=>{
     console.error('[AdMob] showRewardVideoAd error:', e);
     // Pub déjà traitée normalement (reward ou dismiss sans reward) juste avant que
@@ -58446,6 +59188,7 @@ function _lmsAdMobShowRewarded(){
     // maintenant le même principe ici — on accorde directement la récompense plutôt que de
     // risquer une 2e pub par-dessus une pub AdMob potentiellement encore active.
     setTimeout(()=> _lmsClaimRewarded(), 500);
+  });
   });
 }
 
@@ -58501,15 +59244,22 @@ function _lmsAdMobShowInterstitial(rewardCoins, callback){
   // le flag repasse à false jusqu'au rechargement (onDismissed ci-dessus).
   _lmsAdMobInterstitialLoaded = false;
 
-  _AdMob.showInterstitial().catch((e)=>{
-    console.error('[AdMob] showInterstitial error:', e);
-    // La pub n'était pas encore chargée (préchargement pas fini) → fallback placeholder LMS
-    _AdMob.removeAllListeners();
-    const overlay = document.getElementById('lms-inter-overlay');
-    const phEl    = document.getElementById('lms-inter-placeholder');
-    if(overlay){ overlay.style.display = 'flex'; }
-    if(phEl){ phEl.style.display = ''; }
-    _lmsStartSkipCountdown(0);
+  // FIX crash NPE com.getcapacitor.Bridge.getPermissionStates / Bridge natif détaché :
+  // showInterstitial() est souvent déclenché juste après une fin de partie/transition,
+  // un moment qui peut suivre de très près un retour de background ou la fermeture
+  // d'une autre pub AdMob. Même garde-fou que pour le bouton NOTER LE JEU / le rappel
+  // de streak (voir _lmsAwaitBridgeSettled plus haut dans le fichier).
+  _lmsAwaitBridgeSettled(()=>{
+    _AdMob.showInterstitial().catch((e)=>{
+      console.error('[AdMob] showInterstitial error:', e);
+      // La pub n'était pas encore chargée (préchargement pas fini) → fallback placeholder LMS
+      _AdMob.removeAllListeners();
+      const overlay = document.getElementById('lms-inter-overlay');
+      const phEl    = document.getElementById('lms-inter-placeholder');
+      if(overlay){ overlay.style.display = 'flex'; }
+      if(phEl){ phEl.style.display = ''; }
+      _lmsStartSkipCountdown(0);
+    });
   });
 }
 
@@ -77010,11 +77760,19 @@ if(typeof window !== 'undefined'){
       </div>
       <!-- ── Wallet Solana (Clock In Hackathon) ── connexion MWA native, jamais de clé privée
            côté JS — le plugin Kotlin gère tout l'échange avec l'app wallet installée. -->
-      <div class="settings-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:10px 12px;">
+      <div class="settings-row" id="settings-wallet-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:10px 12px;">
         <div id="settings-wallet-label" style="font-size:12px;letter-spacing:1px;color:rgba(220,180,255,0.9);flex:1;min-width:0;">🔗 WALLET SOLANA</div>
         <button type="button" tabindex="0" id="settings-wallet-btn" onclick="_lmsConnectSolanaWallet()" style="flex-shrink:0;background:rgba(160,60,255,0.15);border:1px solid rgba(160,60,255,0.35);border-radius:20px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-width:110px;text-align:center;">CONNECTER</button>
+        <button type="button" tabindex="0" id="settings-wallet-disconnect-btn" onclick="_lmsDisconnectSolanaWallet()" style="display:none;flex-shrink:0;background:rgba(255,60,60,0.15);border:1px solid rgba(255,60,60,0.4);border-radius:14px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;width:26px;height:26px;line-height:24px;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;text-align:center;">×</button>
         <button type="button" tabindex="0" id="settings-claim-btn" onclick="_lmsClaimPoolReward()" style="flex-shrink:0;background:rgba(255,200,0,0.15);border:1px solid rgba(255,200,0,0.4);border-radius:20px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-width:110px;text-align:center;">RÉCLAMER</button>
       </div>
+      <!-- Info deadline "molle" de réclamation : le bouton RÉCLAMER ne regarde que
+           la semaine en cours (_lmsWeekKey()) — une fois la semaine changée (lundi
+           00:00 UTC), la cagnotte de la semaine précédente reste techniquement
+           réclamable on-chain mais n'est plus accessible depuis ce bouton. Purement
+           informatif, aucune valeur on-chain associée (voir discussion limitation
+           multi-semaines). -->
+      <div id="settings-claim-deadline-label" style="font-size:10px;letter-spacing:0.5px;color:rgba(255,200,0,0.75);text-align:right;padding:0 4px 2px;"></div>
       <!-- Côté joystick -->
       <div class="settings-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:10px 12px;">
         <div id="settings-joystick-label" style="font-size:12px;letter-spacing:1px;color:rgba(220,180,255,0.9);flex:1;min-width:0;">🕹️ CÔTÉ JOYSTICK</div>
@@ -77200,6 +77958,45 @@ if(typeof window !== 'undefined'){
   </div>
 </div>
 
+<!-- ── POPUP GRATTAGE CAGNOTTE SOLANA (claim_scratch) ──
+     Ouverte par le bouton RÉCLAMER des réglages (_lmsClaimPoolReward), une fois l'éligibilité
+     déjà vérifiée (pool finalisée, score non nul, pas déjà réclamé). Gratter la carte à 70%
+     OU taper "RÉCLAMER MAINTENANT" déclenchent tous les deux le même envoi on-chain via
+     _lmsExecuteClaimTransaction — voir les commentaires en JS pour le détail du flux. -->
+<!-- ── Transition "manche" façon VS duel, jouée avant CHAQUE carte de claim-scratch-popup
+     quand plusieurs semaines en retard sont à réclamer d'affilée (_lmsClaimShowRound). Réutilise
+     les classes .odw-side/.odw-avatar/.odw-vs-badge et leurs keyframes existantes (voir
+     online-duel-wait-overlay) plutôt que d'en dupliquer une famille complète. ── -->
+<div id="claim-round-vs-overlay">
+  <div id="claim-round-vs-progress"></div>
+  <div id="claim-round-vs-row">
+    <div class="odw-side" id="claim-round-vs-me-side">
+      <canvas id="claim-round-vs-me-icon" class="odw-avatar odw-avatar-me" width="220" height="220"></canvas>
+      <div class="odw-label" id="claim-round-vs-me-label"></div>
+    </div>
+    <div class="odw-vs-badge" id="claim-round-vs-badge">🎁</div>
+    <div class="odw-side" id="claim-round-vs-pot-side">
+      <div class="odw-avatar odw-avatar-pot">💰</div>
+      <div class="odw-label" id="claim-round-vs-week-label"></div>
+    </div>
+  </div>
+  <div id="claim-round-vs-sub"></div>
+</div>
+<div id="claim-scratch-popup" style="display:none;position:fixed;inset:0;z-index:9999;pointer-events:all;touch-action:manipulation;background:rgba(0,0,20,0.95);align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);">
+  <div style="background:linear-gradient(160deg,rgba(35,25,0,0.98),rgba(50,35,0,0.98));border:1.5px solid rgba(255,200,0,0.4);border-radius:16px;padding:18px;width:min(380px,92vw);max-height:88vh;overflow-y:auto;box-sizing:border-box;box-shadow:0 10px 40px rgba(0,0,0,0.6);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div id="claim-scratch-title" style="font-size:15px;font-weight:800;letter-spacing:2px;color:rgba(255,210,110,0.95);">💰 CAGNOTTE SOLANA</div>
+      <button class="lms-x-badge" aria-label="Close" onclick="closeClaimScratchPopup()" ontouchstart="closeClaimScratchPopup();event.stopPropagation();event.preventDefault();">✕</button>
+    </div>
+    <div id="claim-scratch-sub" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;color:rgba(255,255,255,.65);margin-bottom:12px;text-align:center;"></div>
+    <div class="card-scratch-wrap">
+      <canvas id="claim-scratch-canvas" class="card-scratch-canvas" width="340" height="200"></canvas>
+      <div id="claim-scratch-reveal" class="card-reveal"></div>
+    </div>
+    <button id="claim-scratch-now-btn" onclick="_lmsClaimScratchNow()" ontouchstart="_lmsClaimScratchNow();event.stopPropagation();" style="width:100%;margin-top:12px;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#ffb800,#ff7a00);color:#1a1000;font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1.5px;font-size:15px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;"><span id="claim-scratch-now-label">RÉCLAMER MAINTENANT</span></button>
+  </div>
+</div>
+
 <!-- ── POPUP MISSIONS QUOTIDIENNES ── -->
 <div id="missions-popup" style="display:none;position:fixed;inset:0;z-index:9999;pointer-events:all;touch-action:manipulation;background:rgba(0,0,20,0.95);align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);">
   <div style="background:linear-gradient(160deg,rgba(0,25,15,0.98),rgba(0,40,25,0.98));border:1.5px solid rgba(80,255,170,0.4);border-radius:16px;padding:18px;width:min(440px,94vw);max-height:88vh;overflow-y:auto;box-sizing:border-box;box-shadow:0 10px 40px rgba(0,0,0,0.6);">
@@ -77241,6 +78038,24 @@ if(typeof window !== 'undefined'){
 </div>
 
 <style>
+/* ── Transition "manche" (façon VS duel) entre chaque semaine en retard — voir le bloc HTML
+   claim-round-vs-overlay plus haut. Réutilise .odw-side/.odw-avatar/.odw-vs-badge (déjà stylées
+   pour online-duel-wait-overlay) et leurs keyframes odwSlideInLeft/Right, odwVsImpact, odwVsFlash,
+   onlineDuelVsIn — seuls les déclencheurs (classes .active) et le style de l'avatar "cagnotte"
+   sont propres à cet overlay. ── */
+#claim-round-vs-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,4,16,.96);flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;box-sizing:border-box;text-align:center;}
+#claim-round-vs-overlay.active{display:flex;}
+#claim-round-vs-progress{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:3px;color:#8fd7ff;opacity:0;}
+#claim-round-vs-overlay.active #claim-round-vs-progress{animation:onlineDuelVsIn .35s ease-out both;}
+#claim-round-vs-row{display:flex;align-items:center;justify-content:center;gap:18px;}
+#claim-round-vs-overlay.active #claim-round-vs-me-side{animation:odwSlideInLeft .5s cubic-bezier(.17,.89,.32,1.28) both;}
+#claim-round-vs-overlay.active #claim-round-vs-pot-side{animation:odwSlideInRight .5s cubic-bezier(.17,.89,.32,1.28) both;}
+.odw-avatar-pot{border:2px solid #ffd700;background:rgba(45,35,0,.6);display:flex;align-items:center;justify-content:center;font-size:46px;}
+#claim-round-vs-overlay.active #claim-round-vs-badge{animation:odwVsImpact .55s cubic-bezier(.34,1.7,.64,1) .28s both;}
+#claim-round-vs-overlay.active #claim-round-vs-badge::before{animation:odwVsFlash .5s ease-out .28s both;}
+#claim-round-vs-sub{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;color:rgba(255,255,255,.5);opacity:0;}
+#claim-round-vs-overlay.active #claim-round-vs-sub{animation:onlineDuelVsIn .35s ease-out .35s both;}
+
 .card-scratch-wrap{ position:relative; width:100%; aspect-ratio:340/200; border-radius:12px; overflow:hidden; background:rgba(255,255,255,.04); }
 .card-scratch-canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:pointer; z-index:2; }
 .card-reveal{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-family:'Barlow Condensed',sans-serif; padding:10px; box-sizing:border-box; z-index:1; pointer-events:none; }

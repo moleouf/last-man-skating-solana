@@ -6,6 +6,7 @@ android/.gradle/
 *.aab
 *.keystore
 *.jks
+android/diff_complet.txt
 
 # Node
 node_modules/

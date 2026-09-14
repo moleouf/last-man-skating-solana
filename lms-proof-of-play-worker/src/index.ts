@@ -20,12 +20,9 @@ export interface Env {
 
 /**
  * week_id ISO 8601 (YYYY-Www, semaine Thursday-based, lundi = premier jour).
- * CORRIGÉ : doit produire EXACTEMENT le même résultat que _lmsWeekKey() côté
- * jeu (ligne ~10087 de LMS_v2115.html) pour que le weekId sur lequel le
- * programme Anchor règle une cagnotte corresponde au weekId sous lequel le
- * client range ses stats. L'ancienne version de ce fichier utilisait une
- * formule différente (non ISO 8601) qui pouvait diverger de quelques
- * semaines selon la période de l'année.
+ * DOIT produire EXACTEMENT le même résultat que _lmsWeekKey() côté jeu
+ * (LMS_v2157.html) et _lmsNextWeekRolloverUTC() (label de deadline settings) :
+ * les trois s'accordent sur un changement de semaine à lundi 00:00 UTC pile.
  */
 function isoWeekId(d: Date): string {
   const dt = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -38,13 +35,22 @@ function isoWeekId(d: Date): string {
 }
 
 /**
- * Le cron tourne le lundi à 3h UTC, donc "maintenant" est déjà dans la
- * nouvelle semaine ISO. La semaine à régler est celle qui vient de finir
- * (hier, dimanche) — on prend une date 24h en arrière pour être sûr de
- * retomber dans la bonne semaine quelle que soit l'heure exacte du run.
+ * CHANGEMENT : le cron tourne maintenant à 00:01 UTC le lundi (voir
+ * wrangler.jsonc, "0 1 * * 1" en minutes/heure cron = 1 minute après minuit),
+ * soit juste après le changement de semaine ISO côté client. On ne soustrait
+ * donc plus 24h : "maintenant" (00:01 UTC lundi) tombe déjà dans la semaine
+ * qui vient de se terminer au sens de isoWeekId (le calcul ISO bascule
+ * exactement à 00:00 UTC lundi), sauf qu'on veut régler la semaine PRÉCÉDENTE,
+ * donc on garde un léger recul (quelques minutes) pour rester bien à
+ * l'intérieur de la semaine qui vient de finir, sans dépendre d'un décalage
+ * de 24h qui laissait une fenêtre de 3h de désync avec le client (voir
+ * discussion : avant, cron à 3h UTC alors que le client bascule de semaine à
+ * 0h UTC -> during cette fenêtre le bouton RÉCLAMER de l'app ne trouvait plus
+ * la pool de la semaine qui vient de se terminer, alors qu'elle n'était pas
+ * encore réglée on-chain).
  */
 function weekIdBeingSettled(now: Date): string {
-  return isoWeekId(new Date(now.getTime() - 24 * 3600 * 1000));
+  return isoWeekId(new Date(now.getTime() - 5 * 60 * 1000)); // recul de 5 min, marge de sécurité
 }
 
 async function runWeeklySettlement(env: Env, weekId: string): Promise<Response> {
@@ -77,13 +83,21 @@ async function runWeeklySettlement(env: Env, weekId: string): Promise<Response> 
     withWallet.map((d) => ({ walletAddress: d.walletAddress, score: d.score }))
   );
 
-  // On ne sauvegarde le nouveau snapshot qu'APRÈS une soumission réussie
-  // (même partielle) : si tout le run plante avant, on veut pouvoir relancer
-  // avec le même snapshot de départ plutôt que de perdre le delta de la semaine.
-  await saveSnapshot(env.WEEK_SNAPSHOT_KV, currentTotals);
-
   const failed = results.filter((r) => r.error);
   const succeeded = results.filter((r) => r.signature);
+
+  // FIX : on ne fait avancer le snapshot QUE si au moins une soumission a
+  // réussi. Avant, saveSnapshot() était appelé inconditionnellement juste
+  // après submitWeeklyScoresOnChain(), donc même un run où TOUTES les
+  // soumissions échouaient (ex. PoolAlreadyFinalized sur 100% des joueurs)
+  // faisait quand même avancer le snapshot vers currentTotals -> le delta
+  // de cette semaine était perdu (ni payé, ni reporté à la semaine
+  // suivante). Avec cette garde, un run entièrement raté laisse le
+  // snapshot inchangé, donc le prochain run recalculera le même delta (ou
+  // plus, si le joueur a continué à jouer) et pourra le soumettre.
+  if (succeeded.length > 0) {
+    await saveSnapshot(env.WEEK_SNAPSHOT_KV, currentTotals);
+  }
 
   return new Response(
     JSON.stringify(
@@ -94,6 +108,7 @@ async function runWeeklySettlement(env: Env, weekId: string): Promise<Response> 
         failed: failed.length,
         failedDetails: failed,
         skippedNoWallet: missingWallet.map((d) => ({ uid: d.uid, name: d.name, score: d.score })),
+        snapshotAdvanced: succeeded.length > 0,
       },
       null,
       2

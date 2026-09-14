@@ -5,9 +5,6 @@
 // hebdomadaire (SPL token SKR) proportionnellement à un score déjà validé
 // off-chain (Cloud Functions) et soumis par une autorité backend de confiance.
 //
-// IMPORTANT (règle anti-IA hackathon) : ceci est un point de départ à retaper/
-// adapter toi-même dans ton repo, pas un fichier à copier tel quel dans ta
-// soumission finale.
 //
 // Flux :
 //   1. initialize_weekly_pool  -> ouvre la cagnotte de la semaine (PDA), crée
@@ -149,7 +146,6 @@ pub mod lms_proof_of_play {
         player_score.week_id = pool.week_id.clone();
         player_score.score = new_score;
         player_score.eligible = is_eligible;
-        player_score.claimed = false;
         player_score.bump = ctx.bumps.player_score;
 
         Ok(())

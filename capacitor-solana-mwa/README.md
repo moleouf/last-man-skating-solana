@@ -42,8 +42,8 @@ async function connectWallet() {
     const { publicKey, authToken } = await SolanaWallet.authorize({
       cluster: 'devnet', // passe en 'mainnet-beta' seulement quand tout est validé
       identityName: 'Last Man Skating',
-      identityUri: 'https://lastmanskating.app',
-      iconUri: 'https://lastmanskating.app/icon.png',
+      identityUri: 'https://kristen.fr/KristenStudiosGames/lms.html', // doit être un domaine réel
+      iconUri: 'apple-touch-icon.png', // RELATIF à identityUri — voir "Fix identité MWA" plus bas
     });
     localStorage.setItem('_lmsAuthToken', authToken);
     localStorage.setItem('_lmsPubKey', publicKey);
@@ -89,3 +89,27 @@ transaction `claim_scratch` confirmée on-chain (devnet). Le wallet doit
 avoir un solde SOL devnet suffisant (faucet : https://faucet.solana.com)
 sinon Phantom bloque silencieusement avec une erreur générique
 "authorization request failed" qui masque la vraie cause (SOL insuffisant).
+
+## Fix identité MWA (13/09/2026)
+
+`identityUri`/`iconUri` par défaut corrigés dans `SolanaWalletPlugin.kt` :
+- `identityUri` pointait vers un domaine inexistant (`lastmanskating.app`) →
+  remplacé par `https://kristen.fr/KristenStudiosGames/lms.html`.
+- `iconUri` doit être une URI **relative** à `identityUri`, pas absolue —
+  MWA rejette une URL absolue avec `IllegalArgumentException:
+  iconRelativeUri must be a relative Uri`. C'était la vraie cause du crash
+  sur `deauthorize()` (bouton déconnexion) : ce PluginMethod ne reçoit
+  jamais `iconUri` depuis le JS, donc `buildAdapter()` retombait toujours
+  sur l'ancien défaut invalide (URL absolue).
+
+⚠️ À vérifier manuellement : `apple-touch-icon.png` doit exister à
+`https://kristen.fr/KristenStudiosGames/apple-touch-icon.png` (chemin
+relatif résolu depuis `identityUri`), sinon l'icône affichée dans le
+wallet sera cassée (non bloquant pour la connexion elle-même).
+
+## UX wallet (13/09/2026)
+
+- Le bouton wallet affiche l'adresse tronquée une fois connecté ; un tap
+  dessus copie l'adresse complète dans le presse-papier (feedback "COPIÉ !").
+- Bouton "×" séparé, visible uniquement une fois connecté, pour la
+  déconnexion (confirmation avant `deauthorize()` + nettoyage localStorage).

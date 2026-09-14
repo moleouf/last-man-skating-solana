@@ -44,6 +44,27 @@
 # Plugins Cordova legacy éventuellement utilisés via capacitor-cordova-android-plugins
 -keep public class * extends org.apache.cordova.CordovaPlugin
 
+# ══════════════════════════════════════════════════════════════════
+# FIX crash NPE getPermissionStates (thread CapacitorPlugins, ex: checkPermissions()
+# de @capacitor/local-notifications) — Sep 2026
+# ══════════════════════════════════════════════════════════════════
+# La règle ligne 39 protège les classes qui HÉRITENT de com.getcapacitor.Plugin
+# (ex: LocalNotificationsPlugin), mais getPermissionStates()/checkPermissions() sont
+# définis dans com.getcapacitor.Plugin lui-même (la classe de BASE du framework),
+# qui n'est pas couverte par "extends com.getcapacitor.Plugin". Ces méthodes lisent
+# l'annotation @CapacitorPlugin(permissions = {@Permission(...)}) par réflexion sur
+# la sous-classe au runtime : si R8 renomme/optimise la classe de base ou les classes
+# d'annotation, cette lecture renvoie null → NullPointerException, quel que soit le
+# moment où le JS appelle checkPermissions() (confirmé indépendant du cycle de vie
+# pause/resume/background après investigation côté JS — donc bien un problème R8,
+# pas de timing).
+-keep class com.getcapacitor.Plugin { *; }
+-keep class com.getcapacitor.Bridge { *; }
+-keep class com.getcapacitor.PluginHandle { *; }
+-keep @interface com.getcapacitor.annotation.CapacitorPlugin
+-keep @interface com.getcapacitor.annotation.Permission
+-keep class com.getcapacitor.annotation.** { *; }
+
 # Interfaces JavaScript exposées à la WebView (@JavascriptInterface)
 -keepattributes JavascriptInterface
 -keepclassmembers class * {

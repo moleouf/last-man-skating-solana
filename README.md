@@ -51,6 +51,15 @@ apparaître dans le classement live.
   — 8 tests unitaires passants (init pool, fund, submit_score, finalize,
   claim 75/25, anti double-claim, anti-usurpation)
 
+### Correctif de sécurité (13/09/2026)
+Faille identifiée et corrigée : `submit_score` réinitialisait `claimed = false`
+à chaque appel, y compris pour un joueur ayant déjà réclamé sa part — un
+re-run du worker (retry réseau, déclenchement manuel répété) permettait un
+double claim de la même cagnotte. Corrigé en retirant la réinitialisation
+inconditionnelle de `claimed` dans `submit_score` (le champ n'est plus
+modifié que par `claim_scratch` lui-même). Testé en conditions réelles
+avant et après le correctif.
+
 ## Backend de règlement (Cloudflare Worker)
 
 Le calcul des scores hebdomadaires et la soumission on-chain (`submit_score`,
@@ -72,6 +81,21 @@ Statut au 13/09/2026 : les 3 instructions critiques (submit_score,
 fund_pool, claim_scratch) sont validées en conditions réelles sur
 device, wallet Phantom, devnet — flux complet fonctionnel du jeu
 jusqu'à la réclamation de la cagnotte.
+
+### Réclamation multi-semaines (13/09/2026)
+
+Le bouton "RÉCLAMER" scanne désormais toutes les semaines en attente
+(jusqu'à 8, ~2 mois d'historique — voir `LMS_CLAIM_PENDING_WEEKS_MAX`),
+pas seulement la semaine ISO courante. S'il y en a plusieurs, elles
+s'enchaînent automatiquement : une transition "manche" façon VS de duel
+(perso réellement équipé affiché) précède chaque carte à gratter, avant
+de passer à la suivante. Le compte à rebours affiché dans les réglages
+("Encore Xj Yh pour réclamer...") reste un rappel informatif — pas une
+vraie limite : aucune expiration ni deadline n'existe on-chain (le champ
+`claimed` n'a pas de notion de temps dans le programme). Une deadline
+stricte on-chain + redistribution des fonds non réclamés reste envisagée
+en roadmap post-hackathon, pour le cas où un joueur dépasserait les 8
+semaines d'historique conservées côté client.
 
 ## Licence / Auteur
 

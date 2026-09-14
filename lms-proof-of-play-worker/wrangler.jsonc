@@ -8,10 +8,16 @@
   // @solana/web3.js et @coral-xyz/anchor.
   "compatibility_flags": ["nodejs_compat"],
 
-  // Ajuste le jour/heure selon la fin de semaine réelle de ton système
-  // week_id (YYYY-Www) — exemple ici : lundi 03:00 UTC
+  // CHANGEMENT : lundi 00:01 UTC (au lieu de 03:00 UTC). Le client bascule
+  // de semaine ISO à lundi 00:00 UTC pile (_lmsWeekKey() dans LMS_v2157.html,
+  // et _lmsNextWeekRolloverUTC() pour le label de deadline dans les
+  // settings) — l'ancien décalage de 3h créait une fenêtre où le client
+  // affichait déjà la nouvelle semaine (donc le bouton RÉCLAMER ne trouvait
+  // plus la pool de la semaine qui vient de finir) alors que le worker
+  // n'avait pas encore réglé cette semaine on-chain. 00:01 UTC laisse 1 min
+  // de marge après le rollover ISO plutôt que de tourner pile à 00:00.
   "triggers": {
-    "crons": ["0 3 * * 1"]
+    "crons": ["1 0 * * 1"]
   },
 
   "vars": {
