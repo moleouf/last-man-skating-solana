@@ -1,5 +1,13 @@
 # Last Man Skating — Solana Mobile Edition
 
+Récompenser financièrement la compétition mobile réelle tombe presque toujours dans la
+case gambling (mise + hasard = loterie non autorisée en France/ANJ, interdite par Google
+Play) — **Proof of Play** distribue la cagnotte hebdomadaire selon la performance
+compétitive réelle des joueurs (score serveur, sans mise ni tirage au sort), donc hors
+du champ du gambling. **Solana Mobile** apporte le wallet self-custodial natif
+(Mobile Wallet Adapter + Seed Vault du Seeker) nécessaire pour ça, sans détour par un
+exchange ou du KYC custodial.
+
 Adaptation de [Last Man Skating](https://play.google.com/store/apps/details?id=fr.kristen.lastmanskating)
 (2000+ installs organiques sur Google Play) pour le **Clock In Hackathon** (RadiantsDAO / Solana Mobile).
 
