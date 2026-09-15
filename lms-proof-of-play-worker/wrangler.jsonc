@@ -21,7 +21,6 @@
   },
 
   "vars": {
-    "SOLANA_RPC_URL": "https://smart-wispy-shape.solana-devnet.quiknode.pro/85f42701189289f958c8e8303412f0ec0c687d6a/",
     "SOLANA_PROGRAM_ID": "GQeKyxHQGFv46z8hM5KocYa5hrUSea1hYJrDXyH41caH",
     // Trouvée dans LMS_v2115.html (_lmsFirebaseConfig.databaseURL) — pas
     // secrète, déjà publique côté client, donc OK en "vars" en clair.
@@ -39,7 +38,12 @@
   //   FIREBASE_SERVICE_ACCOUNT_JSON  -> JSON complet du compte de service
   //   SOLANA_AUTHORITY_SECRET_KEY    -> clé privée base58 du wallet authority
   //   MANUAL_TRIGGER_SECRET          -> secret perso pour protéger /run-settlement
-  //                                      (déplacé depuis "vars" : une valeur en
-  //                                      dur "change-me-avant-prod" dans un
-  //                                      fichier commité n'était pas un secret)
+  //                                      et /init-pool (déplacé depuis "vars" :
+  //                                      une valeur en dur "change-me-avant-prod"
+  //                                      dans un fichier commité n'était pas un secret)
+  //   SOLANA_RPC_URL                 -> endpoint RPC devnet (contient une clé API,
+  //                                      donc secret et pas "vars" en clair)
+  //   SOLANA_MINT_ADDRESS            -> ajouté 15/09/2026, pour poolLifecycle.ts
+  //   AUTO_FUND_AMOUNT                -> optionnel, ajouté 15/09/2026, absent =
+  //                                      fund_pool reste manuel (voir poolLifecycle.ts)
 }

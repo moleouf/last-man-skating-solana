@@ -15,7 +15,7 @@ import idl from "./idl/lms_proof_of_play.json";
  * anchor.Wallet est triviale (publicKey + 2 méthodes de signature) donc on
  * la réimplémente à la main plutôt que de dépendre de cet export cassé.
  */
-function walletFromSecretKey(secretKeyBase58: string) {
+export function walletFromSecretKey(secretKeyBase58: string) {
   const keypair = Keypair.fromSecretKey(bs58.decode(secretKeyBase58));
   return {
     publicKey: keypair.publicKey,

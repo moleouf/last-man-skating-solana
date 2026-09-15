@@ -1735,6 +1735,7 @@ canvas{display:block;}
     <button id="hof-tab-multi" class="hof-tab" onclick="_hofShowMulti()">👥 MULTIJOUEUR</button>
   </div>
   <div id="hof-overlay-sub">TOP 3 · ALL TIME</div>
+  <div id="hof-dappstore-notice" style="display:none;font-family:'Barlow Condensed',sans-serif;font-size:clamp(10px,2.6vw,13px);text-align:center;color:#9be7ff;background:rgba(0,180,255,0.12);border:1px solid rgba(0,180,255,0.35);border-radius:8px;padding:4px 8px;margin:2px 0 6px;line-height:1.3;"></div>
   <div id="hof-table"></div>
   <div id="hof-local-duel-strip" style="display:none;">
     <div class="hof-local-section-label"><span id="hof-duel-local-title"></span> — <span id="hof-duel-local-profile-name" class="hof-section-profile-name"></span></div>
@@ -1856,6 +1857,10 @@ canvas{display:block;}
   <div class="tuto-card ffa">
     <div class="tuto-icon">🎉</div>
     <div class="tuto-text"><strong>FFA</strong> — Bataille royale en ligne de 2 à 4 joueurs, via un code de salon : dernier debout gagne !</div>
+  </div>
+  <div class="tuto-card solana">
+    <div class="tuto-icon">⛓️</div>
+    <div class="tuto-text"><strong>⛓️ SOLANA (dApp Store)</strong> — Joue des matchs en ligne (Duel ou FFA) pour marquer des points : chaque semaine, réclame ta part de la cagnotte en jetons SKR.<br><span style="color:rgba(120,200,255,.8);font-size:0.88em;">Disponible exclusivement sur la version dApp Store Solana</span></div>
   </div>
 
   <!-- ── MONDES & BOSS RACKI ── -->
@@ -3518,6 +3523,7 @@ const I18N = {
     playAgain: '🔁 REJOUER',
     howToPlay: '❓ RÈGLES', // v1927 : raccourci "COMMENT JOUER" → "RÈGLES", ce qui laisse la place pour remettre l'emoji ❓ (cohérent avec EN)
     hallOfFame: 'HALL OF FAME', // pas d'emoji 🏆 (FR ET EN) : le texte dépassait du bouton sur petit téléphone
+    hofDappStoreNotice: '⛓️ Cagnotte SKR hebdomadaire disponible exclusivement sur la version dApp Store Solana',
     armory: 'ARMURERIE', // pas d'emoji 🏒 en FR : "ARMURERIE" est plus long que "ARMORY", le texte dépassait du bouton
     dailyMissionsBtn: 'MISSIONS', // pas d'emoji 🎯 (FR ET EN) : le texte dépassait du bouton sur petit téléphone
     settingsBtn: '⚙️ RÉGLAGES',
@@ -3743,6 +3749,10 @@ const I18N = {
     lastManSkating: (name) => (activeKid==='romy'||activeKid==='eyleen'||(activeKid==='kristen'&&window._kristenOpts&&window._kristenOpts.lashes)) ? `${name} EST LA DERNIÈRE SUR LA GLACE` : `${name} EST LE DERNIER SUR LA GLACE`,
     youWinTitle: '🏆 TU AS GAGNÉ !',
     opponentDisconnected: '📡 ADVERSAIRE DÉCONNECTÉ — VICTOIRE PAR FORFAIT',
+    opponentPaused: '⏸️ ADVERSAIRE EN PAUSE',
+    opponentResumed: '▶️ ADVERSAIRE DE RETOUR',
+    forfeitDrawTitle: '🤝 MATCH NUL',
+    forfeitDrawSub: 'Ton adversaire a quitté pendant ta pause.',
     skinWinTag: (skinLabel) => `${skinLabel}`,
 
     // Fin de partie — boss gagne
@@ -3941,6 +3951,7 @@ const I18N = {
     tutoDuelText: '<strong>DUEL</strong> — Affronte un adversaire en 1 contre 1, en local sur le même appareil.',
     tutoOnlineDuelText: '<strong>DUEL EN LIGNE</strong> — Même principe que le Duel, mais à distance : entre un code de salon pour affronter un ami en ligne.',
     tutoFfaText: '<strong>FFA</strong> — Bataille royale en ligne de 2 à 4 joueurs, via un code de salon : dernier debout gagne !',
+    tutoSolanaText: '<strong>⛓️ SOLANA (dApp Store)</strong> — Joue des matchs en ligne (Duel ou FFA) pour marquer des points : chaque semaine, réclame ta part de la cagnotte en jetons SKR.<br><span style="color:rgba(120,200,255,.8);font-size:0.88em;">Disponible exclusivement sur la version dApp Store Solana</span>',
     tutoSectionWorld: '🌍 STRUCTURE DU JEU',
     tutoWorldText: 'Chaque monde a ses propres ennemis et son <strong>BOSS RACKI</strong>.<br>Bat Racki pour débloquer le monde suivant — c\'est la colonne vertébrale de ta progression !',
     tutoSectionToken: '🪙 PROGRESSION',
@@ -4175,6 +4186,7 @@ const I18N = {
     playAgain: '🔁 PLAY AGAIN',
     howToPlay: 'HOW TO PLAY', // v1927 : emoji ❓ retiré (gain de place, cohérent avec le FR)
     hallOfFame: 'HALL OF FAME', // pas d'emoji 🏆 (FR ET EN) : le texte dépassait du bouton sur petit téléphone
+    hofDappStoreNotice: '⛓️ Weekly SKR pool available exclusively on the Solana dApp Store version',
     armory: '🏒 ARMORY',
     dailyMissionsBtn: 'MISSIONS', // pas d'emoji 🎯 (FR ET EN) : le texte dépassait du bouton sur petit téléphone
     settingsBtn: '⚙️ SETTINGS',
@@ -4400,6 +4412,10 @@ const I18N = {
     lastManSkating: (name) => `${name} IS THE LAST MAN SKATING`,
     youWinTitle: '🏆 YOU WIN!',
     opponentDisconnected: '📡 OPPONENT DISCONNECTED — WIN BY FORFEIT',
+    opponentPaused: '⏸️ OPPONENT PAUSED',
+    opponentResumed: '▶️ OPPONENT BACK',
+    forfeitDrawTitle: '🤝 DRAW',
+    forfeitDrawSub: 'Your opponent left while you were paused.',
     skinWinTag: (skinLabel) => `${skinLabel}`,
 
     // End screen — boss wins
@@ -4598,6 +4614,7 @@ const I18N = {
     tutoDuelText: '<strong>DUEL</strong> — Face off 1v1 against an opponent, locally on the same device.',
     tutoOnlineDuelText: '<strong>ONLINE DUEL</strong> — Same as Duel, but online: enter a room code to face a friend remotely.',
     tutoFfaText: '<strong>FFA</strong> — Free-For-All: 2 to 4 players online via a room code — last one standing wins!',
+    tutoSolanaText: '<strong>⛓️ SOLANA (dApp Store)</strong> — Play online matches (Duel or FFA) to score points: each week, claim your share of the pool in SKR tokens.<br><span style="color:rgba(120,200,255,.8);font-size:0.88em;">Available exclusively on the Solana dApp Store version</span>',
     tutoSectionWorld: '🌍 GAME STRUCTURE',
     tutoWorldText: 'Each world has its own enemies and <strong>BOSS RACKI</strong>.<br>Beat Racki to unlock the next world — it\'s the backbone of your progression!',
     tutoSectionToken: '🪙 PROGRESSION',
@@ -4951,6 +4968,8 @@ function applyI18n(){
   if(btnHowto) btnHowto.innerHTML = t('howToPlay');
   const btnHof = document.getElementById('btn-hof');
   if(btnHof) btnHof.innerHTML = t('hallOfFame');
+  const dsNotice = document.getElementById('hof-dappstore-notice');
+  if(dsNotice && dsNotice.style.display !== 'none') dsNotice.textContent = t('hofDappStoreNotice');
   const btnShop = document.getElementById('btn-shop');
   if(btnShop) btnShop.innerHTML = t('armory');
   const rematchLbl = document.getElementById('btn-rematch-friends-label');
@@ -5207,8 +5226,8 @@ function _renderTuto(){
   const secKeys = ['tutoSectionGhost','tutoSectionGameModes','tutoSectionWorld','tutoSectionToken','tutoSectionSecret'];
   secLabels.forEach((s,i)=>{ if(secKeys[i]) s.textContent = t(secKeys[i]); });
   // Textes des cartes spéciales
-  const specialCards = document.querySelectorAll('.tuto-card.ghost, .tuto-card.duel, .tuto-card.online-duel, .tuto-card.ffa, .tuto-card.world, .tuto-card.token, .tuto-card.secret');
-  const specialKeys = ['tutoGhostText','tutoDuelText','tutoOnlineDuelText','tutoFfaText','tutoWorldText','tutoTokenText','tutoSecretText'];
+  const specialCards = document.querySelectorAll('.tuto-card.ghost, .tuto-card.duel, .tuto-card.online-duel, .tuto-card.ffa, .tuto-card.solana, .tuto-card.world, .tuto-card.token, .tuto-card.secret');
+  const specialKeys = ['tutoGhostText','tutoDuelText','tutoOnlineDuelText','tutoFfaText','tutoSolanaText','tutoWorldText','tutoTokenText','tutoSecretText'];
   specialCards.forEach((c,i)=>{
     const textEl = c.querySelector('.tuto-text');
     if(textEl && specialKeys[i]) textEl.innerHTML = t(specialKeys[i]);
@@ -5685,6 +5704,10 @@ if(window.matchMedia){
         // avant, voir _lmsClaimStreakFromPopup), vérifié avant lui pour la même raison que
         // wrapped-overlay avant hof-overlay ci-dessus.
         if(document.getElementById('notif-prime-popup')&&document.getElementById('notif-prime-popup').style.display === 'flex'){ if(typeof _lmsCloseNotifPriming==='function') _lmsCloseNotifPriming(); return; }
+        // v2169 : popup de palier de série — s'ouvre PAR-DESSUS streak-popup (déclenchée
+        // depuis _lmsClaimStreakFromPopup, streak-popup reste ouvert derrière), même raison
+        // de nesting que notif-prime-popup juste au-dessus : vérifiée avant streak-popup.
+        if(document.getElementById('streak-milestone-popup')&&document.getElementById('streak-milestone-popup').style.display === 'flex'){ if(typeof closeStreakMilestonePopup==='function') closeStreakMilestonePopup(); return; }
         if(document.getElementById('streak-popup')&&document.getElementById('streak-popup').style.display === 'flex'){ if(typeof closeStreakPopup==='function') closeStreakPopup(); return; }
         if(document.getElementById('daily-card-popup')&&document.getElementById('daily-card-popup').style.display === 'flex'){ if(typeof closeDailyCardPopup==='function') closeDailyCardPopup(); return; }
         if(document.getElementById('missions-popup')&&document.getElementById('missions-popup').style.display === 'flex'){ if(typeof closeMissionsPopup==='function') closeMissionsPopup(); return; }
@@ -9107,6 +9130,54 @@ const STREAK_KEY = 'lms_login_streak_v1';
 const STREAK_REWARDS = [
   {tokens:10}, {tokens:15}, {tokens:20}, {tokens:30}, {tokens:40}, {tokens:60}, {tokens:150, xp:100}
 ];
+// ── Paliers de série (bonus ponctuels, cumulables avec les récompenses J1-J7 ci-dessus) ──
+// Au-delà de la table fixe, tout est calculé par formule pour ne jamais avoir besoin d'y
+// retoucher : un mini-palier tous les 100 jours + un "anniversaire" tous les 365 jours.
+const STREAK_MILESTONES_FIXED = [
+  { day:3,   tokens:50,   xp:20,   titleKey:null },
+  { day:14,  tokens:200,  xp:0,    titleKey:null },
+  { day:30,  tokens:350,  xp:150,  titleKey:null },
+  { day:50,  tokens:500,  xp:250,  titleKey:null },
+  { day:100, tokens:800,  xp:400,  titleKey:'centurion' },
+  { day:180, tokens:1200, xp:600,  titleKey:null },
+  { day:365, tokens:2500, xp:1200, titleKey:'oneYear' },
+];
+const STREAK_MILESTONE_LAST_FIXED_DAY = 365;
+const STREAK_MILESTONE_INTERIM_STEP = 100;   // palier "mineur" tous les 100 jours après J365
+const STREAK_MILESTONE_INTERIM_TOKENS = 600;
+const STREAK_MILESTONE_INTERIM_XP = 300;
+const STREAK_MILESTONE_YEAR = 365;           // "anniversaire" tous les 365 jours après J365
+const STREAK_MILESTONE_YEAR_BASE_TOKENS = 3000;
+const STREAK_MILESTONE_YEAR_STEP_TOKENS = 1000; // + par année au-delà de la 1ère
+const STREAK_MILESTONE_YEAR_BASE_XP = 1500;
+const STREAK_MILESTONE_YEAR_STEP_XP = 500;
+// Retourne le palier atteint pour un compteur de série donné, ou null si aucun.
+// Un jour donné ne peut correspondre qu'à UN SEUL palier (les paliers "année" tombent
+// toujours sur un multiple de 365, jamais sur un multiple de 100 qui coexisterait le
+// même jour dans notre fenêtre d'intérêt), donc pas d'ambiguïté à résoudre ici.
+function _lmsGetStreakMilestone(count){
+  const fixed = STREAK_MILESTONES_FIXED.find(m => m.day === count);
+  if(fixed) return { day:fixed.day, tokens:fixed.tokens, xp:fixed.xp, titleKey:fixed.titleKey, kind:'fixed' };
+  if(count > STREAK_MILESTONE_LAST_FIXED_DAY){
+    if(count % STREAK_MILESTONE_YEAR === 0){
+      const years = count / STREAK_MILESTONE_YEAR;
+      return {
+        day:count,
+        tokens: STREAK_MILESTONE_YEAR_BASE_TOKENS + (years-1) * STREAK_MILESTONE_YEAR_STEP_TOKENS,
+        xp: STREAK_MILESTONE_YEAR_BASE_XP + (years-1) * STREAK_MILESTONE_YEAR_STEP_XP,
+        titleKey:'anniversary', years, kind:'anniversary'
+      };
+    }
+    if((count - STREAK_MILESTONE_LAST_FIXED_DAY) % STREAK_MILESTONE_INTERIM_STEP === 0){
+      return { day:count, tokens:STREAK_MILESTONE_INTERIM_TOKENS, xp:STREAK_MILESTONE_INTERIM_XP, titleKey:null, kind:'interim' };
+    }
+  }
+  return null;
+}
+const _STREAK_MILESTONE_I18N = {
+  fr: { popupTitle:'🏆 PALIER ATTEINT !', centurion:'Centurion', oneYear:'Un an de série !', anniversary:y=>`${y} ans de série !`, dayLabel:n=>`${n} jours d'affilée`, close:'GÉNIAL !' },
+  en: { popupTitle:'🏆 MILESTONE REACHED!', centurion:'Centurion', oneYear:'One year streak!', anniversary:y=>`${y} years streak!`, dayLabel:n=>`${n} days in a row`, close:'AWESOME!' },
+};
 const _STREAK_I18N = {
   fr: { title:'🔥 SÉRIE DE CONNEXION', sub:'Reviens chaque jour pour des récompenses croissantes !', claim:'RÉCLAMER', claimed:'DÉJÀ RÉCLAMÉ', day:'J', welcome:n=>`👋 Content de te revoir ! +${n} 🪙`, strip:n=> n<=1 ? `🔥 Série : jour 1 — touche pour voir` : `🔥 Série de ${n} jours — touche pour voir`, reminderTitle:'🔥 Ta série va expirer !', reminderBody:n=>`Reviens jouer avant minuit pour garder ta série de ${n} jour${n>1?'s':''} !`,
     primeTitle:'🔔 Ne perds jamais ta série !', primeBody:n=>`On peut t'envoyer un petit rappel si tu es sur le point de perdre ta série de ${n} jours. Activer les notifications ?`, primeAccept:'ACTIVER', primeLater:'Plus tard', primeEnabledToast:'🔔 Notifications activées !' },
@@ -9117,8 +9188,11 @@ function _streakLang(){ return (typeof _lang !== 'undefined' && _lang === 'en') 
 function _todayKey(d){ d=d||new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function _daysBetweenKeys(a,b){ const ONE=86400000; const da=new Date(a+'T00:00:00'), db=new Date(b+'T00:00:00'); return Math.round((db-da)/ONE); }
 function getStreakData(){
-  try{ return JSON.parse(localStorage.getItem(STREAK_KEY)) || {count:0,lastDay:null,longest:0,claimedDay:null}; }
-  catch(e){ return {count:0,lastDay:null,longest:0,claimedDay:null}; }
+  let s;
+  try{ s = JSON.parse(localStorage.getItem(STREAK_KEY)) || {count:0,lastDay:null,longest:0,claimedDay:null}; }
+  catch(e){ s = {count:0,lastDay:null,longest:0,claimedDay:null}; }
+  if(!Array.isArray(s.milestonesClaimed)) s.milestonesClaimed = []; // liste des `day` de palier déjà récompensés
+  return s;
 }
 function saveStreakData(s){ const v=JSON.stringify(s); try{ localStorage.setItem(STREAK_KEY,v); }catch(e){} _store.set(STREAK_KEY,v); }
 // À appeler une fois par lancement d'app. Retourne {streak, changed, welcomeBack, gapDays}
@@ -9148,7 +9222,20 @@ function claimStreakReward(){
   if(rw.tokens) addTokens(rw.tokens);
   if(rw.xp) addMasteryXP(rw.xp);
   s.claimedDay = s.lastDay;
+  // ── Palier ponctuel (14/30/50/100/180/365j puis formule) : accroché à la même
+  // réclamation que la récompense du jour pour ne pas multiplier les popups. On
+  // garde `day` dans milestonesClaimed pour ne jamais le redonner deux fois, même
+  // si le joueur revient en arrière/recharge la même journée.
+  let milestone = null;
+  const m = _lmsGetStreakMilestone(s.count);
+  if(m && s.milestonesClaimed.indexOf(m.day) === -1){
+    if(m.tokens) addTokens(m.tokens);
+    if(m.xp) addMasteryXP(m.xp);
+    s.milestonesClaimed.push(m.day);
+    milestone = m;
+  }
   saveStreakData(s);
+  rw.milestone = milestone;
   return rw;
 }
 function _lmsWelcomeBackBonus(gapDays){
@@ -9204,11 +9291,23 @@ function _renderStreakPopup(){
       const state = isPast || claimedToday ? 'done' : (isToday ? 'today' : 'locked');
       const bg = state==='done' ? 'rgba(0,200,120,.15)' : state==='today' ? 'rgba(255,150,0,.18)' : 'rgba(255,255,255,.04)';
       const bd = state==='done' ? 'rgba(0,220,140,.6)' : state==='today' ? 'rgba(255,170,0,.85)' : 'rgba(255,255,255,.12)';
-      cell.style.cssText = `flex:0 0 100px;display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 6px;border-radius:12px;background:${bg};border:1.5px solid ${bd};${state==='today'?'animation:streakTodayPulse 1.6s ease-in-out infinite;':''}`;
+      // v2171 : le badge palier doit se baser sur le JOUR ABSOLU de la case (cur - dayInCycle
+      // + dayNum), pas sur sa position 1-7 dans le cycle — sinon la case "J3" réaffichait le
+      // badge chaque semaine (semaine 2 = jour 10, semaine 3 = jour 17...), alors que le palier
+      // J3 n'est réellement gagné qu'une fois, au tout premier jour 3. Avec le jour absolu,
+      // _lmsGetStreakMilestone() reste la seule source de vérité (même fonction que
+      // claimStreakReward()) : un palier ne peut donc être annoncé ici que s'il est réellement
+      // atteint ce jour-là — et ça affiche aussi "gratuitement" les paliers suivants (J14, J30...)
+      // dès qu'ils tombent dans la semaine affichée, sans avoir besoin de les lister à la main.
+      const absoluteDay = cur - dayInCycle + dayNum;
+      const milestone = _lmsGetStreakMilestone(absoluteDay);
+      const glow = milestone ? 'box-shadow:0 0 10px rgba(255,215,0,.5);' : '';
+      cell.style.cssText = `flex:0 0 100px;display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 6px;border-radius:12px;background:${bg};border:1.5px solid ${bd};${glow}${state==='today'?'animation:streakTodayPulse 1.6s ease-in-out infinite;':''}`;
       const icon = state==='done' ? '✅' : (state==='today' ? '🔥' : '🔒');
       const tokensLine = `<div style="font-size:16px;font-weight:800;color:#ffe08a;line-height:1.2;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.6);">${rw.tokens} <span style="font-size:17px;">🪙</span></div>`;
       const xpLine = rw.xp ? `<div style="font-size:13px;font-weight:800;color:#8fefff;line-height:1.2;white-space:nowrap;">+${rw.xp} XP</div>` : '';
-      cell.innerHTML = `<div style="font-size:13px;font-weight:800;letter-spacing:1px;color:rgba(255,255,255,.75);">${d.day}${dayNum}</div><div style="font-size:26px;">${icon}</div>${tokensLine}${xpLine}`;
+      const milestoneLine = milestone ? `<div style="margin-top:1px;font-size:11px;font-weight:800;color:#ffd700;line-height:1.2;white-space:nowrap;">🏆 +${milestone.tokens}${milestone.xp?` +${milestone.xp}xp`:''}</div>` : '';
+      cell.innerHTML = `<div style="font-size:13px;font-weight:800;letter-spacing:1px;color:rgba(255,255,255,.75);">${d.day}${dayNum}</div><div style="font-size:26px;">${icon}</div>${tokensLine}${xpLine}${milestoneLine}`;
       grid.appendChild(cell);
     });
   }
@@ -9233,10 +9332,83 @@ function _lmsClaimStreakFromPopup(){
     toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2600);
   }
   if(typeof sndMasteryLevelUp === 'function' && rw.xp) sndMasteryLevelUp();
-  // Propose l'activation des notifs juste après une réclamation réussie : le joueur
-  // vient de gagner quelque chose grâce à sa série, c'est le moment le plus motivant.
+  if(rw.milestone){
+    // Palier atteint le même jour que la récompense normale : on laisse le toast
+    // ci-dessus s'installer, puis on ouvre la célébration par-dessus. Le rappel notifs
+    // (branche else) attend dans ce cas la fermeture de CETTE popup (voir
+    // closeStreakMilestonePopup) plutôt que le délai fixe habituel, pour ne jamais
+    // superposer deux popups plein écran.
+    setTimeout(()=>{ if(typeof openStreakMilestonePopup === 'function') openStreakMilestonePopup(rw.milestone); }, 650);
+  } else {
+    // Propose l'activation des notifs juste après une réclamation réussie : le joueur
+    // vient de gagner quelque chose grâce à sa série, c'est le moment le plus motivant.
+    const s = getStreakData();
+    setTimeout(()=>{ if(typeof _lmsMaybeShowNotifPriming === 'function') _lmsMaybeShowNotifPriming(s.count||0); }, 900);
+  }
+}
+// ── Popup de célébration de palier (14/30/50/100/180/365j, puis paliers par formule) ──
+// Rendu inspiré de la démo "claim VS" (boîte dorée + confettis DOM) fournie en référence.
+function _lmsStreakMilestoneLabel(m){
+  const t = _STREAK_MILESTONE_I18N[_streakLang()];
+  if(m.titleKey === 'centurion') return t.centurion;
+  if(m.titleKey === 'oneYear') return t.oneYear;
+  if(m.titleKey === 'anniversary') return t.anniversary(m.years);
+  return t.dayLabel(m.day);
+}
+let _smAutoCloseTimer = null;
+function openStreakMilestonePopup(m){
+  const popup = document.getElementById('streak-milestone-popup');
+  if(!popup || !m) return;
+  const t = _STREAK_MILESTONE_I18N[_streakLang()];
+  const f = id => document.getElementById(id);
+  if(f('sm-title')) f('sm-title').textContent = t.popupTitle;
+  if(f('sm-label')) f('sm-label').textContent = _lmsStreakMilestoneLabel(m);
+  if(f('sm-tokens')) f('sm-tokens').textContent = `+${m.tokens} 🪙`;
+  if(f('sm-xp')) f('sm-xp').style.display = m.xp ? '' : 'none';
+  if(f('sm-xp') && m.xp) f('sm-xp').textContent = `+${m.xp} XP`;
+  if(f('sm-close-btn')) f('sm-close-btn').textContent = t.close;
+  popup.style.display = 'flex';
+  _lmsBurstMilestoneConfetti();
+  if(typeof sndMasteryLevelUp === 'function') sndMasteryLevelUp();
+  // Fermeture auto après 3s si le joueur ne clique pas sur GÉNIAL !/AWESOME! — évite
+  // de laisser cette popup plein écran bloquée indéfiniment (AFK, D-pad TV sans input).
+  if(_smAutoCloseTimer) clearTimeout(_smAutoCloseTimer);
+  _smAutoCloseTimer = setTimeout(()=>{ closeStreakMilestonePopup(); }, 3000);
+}
+function closeStreakMilestonePopup(){
+  if(_smAutoCloseTimer){ clearTimeout(_smAutoCloseTimer); _smAutoCloseTimer = null; }
+  const popup = document.getElementById('streak-milestone-popup');
+  if(popup) popup.style.display = 'none';
+  const layer = document.getElementById('sm-confetti-layer');
+  if(layer) layer.innerHTML = '';
+  // Le rappel notifs attendait cette fermeture (voir _lmsClaimStreakFromPopup) plutôt
+  // que de risquer d'apparaître par-dessus/derrière la célébration de palier.
   const s = getStreakData();
-  setTimeout(()=>{ if(typeof _lmsMaybeShowNotifPriming === 'function') _lmsMaybeShowNotifPriming(s.count||0); }, 900);
+  setTimeout(()=>{ if(typeof _lmsMaybeShowNotifPriming === 'function') _lmsMaybeShowNotifPriming(s.count||0); }, 400);
+}
+function _lmsBurstMilestoneConfetti(){
+  const layer = document.getElementById('sm-confetti-layer');
+  if(!layer) return;
+  layer.innerHTML = '';
+  const colors = ['#ffd700','#ffb800','#ff7a00','#fff2b0','#ffffff'];
+  for(let i=0;i<34;i++){
+    const bit = document.createElement('div');
+    bit.className = 'sm-confetti-bit';
+    const size = 4 + Math.random()*5;
+    bit.style.width = size+'px'; bit.style.height = (size*1.6)+'px';
+    bit.style.background = colors[Math.floor(Math.random()*colors.length)];
+    bit.style.left = '50%'; bit.style.top = '38%';
+    layer.appendChild(bit);
+    const angle = Math.random()*Math.PI*2;
+    const dist = 70 + Math.random()*110;
+    const dx = Math.cos(angle)*dist, dy = Math.sin(angle)*dist - 30;
+    const rot = (Math.random()*720-360);
+    bit.animate([
+      { transform:'translate(-50%,-50%) rotate(0deg)', opacity:1 },
+      { transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${rot}deg)`, opacity:0 }
+    ], { duration: 900 + Math.random()*450, easing:'cubic-bezier(.2,.7,.3,1)', fill:'forwards' });
+    setTimeout(()=>bit.remove(), 1450);
+  }
 }
 // ── Boot : traite le login du jour une seule fois au lancement ──
 document.addEventListener('DOMContentLoaded', ()=>{
@@ -9511,6 +9683,18 @@ function openHOF(){
   _hofShowLocal();
   document.getElementById('hof-overlay').classList.add('active');
   _lmsShowHOFBanner();
+  // Teasing/info dApp Store Solana : visible uniquement sur mobile, dans les
+  // deux versions (Play Store et dApp Store) — clin d'œil marketing sur la
+  // version Play, info fonctionnelle sur la version dApp Store.
+  const dsNotice = document.getElementById('hof-dappstore-notice');
+  if(dsNotice){
+    if(_isMobile){
+      dsNotice.textContent = t('hofDappStoreNotice');
+      dsNotice.style.display = 'block';
+    } else {
+      dsNotice.style.display = 'none';
+    }
+  }
 }
 function closeHOF(){
   document.getElementById('hof-overlay').classList.remove('active');
@@ -10648,6 +10832,14 @@ function _lmsMaybeRecordDuelResult(){
     && (typeof _lmsRematchEndedWasFFA === 'undefined' || !_lmsRematchEndedWasFFA);
   if(!_wasOnline1v1Duel) return;
   _lmsDuelResultRecordedForThisGame = true;
+  // v2176 FIX : un match nul déclenché par la tolérance de pause (voir _lmsOnlineDuelForfeitDraw,
+  // watchdog forfait) ne doit incrémenter NI wins NI losses pour personne — le schéma duelStats
+  // n'a d'ailleurs pas de champ "draws". Sans ce court-circuit, la ligne _lmsRecordDuelResult()
+  // ci-dessous aurait traité winner===null comme `won=false` et enregistré une DÉFAITE pour le
+  // joueur qui vient de subir l'abandon adverse pendant SA PROPRE pause — l'inverse de l'intention.
+  // Le flag n'est PAS remis à false ici : showEndScreen() (juste après) en a encore besoin pour
+  // choisir le texte "match nul" dédié, voir son commentaire.
+  if(typeof _lmsOnlineDuelForfeitDraw !== 'undefined' && _lmsOnlineDuelForfeitDraw) return;
   _lmsRecordDuelResult(!!(typeof winner !== 'undefined' && winner && winner.human));
 }
 function _lmsRecordDuelResult(won){
@@ -11495,6 +11687,13 @@ function _lmsOnlineDuelClearPendingTimers(){
 let _lmsOnlineDuelLastOpponentStateAt = null; // horodatage LOCAL de la dernière réception d'un state adverse (watchdog forfait)
 let _lmsOnlineDuelForfeitWatchdog = null; // interval de détection de déconnexion adverse en cours de partie
 let _lmsOnlineDuelForfeitWin = false; // vrai si la victoire en cours vient d'un forfait adverse (affichage écran de fin dédié)
+// v2176 : dernière fois (Date.now()) où MON PROPRE tick de broadcast a diffusé paused:true —
+// rafraîchi en continu tant que gamePausedByMenu est vrai (voir les 2 boucles de diffusion,
+// duel et FFA). Sert de fenêtre de tolérance anti-triche : si mon adversaire quitte pendant/juste
+// après ma pause, le watchdog de forfait doit déclarer un match nul plutôt qu'une victoire pour
+// moi (voir _LMS_DUEL_FORFEIT_DRAW_TOLERANCE_MS).
+let _lmsMyLastPausedAt = 0;
+let _lmsOnlineDuelForfeitDraw = false; // vrai si le "gameover" en cours vient d'un forfait adverse déclenché PENDANT ma pause (match nul, pas de victoire) — voir watchdog forfait
 
 // ── Présence en ligne ("un autre joueur est-il connecté en ce moment ?") ──
 // Système séparé de duelRooms/ffaRooms (pas de code, pas de matchmaking) : chaque appareil qui
@@ -11976,6 +12175,12 @@ function _lmsRoomIsStale(room){
 
 function _lmsOnlineDuelOpen(){
   if(!_lmsFbDb){ alert(t('onlineDuelUnavailable')); return; }
+  // FIX (même écran noir asymétrique, version duel) : même nettoyage défensif et synchrone que
+  // celui posé dans _lmsFFAOpen() (voir son commentaire) — couvre l'enchaînement FFA→duel ou
+  // duel→duel (REJOUER, hub, invitation envoyée/reçue) là où une ancienne synchro Firebase
+  // (listeners de la partie précédente, FFA ou duel) pourrait ne pas avoir fini de se couper
+  // avant que ce nouvel écran duel ne s'ouvre. Sans risque si déjà à l'état neutre.
+  if(typeof _lmsOnlineDuelEndSync === 'function') _lmsOnlineDuelEndSync();
   const overlay = document.getElementById('online-duel-overlay');
   const titleEl = document.getElementById('online-duel-title');
   const subEl = document.getElementById('online-duel-sub');
@@ -12646,6 +12851,18 @@ function _lmsOnlineHubPick(mode){
 
 function _lmsFFAOpen(){
   if(!_lmsFbDb){ alert(t('onlineDuelUnavailable')); return; }
+  // FIX (écran noir asymétrique en FFA — un joueur bloqué en chargement) : même nettoyage
+  // défensif et synchrone que celui posé dans _lmsInviteAccept() (voir son commentaire), mais
+  // déplacé ICI, à la racine, car _lmsFFAOpen() est le point d'entrée UNIQUE de tous les chemins
+  // vers FFA — bouton menu, hub en ligne, REJOUER, invitation reçue (_lmsInviteAccept) ET
+  // invitation envoyée (_lmsInviteSend/_lmsOnlineHubInviteFFAAuto, qui appelaient _lmsFFAOpen()
+  // directement sans jamais passer par ce nettoyage). Ça couvre aussi le cas d'un enchaînement
+  // très rapide où une invite est envoyée ou acceptée avant que l'écran de fin de la partie
+  // précédente ait fini de s'afficher côté local : que _lmsOnlineDuelEndSync() ait déjà tourné
+  // ou non pour cette partie précédente, ce rappel est sans risque (il ne fait rien si tout est
+  // déjà à l'état neutre) et garantit qu'aucun ancien listener Firebase ne reste actif au moment
+  // où la nouvelle salle FFA s'ouvre.
+  if(typeof _lmsOnlineDuelEndSync === 'function') _lmsOnlineDuelEndSync();
   const overlay = document.getElementById('ffa-overlay');
   const titleEl = document.getElementById('ffa-title');
   const subEl = document.getElementById('ffa-sub');
@@ -13043,6 +13260,12 @@ function _lmsFFABeginSync(roomRef){
   _lmsOnlineDuelBroadcastTimer = setInterval(() => {
     if(typeof players === 'undefined' || !players[0]) return;
     const me = players[0];
+    // v2176 : diffuse mon propre état de pause locale (menu/boutique ouverts en pleine partie) —
+    // permet à l'adversaire d'afficher un badge "en pause" (voir _lmsApplyNetworkOpponentControl)
+    // au lieu de me voir juste figé sans explication. _lmsMyLastPausedAt reste rafraîchi tant que
+    // je suis en pause, pour la fenêtre de tolérance anti-triche du watchdog de forfait (duel).
+    const _iAmPaused = !!(typeof gamePausedByMenu !== 'undefined' && gamePausedByMenu);
+    if(_iAmPaused) _lmsMyLastPausedAt = Date.now();
     myStateRef.set({
       wx: Math.round(me.wx * 10) / 10,
       wy: Math.round(me.wy * 10) / 10,
@@ -13058,6 +13281,7 @@ function _lmsFFABeginSync(roomRef){
       stunTimer: me.stunTimer||0,
       tractorActive: !!(typeof tractorBeam !== 'undefined' && tractorBeam && tractorBeam.owner === me),
       round: (typeof _lmsOnlineDuelSessionSeq !== 'undefined') ? _lmsOnlineDuelSessionSeq : 0,
+      paused: _iAmPaused,
       ts: Date.now()
     }).catch(()=>{});
   }, 90);
@@ -13259,6 +13483,10 @@ const _DUEL_ARBITRATION_GRACE_MS = 400; // hôte : délai d'attente d'un 2e rapp
 // se termine jamais côté joueur restant. Marge large (8s, alors qu'un state légitime arrive ~11x/seconde) pour
 // tolérer un simple lag réseau ou une mise en arrière-plan sans déclencher de faux forfait.
 const _LMS_DUEL_FORFEIT_TIMEOUT_MS = 8000;
+// v2176 : fenêtre de tolérance (voir _lmsMyLastPausedAt) — si j'étais en pause il y a moins de
+// cette durée quand le watchdog de forfait se déclenche, on traite l'abandon adverse comme un
+// match nul plutôt qu'une victoire par forfait.
+const _LMS_DUEL_FORFEIT_DRAW_TOLERANCE_MS = 3000;
 // FFA — même principe que ci-dessus, mais à l'échelle d'UN SEUL adversaire distant plutôt que du
 // match entier (voir _lmsApplyNetworkOpponentControl) : un adversaire FFA resté stale plus que ce
 // délai est éliminé pour de bon, les autres continuent le match normalement.
@@ -13746,6 +13974,14 @@ function _lmsOnlineDuelBeginSync(roomRef, myRole){
   // temps d'arriver.
   _lmsOnlineDuelLastOpponentStateAt = Date.now();
   _lmsOnlineDuelForfeitWin = false;
+  // FIX v2178 (audit) : _lmsOnlineDuelForfeitDraw n'était JAMAIS remis à false une fois levé
+  // (ni ici, ni dans _lmsOnlineDuelEndSync, ni consommé dans showEndScreen contrairement à son
+  // jumeau _lmsOnlineDuelForfeitWin ci-dessus) — un premier match nul par tolérance de pause dans
+  // la session faisait donc silencieusement sauter l'enregistrement de TOUS les résultats de duel
+  // suivants (voir le court-circuit dans _lmsMaybeRecordDuelResult), y compris côté Firebase
+  // duelStats/{uid} lu par le Worker Solana pour le score hebdo. Double sécurité : reset ici ET
+  // consommation dans showEndScreen (voir son commentaire).
+  _lmsOnlineDuelForfeitDraw = false;
   const otherRole = myRole === 'host' ? 'guest' : 'host';
   const myStateRef = roomRef.child('state/' + myRole);
   const otherStateRef = roomRef.child('state/' + otherRole);
@@ -13912,6 +14148,10 @@ function _lmsOnlineDuelBeginSync(roomRef, myRole){
   _lmsOnlineDuelBroadcastTimer = setInterval(() => {
     if(typeof players === 'undefined' || !players[0]) return;
     const me = players[0];
+    // v2176 : même geste que côté FFA (voir son commentaire jumeau) — diffuse ma pause locale et
+    // rafraîchit _lmsMyLastPausedAt pour la fenêtre de tolérance du watchdog de forfait plus bas.
+    const _iAmPaused = !!(typeof gamePausedByMenu !== 'undefined' && gamePausedByMenu);
+    if(_iAmPaused) _lmsMyLastPausedAt = Date.now();
     myStateRef.set({
       wx: Math.round(me.wx * 10) / 10,
       wy: Math.round(me.wy * 10) / 10,
@@ -13931,6 +14171,7 @@ function _lmsOnlineDuelBeginSync(roomRef, myRole){
       // via wx/wy ci-dessus). Voir _lmsApplyNetworkOpponentControl + updateSFPowerups.
       tractorActive: !!(typeof tractorBeam !== 'undefined' && tractorBeam && tractorBeam.owner === me),
       round: (typeof _lmsOnlineDuelSessionSeq !== 'undefined') ? _lmsOnlineDuelSessionSeq : 0,
+      paused: _iAmPaused,
       ts: Date.now()
     }).catch(()=>{});
   }, 90);
@@ -13949,14 +14190,32 @@ function _lmsOnlineDuelBeginSync(roomRef, myRole){
     if(Date.now() - _lmsOnlineDuelLastOpponentStateAt < _LMS_DUEL_FORFEIT_TIMEOUT_MS) return;
     _lmsDuelLog('[Watchdog forfait] aucun state adverse reçu depuis', { ms: Date.now() - _lmsOnlineDuelLastOpponentStateAt });
     if(typeof players === 'undefined' || !players[0]) return;
+    // v2176 FIX (anti-triche "je pause pour épuiser l'adversaire puis je gagne par forfait quand
+    // il quitte") : si j'étais MOI-MÊME en pause il y a moins de _LMS_DUEL_FORFEIT_DRAW_TOLERANCE_MS
+    // (pause encore active, ou tout juste terminée — voir _lmsMyLastPausedAt, rafraîchi à chaque
+    // tick du broadcast tant que gamePausedByMenu est vrai), l'adversaire a très probablement
+    // quitté À CAUSE de ma pause plutôt que d'une vraie déconnexion : on déclare un match nul
+    // plutôt qu'une victoire, pour ne pas récompenser ce comportement. La fenêtre de tolérance
+    // couvre aussi le cas limite où je viens tout juste de reprendre au moment où l'adversaire,
+    // lassé d'attendre, quitte (course entre ma reprise locale et son abandon distant).
+    const _wasRecentlyPaused = (Date.now() - _lmsMyLastPausedAt) < _LMS_DUEL_FORFEIT_DRAW_TOLERANCE_MS;
     const winnerPlayer = players[0];
-    _lmsOnlineDuelForfeitWin = true;
-    winner = winnerPlayer;
+    if(_wasRecentlyPaused){
+      _lmsOnlineDuelForfeitDraw = true;
+      winner = null;
+    } else {
+      _lmsOnlineDuelForfeitWin = true;
+      winner = winnerPlayer;
+    }
     // FIX (audit) : même oubli que le filet de sécurité gameOverRef (voir son commentaire juste
     // au-dessus dans ce fichier) — sans cet appel, _lmsOnlineDuelActive resterait vrai
     // indéfiniment après un forfait, listeners/timer de broadcast compris.
     if(typeof _lmsOnlineDuelSnapshotAndEndSync === 'function') _lmsOnlineDuelSnapshotAndEndSync();
-    if(typeof _triggerVictoryCinematic === 'function') _triggerVictoryCinematic(winner);
+    if(_wasRecentlyPaused){
+      if(typeof showEndScreen === 'function') showEndScreen(); // match nul : pas de cinématique de victoire
+    } else {
+      if(typeof _triggerVictoryCinematic === 'function') _triggerVictoryCinematic(winner);
+    }
   }, 2000);
   // ── Power-ups partagés (voir FIX plus haut) ──
   // Purge les items d'une éventuelle session précédente (reconnexion) avant de réabonner —
@@ -14690,6 +14949,22 @@ function _lmsApplyNetworkOpponentControl(pl){
       }
     }
     return;
+  }
+  // v2176 : badge "adversaire en pause" — détection au FRONT (montant/descendant) uniquement,
+  // même principe que le dash plus bas, pour ne pas spammer showCommentator à chaque paquet
+  // (~11/s) tant que l'état ne change pas. pl._remotePaused persiste sur l'objet joueur distant
+  // entre les frames (comme pl.dashTimer etc.), donc valide aussi bien en duel qu'en FFA (chaque
+  // ghost a son propre état). But : que l'adversaire comprenne pourquoi son fantôme reste figé
+  // sans réagir aux poussées, plutôt qu'un simple gel silencieux.
+  const _remotePaused = !!remote.paused;
+  if(_remotePaused !== !!pl._remotePaused){
+    pl._remotePaused = _remotePaused;
+    if(typeof showCommentator === 'function'){
+      // FIX v2178 : 1.8s/taille standard passait inaperçu en plein jeu (retour utilisateur) —
+      // 3s + taille agrandie (voir param fontSize de showCommentator/_cFlush), spécifique à CE
+      // message, sans toucher aux autres messages du commentateur (kills, combos...).
+      showCommentator(_remotePaused ? t('opponentPaused') : t('opponentResumed'), '#88ccff', 3000, 'clamp(16px,4.2vw,26px)');
+    }
   }
   const LERP = 0.35; // vitesse de rattrapage vers la position réseau — assez réactif, assez lissé
   pl.wx += (remote.wx - pl.wx) * LERP;
@@ -15442,6 +15717,20 @@ function startGame(){
   statKills = 0; statDashes = 0; statPowerups = 0;
   statComboMax = 0; statSurvivedPhases = 0;
   statCameBack = false; statUltraUsed = false; statFinalRank = 0;
+  // FIX v2178 (audit, suite) : le reset défensif de _lmsOnlineDuelForfeitDraw ajouté dans
+  // _lmsOnlineDuelBeginSync ne couvre QUE l'enchaînement direct vers un nouveau duel en ligne —
+  // pas si on enchaîne vers un FFA en ligne, un duel local ou une partie solo juste après un match
+  // nul par tolérance de pause. startGame() est LE point de passage commun à TOUS les modes
+  // (unique fonction qui démarre une manche, quel que soit le mode — voir tous les resets de stats
+  // juste au-dessus), donc l'endroit le plus sûr pour une garantie universelle : sans ce reset ici,
+  // un _lmsMaybeRecordFFAResult() ou une future partie solo/duel local pourrait hériter du flag
+  // resté vrai d'un duel en ligne terminé en match nul plus tôt dans la session — même si
+  // _lmsMaybeRecordFFAResult() ne le lit pas aujourd'hui (voir échange précédent), autant fermer
+  // la fuite à la source plutôt que de dépendre de qui la lit ou pas. Même chose pour
+  // _lmsOnlineDuelForfeitWin par cohérence/sécurité, bien qu'il soit déjà consommé à chaque
+  // affichage côté gagnant (voir showEndScreen).
+  _lmsOnlineDuelForfeitDraw = false;
+  _lmsOnlineDuelForfeitWin = false;
   _matchStartTs = Date.now(); // top départ du chrono speedrun pour cette partie
   rageGauge = 0; rageFury = false; furyTimer = 0; rageFlashTimer = 0;
   sloMoTimer = 0;
@@ -16413,6 +16702,14 @@ document.addEventListener('keyup', e => {
       const notifPrimePop = document.getElementById('notif-prime-popup');
       if(notifPrimePop && notifPrimePop.style.display === 'flex') scope = notifPrimePop;
     }
+    // v2169 : popup de célébration de palier de série — s'ouvre depuis _lmsClaimStreakFromPopup,
+    // PAR-DESSUS streak-popup qui reste ouvert derrière (jamais fermé avant, même logique que
+    // notif-prime-popup juste au-dessus). Sans cet override, le D-pad resterait bloqué sur
+    // streak-popup (RÉCLAMER/FERMER) sans pouvoir atteindre le bouton GÉNIAL ! de cette popup.
+    {
+      const milestonePop = document.getElementById('streak-milestone-popup');
+      if(milestonePop && milestonePop.style.display === 'flex') scope = milestonePop;
+    }
     // v1935 : popup d'invitation directe — peut apparaître PAR-DESSUS online-hub-overlay/
     // online-duel-overlay/ffa-overlay, tous les 3 déjà dans overlayIds et donc déjà pris en
     // scope par la boucle plus haut. Même raison que streak-popup ci-dessus : pas de garde
@@ -17020,7 +17317,8 @@ function _lmsSyncWalletButton(){
 // ── Claim de la cagnotte Solana (claim_scratch) ──────────────────────────
 const LMS_SOLANA_PROGRAM_ID = 'GQeKyxHQGFv46z8hM5KocYa5hrUSea1hYJrDXyH41caH';
 const LMS_SOLANA_MINT = '64TQTAykeYQmRmeqMDKB2kWJGGSp8FuGLpEkcJfdwSY6'; // mint de test devnet — à remplacer par SKR en prod
-const LMS_SOLANA_RPC = 'https://smart-wispy-shape.solana-devnet.quiknode.pro/85f42701189289f958c8e8303412f0ec0c687d6a/';
+const LMS_SOLANA_RPC = 'https://devnet.helius-rpc.com/?api-key=e8d38867-6879-4d69-bd5b-1cc6b8f61a8f';
+// OLD const LMS_SOLANA_RPC = https://smart-wispy-shape.solana-devnet.quiknode.pro/85f42701189289f958c8e8303412f0ec0c687d6a
 const TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 const ASSOCIATED_TOKEN_PROGRAM_ID = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
 const CLAIM_SCRATCH_DISCRIMINATOR = [73, 72, 174, 116, 49, 218, 108, 8]; // depuis lms_proof_of_play.json
@@ -26205,6 +26503,12 @@ function _cFlush(){
   el.textContent = item.msg;
   el.style.color  = item.col;
   el.style.textShadow = `0 2px 0 rgba(0,0,0,.9),0 0 20px ${item.col}`;
+  // FIX v2178 : taille agrandie optionnelle par message (ex: badge pause adversaire, plus lisible
+  // qu'un simple message commentateur standard) — sans toucher à la taille par défaut de TOUS les
+  // autres messages (kills, combos...), qui restent gérés par le CSS #commentator existant. Reset
+  // explicite à '' quand non fourni, sinon un message précédent en taille custom "fuiterait" sur
+  // le message suivant (l'élément DOM est réutilisé, pas recréé, voir getCommentatorEl()).
+  el.style.fontSize = item.fontSize || '';
   el.style.opacity   = '0';
   el.style.transform = 'translateX(-50%) scale(0.6)';
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
@@ -26221,14 +26525,14 @@ function _cFlush(){
   }, displayDur);
 }
 
-function showCommentator(msg, col='#ffd700', dur=1400){
+function showCommentator(msg, col='#ffd700', dur=1400, fontSize=''){
   if(STATE !== 'playing') return;
   if(typeof _commentatorEnabled !== 'undefined' && !_commentatorEnabled) return;
   const prio = 3; // message direct (ex: ultra-rare) = priorité moyenne
   // Dédoublonnage : pas deux fois le même message en queue
   if(_cQueue.some(i=>i.msg===msg)) return;
   // Limiter la taille de la file à 3 max (garder les plus prioritaires)
-  _cQueue.push({msg, col, dur, prio});
+  _cQueue.push({msg, col, dur, prio, fontSize});
   if(_cQueue.length > 3) _cQueue.sort((a,b)=>a.prio-b.prio).splice(3);
   _cFlush();
 }
@@ -54741,6 +55045,23 @@ function showEndScreen(){
     if(!winner){ winner = players[0]; }
   }
   STATE = 'gameover';
+  // FIX v2178 (audit) : si le joueur était en pause (menu ☰ ouvert, #confirm-overlay actif,
+  // z-index:60 — ou la boutique ouverte depuis la pause via openIngameArmory(), #shop-overlay,
+  // z-index:90, qui garde aussi gamePausedByMenu à true) au moment où l'écran de fin se
+  // déclenche de façon asynchrone (watchdog de forfait — victoire OU match nul — qui peut tomber
+  // à tout moment, y compris pendant que le joueur regarde un de ces menus), rien ne les refermait
+  // automatiquement : l'écran de fin se construisait bien en dessous mais restait invisible tant
+  // que le joueur n'avait pas cliqué "Continuer" (le révèle) ou "Quitter" (renvoie au menu SANS
+  // jamais l'avoir montré). On force donc la fermeture ici, avant tout affichage, quelle que soit
+  // la cause du gameover (victoire normale, forfait, nul...) — inoffensif si aucun n'était ouvert.
+  (()=>{
+    const _co = document.getElementById('confirm-overlay');
+    if(_co && _co.classList.contains('active')) _co.classList.remove('active');
+    const _so = document.getElementById('shop-overlay');
+    if(_so && _so.classList.contains('active')) _so.classList.remove('active');
+    window._shopOpenedInGame = false; // évite que closeShop() (si rappelée plus tard) ne rouvre le menu pause déjà obsolète
+  })();
+  if(typeof gamePausedByMenu !== 'undefined' && gamePausedByMenu) gamePausedByMenu = false;
   if(typeof _lmsMaybeRecordDuelResult === 'function') _lmsMaybeRecordDuelResult();
   if(typeof _lmsMaybeRecordFFAResult === 'function') _lmsMaybeRecordFFAResult();
   if(typeof _lmsMaybeRecordDuelLocalResult === 'function') _lmsMaybeRecordDuelLocalResult();
@@ -54983,13 +55304,26 @@ function showEndScreen(){
     setTimeout(()=>{ _lmsHandleEndAds(false, false); }, _lwShouldShow ? _LW_DURATION + 500 : 800);
     _lmsMaybeRequestReview(false, null);
   } else {
-    const drawTitleMap = t('drawTitle');
-    const drawSubMap = t('drawSub');
-    const drawTitle = drawTitleMap[currentWorld] || drawTitleMap._;
-    title.textContent = drawTitle;
-    title.style.color='#88ccff';
-    sub.className = 'end-draw';
-    sub.textContent = drawSubMap[currentWorld] || drawSubMap._;
+    // FIX v2178 (audit) : forfeitDrawTitle/forfeitDrawSub (🤝 MATCH NUL / DRAW, "ton adversaire a
+    // quitté pendant ta pause") étaient définis dans les tables de traduction mais jamais lus
+    // nulle part — ce else générique (déjà utilisé pour l'égalité locale "morts en même temps")
+    // retombait systématiquement sur drawTitle/drawSub, sans jamais distinguer le cas nul par
+    // tolérance de pause. Priorité au message dédié quand c'est bien ce cas-là.
+    if(_lmsOnlineDuelForfeitDraw){
+      title.textContent = t('forfeitDrawTitle');
+      title.style.color='#88ccff';
+      sub.className = 'end-draw';
+      sub.textContent = t('forfeitDrawSub');
+      _lmsOnlineDuelForfeitDraw = false; // consommé, on ne veut pas qu'il persiste sur une future partie
+    } else {
+      const drawTitleMap = t('drawTitle');
+      const drawSubMap = t('drawSub');
+      const drawTitle = drawTitleMap[currentWorld] || drawTitleMap._;
+      title.textContent = drawTitle;
+      title.style.color='#88ccff';
+      sub.className = 'end-draw';
+      sub.textContent = drawSubMap[currentWorld] || drawSubMap._;
+    }
     setTimeout(()=>sndSplash(),100);
     setTimeout(()=>{ _lmsHandleEndAds(false, false); }, _lwShouldShow ? _LW_DURATION + 500 : 800);
     _lmsMaybeRequestReview(false, null);
@@ -78025,6 +78359,61 @@ if(typeof window !== 'undefined'){
     <button class="lms-x-pill" style="display:block;margin:14px auto 0;" onclick="closeStreakPopup()" ontouchstart="closeStreakPopup();event.stopPropagation();event.preventDefault();">✕ FERMER</button>
   </div>
 </div>
+
+<!-- ── POPUP CÉLÉBRATION DE PALIER DE SÉRIE (14/30/50/100/180/365j, puis paliers
+     par formule au-delà) ── Rendu inspiré du fichier démo "claim VS" fourni en
+     référence : badge qui rebondit avec halo doré (façon rv-badge/rvImpact du
+     fichier démo) + burst de confettis DOM (façon burstConfetti du fichier démo)
+     au moment où la popup s'ouvre. S'ouvre PAR-DESSUS streak-popup (accrochée à
+     la même réclamation, voir _lmsClaimStreakFromPopup), même nesting que
+     notif-prime-popup ci-dessous — z-index légèrement au-dessus par précaution. -->
+<div id="streak-milestone-popup" style="display:none;position:fixed;inset:0;z-index:10001;pointer-events:all;touch-action:manipulation;background:rgba(0,0,20,0.95);align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);">
+  <div style="position:relative;background:linear-gradient(160deg,rgba(35,15,0,0.98),rgba(50,20,0,0.98));border:1.5px solid rgba(255,200,0,0.5);border-radius:16px;padding:30px 20px 20px;width:min(360px,90vw);box-sizing:border-box;box-shadow:0 10px 40px rgba(0,0,0,0.6);text-align:center;overflow:hidden;">
+    <div id="sm-confetti-layer" style="position:absolute;inset:0;pointer-events:none;z-index:1;overflow:visible;"></div>
+    <div style="position:relative;z-index:2;">
+      <div class="sm-badge-wrap"><div class="sm-badge">🏆</div></div>
+      <div id="sm-title" style="font-size:16px;font-weight:800;letter-spacing:1.5px;color:rgba(255,210,110,0.95);margin-top:12px;">🏆 PALIER ATTEINT !</div>
+      <div id="sm-label" style="font-family:'Black Han Sans',sans-serif;font-size:20px;color:#fff;margin-top:8px;letter-spacing:.5px;"></div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:3px;">
+        <div id="sm-tokens" style="font-size:24px;font-weight:800;color:#ffe08a;text-shadow:0 1px 4px rgba(0,0,0,.6);"></div>
+        <div id="sm-xp" style="font-size:14px;font-weight:800;color:#8fefff;"></div>
+      </div>
+      <button id="sm-close-btn" onclick="closeStreakMilestonePopup()" ontouchstart="closeStreakMilestonePopup();event.stopPropagation();event.preventDefault();" style="width:100%;margin-top:20px;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#ffb800,#ff7a00);color:#1a1000;font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:2px;font-size:15px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:transform .15s ease,box-shadow .15s ease;">GÉNIAL !</button>
+    </div>
+  </div>
+</div>
+<style>
+/* ── Badge de la popup de palier : rebond + halo doré, même esprit que
+   rv-badge/rvImpact/rvFlash du fichier démo "claim VS" fourni en référence,
+   adapté ici en icône unique (pas de duel) posée au-dessus du titre. ── */
+.sm-badge-wrap{position:relative;display:inline-block;}
+.sm-badge{
+  position:relative;font-size:44px;line-height:1;
+  filter:drop-shadow(0 0 12px rgba(255,215,0,.65));
+  animation:smBadgeImpact .6s cubic-bezier(.34,1.7,.64,1) both;
+}
+.sm-badge::before{
+  content:'';position:absolute;inset:-26px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,215,0,.55),transparent 70%);z-index:-1;opacity:0;
+  animation:smBadgeFlash .55s ease-out .05s both;
+}
+@keyframes smBadgeImpact{
+  0%{opacity:0;transform:scale(2.2) rotate(-12deg);}
+  55%{opacity:1;transform:scale(1) rotate(6deg);}
+  78%{transform:scale(1.12) rotate(-2deg);}
+  100%{transform:scale(1) rotate(0deg);}
+}
+@keyframes smBadgeFlash{0%{opacity:0;transform:scale(.3);}35%{opacity:1;transform:scale(1.8);}100%{opacity:0;transform:scale(2.8);}}
+.sm-confetti-bit{position:absolute;border-radius:2px;opacity:0;will-change:transform,opacity;}
+/* Effet de survol/focus sur GÉNIAL !/AWESOME! — sans ça le bouton n'indiquait aucune
+   interactivité (souris ET D-pad TV, :focus inclus pour rester visible en navigation
+   manette, même logique que les autres boutons du jeu, ex. #btn-howto:hover). */
+#sm-close-btn:hover,#sm-close-btn:focus{
+  transform:translateY(-2px);
+  box-shadow:0 8px 22px rgba(255,150,0,.55);
+  outline:none;
+}
+</style>
 
 <!-- ── POPUP PRIMING NOTIFICATIONS (écran maison avant la popup système) ── -->
 <div id="notif-prime-popup" style="display:none;position:fixed;inset:0;z-index:10000;pointer-events:all;touch-action:manipulation;background:rgba(0,0,20,0.95);align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);">

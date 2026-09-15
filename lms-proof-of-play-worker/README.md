@@ -45,7 +45,8 @@ Solana Explorer, statut "Success", finalisée).
 7. **`fund_pool` réel** — pool `2026-W37` alimentée avec succès le
    12/09/2026 (1000 tokens de test, mint devnet 6 décimales). Testé via
    script Solana Playground (mint + fundPool), pas encore automatisé
-   dans le worker (voir "Ce que ce worker suppose déjà fait ailleurs").
+   dans le worker à ce moment-là (voir "Automatisation de l'ouverture de
+   pool" ci-dessous pour la suite).
 
 ✅ Fait (suite) :
 8. **`claim_scratch` validé de bout en bout** — flux complet testé sur
@@ -77,15 +78,40 @@ Playground.
     suivant. La réponse JSON du endpoint inclut maintenant `snapshotAdvanced`
     pour vérifier ça facilement après coup.
 
+✅ Fait (suite) :
+11. **Automatisation de l'ouverture ET du financement de pool (15/09/2026)** —
+    `initialize_weekly_pool` **et** `fund_pool` pour la semaine à venir
+    sont maintenant déclenchés automatiquement par le même cron que le
+    règlement (00:01 UTC le lundi), immédiatement après la finalisation
+    de la semaine précédente. Voir `src/poolLifecycle.ts`.
+    - **Init** : idempotente — une pool déjà initialisée ne fait pas
+      échouer le run, l'erreur "already in use" est attrapée et
+      journalisée sans stopper le reste du cron.
+    - **Fund** : montant fixe défini par le secret `AUTO_FUND_AMOUNT`
+      (voir "Secrets" ci-dessous). Garde-fou intégré : `fund_pool`
+      s'additionne à chaque appel (il ne remplace jamais le pot existant),
+      donc si la pool a déjà un `totalPot > 0` au moment où le cron tourne
+      (= financée manuellement avant, via `/init-pool` ou un script
+      Playground), l'auto-fund est **sauté** pour cette semaine — pas de
+      double financement.
+    - **Override manuel, sans toucher au cron** : un endpoint protégé
+      `/init-pool` (même garde `X-Trigger-Secret` que `/run-settlement`)
+      permet d'initialiser et/ou financer n'importe quelle semaine à la
+      main, à tout moment. Utilise-le *avant* le passage du cron pour
+      fixer un montant différent une semaine donnée — le cron détectera
+      le pot déjà non-nul et laissera ton montant tel quel.
+
 ⏳ Reste à faire avant soumission finale :
 - Décision mint devnet (simulation) vs SKR mainnet réel pour la démo
-- Déplacer `SOLANA_RPC_URL` (worker) de `vars` vers un secret Cloudflare
 - Limitation anti-triche (collusion/self-play) toujours ouverte —
   documentée, correctif reporté après le hackathon
 - ~~Limitation multi-semaines~~ : réglée côté client le 13/09/2026 — le
   bouton RÉCLAMER rattrape maintenant jusqu'à 8 semaines de gains non
   réclamés (voir README racine, section "Réclamation multi-semaines").
   Toujours pas de deadline on-chain au-delà de cet historique.
+- ~~Automatisation de l'initialisation de pool~~ : réglée le 15/09/2026
+  (voir point 11 ci-dessus). Le financement (`fund_pool`) reste manuel
+  par défaut, par choix.
 
 ## Ce qui a changé par rapport à la version précédente (Firestore)
 
@@ -108,6 +134,10 @@ Playground.
   `env.MANUAL_TRIGGER_SECRET` (plus de valeur en dur dans le code).
 - `solanaSubmit.ts` : timeout de confirmation porté à 60s (voir Statut
   ci-dessus).
+- `poolLifecycle.ts` (nouveau, 15/09/2026) : ouverture automatique de la
+  pool de la semaine à venir (`initialize_weekly_pool`), appelée depuis le
+  même cron que le règlement. Voir "Automatisation de l'ouverture de pool"
+  ci-dessus.
 
 ## Installation
 
@@ -130,6 +160,17 @@ npx wrangler secret put SOLANA_AUTHORITY_SECRET_KEY
 
 npx wrangler secret put MANUAL_TRIGGER_SECRET
 # choisis une valeur aléatoire longue, sert à protéger /run-settlement
+# et /init-pool
+
+npx wrangler secret put SOLANA_MINT_ADDRESS
+# adresse du mint SPL (jeton de test devnet actuel) — utilisé par
+# poolLifecycle.ts pour initialiser/financer la pool
+
+# Optionnel — laisse absent pour garder fund_pool 100% manuel :
+npx wrangler secret put AUTO_FUND_AMOUNT
+# montant fixe (en unités du jeton, PAS en unités brutes/décimales) à
+# transférer automatiquement chaque semaine, ex. "10". Absent ou vide
+# = fund_pool reste manuel, seule l'init est automatique.
 ```
 
 ## Développement local
@@ -149,6 +190,11 @@ wrangler dev --persist-to="C:\wrangler-state"
 npm run dev
 curl -X POST "http://localhost:8787/run-settlement?weekId=2026-W37" \
   -H "X-Trigger-Secret: <ta valeur de MANUAL_TRIGGER_SECRET>"
+
+# Initialiser/financer une semaine à la main (nouveau) :
+curl -X POST "http://localhost:8787/init-pool?weekId=2026-W39&amount=10" \
+  -H "X-Trigger-Secret: <ta valeur de MANUAL_TRIGGER_SECRET>"
+# `amount` est optionnel : sans lui, seule l'init est faite (pas de fund_pool)
 ```
 
 ## Déploiement
@@ -161,14 +207,18 @@ Le Cron Trigger défini dans `wrangler.jsonc` s'active automatiquement au
 déploiement — vérifiable dans le dashboard Cloudflare (Workers & Pages >
 ton worker > Triggers).
 
-## Ce que ce worker suppose déjà fait ailleurs
+## Ce que ce worker fait / suppose déjà fait ailleurs
 
-- `initialize_weekly_pool` et `fund_pool` pour le `weekId` de la semaine —
-  pas automatisé ici volontairement, tant que le montant de la cagnotte
-  n'est pas déterminé par une logique automatique (sponsoring, tips...).
-  Pour `2026-W37`, la pool a été initialisée et alimentée manuellement
-  via des scripts de test Solana Playground, avec un mint devnet de test
-  (6 décimales) simulant SKR — fait.
+- `initialize_weekly_pool` **et** `fund_pool` pour le `weekId` à venir —
+  **automatisés** depuis le 15/09/2026, déclenchés par le même cron que
+  le règlement (voir `src/poolLifecycle.ts`), avec un montant fixe défini
+  par `AUTO_FUND_AMOUNT`. L'intervention manuelle reste possible à tout
+  moment (endpoint `/init-pool` ou scripts Playground) sans désactiver le
+  cron : le garde-fou "totalPot > 0" empêche l'auto-fund de s'additionner
+  à un montant déjà posé à la main. Pour `2026-W37` et `2026-W38`, la
+  pool a été initialisée et alimentée manuellement via des scripts de
+  test Solana Playground, avec un mint devnet de test (6 décimales)
+  simulant SKR.
 - Le noeud `wallets/{uid}` — fait.
 
 ## Premier run après déploiement (ou après tout reset du KV)

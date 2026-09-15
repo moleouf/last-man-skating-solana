@@ -82,6 +82,12 @@ fund_pool, claim_scratch) sont validées en conditions réelles sur
 device, wallet Phantom, devnet — flux complet fonctionnel du jeu
 jusqu'à la réclamation de la cagnotte.
 
+Statut au 15/09/2026 : pool réelle `2026-W37` réclamée avec succès en
+conditions réelles sur device (voir "Réclamation multi-semaines"
+ci-dessous). Pool réelle **`2026-W38`** (semaine en cours) initialisée
+et financée on-chain — mint de test devnet, réclamable en fin de
+semaine par les joueurs actifs.
+
 ### Réclamation multi-semaines (13/09/2026)
 
 Le bouton "RÉCLAMER" scanne désormais toutes les semaines en attente
@@ -96,6 +102,20 @@ vraie limite : aucune expiration ni deadline n'existe on-chain (le champ
 stricte on-chain + redistribution des fonds non réclamés reste envisagée
 en roadmap post-hackathon, pour le cas où un joueur dépasserait les 8
 semaines d'historique conservées côté client.
+
+### Automatisation init/fund de la pool (15/09/2026)
+
+`initialize_weekly_pool` **et** `fund_pool` sont désormais déclenchés
+automatiquement chaque lundi par le Cloudflare Worker (même cron que le
+règlement de la semaine précédente — voir
+`lms-proof-of-play-worker/README.md`, section "Automatisation de
+l'ouverture de pool"), avec un montant fixe par défaut. La main manuelle
+reste possible à tout moment, sans avoir à désactiver le cron : si la
+pool d'une semaine a déjà été financée à la main (via l'endpoint
+`/init-pool` ou un script Playground) avant que le cron ne tourne,
+l'auto-fund de cette semaine-là est automatiquement sauté (le montant
+manuel ne sera pas doublé) — seule l'init reste, elle, toujours
+idempotente et sans risque à laisser tourner.
 
 ## Licence / Auteur
 

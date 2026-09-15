@@ -3,6 +3,7 @@ import { fetchCurrentTotals, fetchWallets } from "./rtdbQuery";
 import { loadPreviousSnapshot, saveSnapshot, computeWeeklyDeltas } from "./weekSnapshot";
 import { computeWeeklyScore } from "./scoring";
 import { submitWeeklyScoresOnChain } from "./solanaSubmit";
+import { ensureWeeklyPoolInitialized } from "./poolLifecycle";
 
 export interface Env {
   SOLANA_RPC_URL: string;
@@ -16,6 +17,11 @@ export interface Env {
   // Secrets (wrangler secret put) :
   FIREBASE_SERVICE_ACCOUNT_JSON: string;
   SOLANA_AUTHORITY_SECRET_KEY: string;
+  // Ajoutés le 15/09/2026 pour l'ouverture automatique de la pool (voir
+  // poolLifecycle.ts) :
+  SOLANA_MINT_ADDRESS: string;
+  // Optionnel — absent/vide = fund_pool reste manuel, seule l'init est auto.
+  AUTO_FUND_AMOUNT?: string;
 }
 
 /**
@@ -71,10 +77,11 @@ async function runWeeklySettlement(env: Env, weekId: string): Promise<Response> 
   const withWallet = eligible.filter((d) => !!d.walletAddress);
   const missingWallet = eligible.filter((d) => !d.walletAddress);
 
-  // NOTE : ce worker suppose que initialize_weekly_pool + fund_pool ont déjà
-  // été appelés pour ce weekId (à faire toi-même, manuellement ou via un
-  // autre script — ce ne sont pas des opérations hebdomadaires automatiques
-  // tant que le montant de la cagnotte n'est pas déterminé automatiquement).
+  // NOTE (mise à jour 15/09/2026) : initialize_weekly_pool + fund_pool pour
+  // ce weekId sont maintenant déclenchés automatiquement par ce même
+  // Worker, juste avant ce règlement (voir scheduled() ci-dessous et
+  // poolLifecycle.ts) — mais concernent la semaine À VENIR, pas celle
+  // qu'on règle ici. Rien à faire de spécial dans cette fonction.
   const results = await submitWeeklyScoresOnChain(
     env.SOLANA_RPC_URL,
     env.SOLANA_PROGRAM_ID,
@@ -95,7 +102,19 @@ async function runWeeklySettlement(env: Env, weekId: string): Promise<Response> 
   // suivante). Avec cette garde, un run entièrement raté laisse le
   // snapshot inchangé, donc le prochain run recalculera le même delta (ou
   // plus, si le joueur a continué à jouer) et pourra le soumettre.
-  if (succeeded.length > 0) {
+  //
+  // FIX (2026-09-14) : au tout premier run (KV jamais rempli),
+  // previousSnapshot est null -> computeWeeklyDeltas renvoie 0 pour tout le
+  // monde -> rien n'est éligible -> rien n'est soumis -> succeeded reste à
+  // 0 -> sans ce cas particulier, le snapshot n'est JAMAIS sauvegardé, et le
+  // run suivant repart avec previousSnapshot encore null : blocage permanent
+  // dès le tout premier lancement du Worker, y compris en prod avec de
+  // vrais joueurs actifs. On sauvegarde donc aussi au premier run, même
+  // sans rien soumettre : ça ne "perd" aucun delta puisqu'il n'y avait de
+  // toute façon rien de payable sans baseline — ça pose juste le point de
+  // départ pour la semaine suivante.
+  const isFirstRun = previousSnapshot === null;
+  if (succeeded.length > 0 || isFirstRun) {
     await saveSnapshot(env.WEEK_SNAPSHOT_KV, currentTotals);
   }
 
@@ -108,7 +127,7 @@ async function runWeeklySettlement(env: Env, weekId: string): Promise<Response> 
         failed: failed.length,
         failedDetails: failed,
         skippedNoWallet: missingWallet.map((d) => ({ uid: d.uid, name: d.name, score: d.score })),
-        snapshotAdvanced: succeeded.length > 0,
+        snapshotAdvanced: succeeded.length > 0 || isFirstRun,
       },
       null,
       2
@@ -120,23 +139,59 @@ async function runWeeklySettlement(env: Env, weekId: string): Promise<Response> 
 export default {
   // Déclenché automatiquement par le Cron Trigger défini dans wrangler.jsonc
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
-    const weekId = weekIdBeingSettled(new Date());
-    ctx.waitUntil(runWeeklySettlement(env, weekId).then((r) => r.text()).then(console.log));
+    const now = new Date();
+    const weekBeingSettled = weekIdBeingSettled(now);
+    ctx.waitUntil(
+      runWeeklySettlement(env, weekBeingSettled)
+        .then((r) => r.text())
+        .then(console.log)
+    );
+
+    // Ouvre (et finance, si AUTO_FUND_AMOUNT est défini) la pool de la
+    // semaine qui commence tout juste (celle qu'on est en train de vivre
+    // au moment où ce cron tourne, 00:01 UTC lundi) — voir poolLifecycle.ts.
+    // Séparé du waitUntil ci-dessus : un échec du règlement ne doit pas
+    // empêcher l'ouverture de la nouvelle semaine, et inversement.
+    const weekStarting = isoWeekId(now);
+    ctx.waitUntil(
+      ensureWeeklyPoolInitialized(env, weekStarting).then((r) =>
+        console.log("[poolLifecycle]", JSON.stringify(r))
+      )
+    );
   },
 
   // Déclenchement HTTP manuel pour tester sans attendre le cron.
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname !== "/run-settlement") {
-      return new Response("Not found", { status: 404 });
-    }
 
     const providedSecret = request.headers.get("X-Trigger-Secret");
     if (!env.MANUAL_TRIGGER_SECRET || providedSecret !== env.MANUAL_TRIGGER_SECRET) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const weekId = url.searchParams.get("weekId") ?? weekIdBeingSettled(new Date());
-    return runWeeklySettlement(env, weekId);
+    if (url.pathname === "/run-settlement") {
+      const weekId = url.searchParams.get("weekId") ?? weekIdBeingSettled(new Date());
+      return runWeeklySettlement(env, weekId);
+    }
+
+    if (url.pathname === "/init-pool") {
+      // weekId obligatoire ici (pas de défaut implicite) : on ne veut pas
+      // qu'un appel sans paramètre initialise silencieusement la mauvaise
+      // semaine par erreur de manip.
+      const weekId = url.searchParams.get("weekId");
+      if (!weekId) {
+        return new Response("Paramètre weekId manquant (ex. ?weekId=2026-W39)", { status: 400 });
+      }
+      // ?amount=10 override AUTO_FUND_AMOUNT pour CET appel uniquement,
+      // sans toucher au secret ni au comportement du cron.
+      const amountOverride = url.searchParams.get("amount");
+      const envForThisCall = amountOverride ? { ...env, AUTO_FUND_AMOUNT: amountOverride } : env;
+      const result = await ensureWeeklyPoolInitialized(envForThisCall, weekId);
+      return new Response(JSON.stringify(result, null, 2), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response("Not found", { status: 404 });
   },
 };
