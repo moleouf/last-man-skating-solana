@@ -132,7 +132,7 @@
 
     "wallets": {
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
+        ".read": "auth != null",
         ".write": "auth != null && auth.uid === $uid",
         ".validate": "newData.hasChildren(['address','ts'])",
         "address": { ".validate": "newData.isString() && newData.val().matches(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)" },
