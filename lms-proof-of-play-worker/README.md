@@ -101,6 +101,15 @@ Playground.
       fixer un montant différent une semaine donnée — le cron détectera
       le pot déjà non-nul et laissera ton montant tel quel.
 
+✅ Fait (suite) :
+12. **Fix montant décimal (19/09/2026)** — `poolLifecycle.ts` convertissait
+    `AUTO_FUND_AMOUNT` en unités brutes via `BigInt(amountUi)`, qui rejette
+    toute valeur non entière (`BigInt(0.5)` lève une exception). Sans effet
+    tant que `AUTO_FUND_AMOUNT` reste un entier (`"10"`, utilisé jusqu'ici),
+    mais aurait fait échouer silencieusement l'auto-fund dès qu'un montant
+    décimal serait configuré. Corrigé :
+    `BigInt(Math.round(amountUi * 10 ** mintInfo.decimals))`.
+
 ⏳ Reste à faire avant soumission finale :
 - Décision mint devnet (simulation) vs SKR mainnet réel pour la démo
 - Limitation anti-triche (collusion/self-play) toujours ouverte —
@@ -112,6 +121,21 @@ Playground.
 - ~~Automatisation de l'initialisation de pool~~ : réglée le 15/09/2026
   (voir point 11 ci-dessus). Le financement (`fund_pool`) reste manuel
   par défaut, par choix.
+- ~~Bug montant décimal~~ : réglé le 19/09/2026 (voir point 12 ci-dessus).
+
+## `@coral-xyz/anchor` (SDK JS) — vérifié le 19/09/2026
+
+`poolLifecycle.ts` construit le programme via
+`new anchor.Program(idl as anchor.Idl, provider)` (sans `programId` en 2e
+argument) — syntaxe valide à partir de la version 0.30 du SDK JS
+`@coral-xyz/anchor`. **Confirmé dans `package.json` : `"@coral-xyz/anchor":
+"^0.30.1"`** — la syntaxe actuelle est donc correcte, rien à corriger.
+
+Rappel pour référence future : ceci est indépendant de la version
+`anchor-lang` (Rust) du programme on-chain, restée en `0.29.0` (voir
+`programs/lms_proof_of_play/README.md`) — les deux versionnent des choses
+différentes (SDK client JS vs crate Rust on-chain) et n'ont pas à
+correspondre entre elles.
 
 ## Ce qui a changé par rapport à la version précédente (Firestore)
 
@@ -133,11 +157,15 @@ Playground.
   pouvait diverger. Le secret du endpoint manuel vient maintenant de
   `env.MANUAL_TRIGGER_SECRET` (plus de valeur en dur dans le code).
 - `solanaSubmit.ts` : timeout de confirmation porté à 60s (voir Statut
-  ci-dessus).
-- `poolLifecycle.ts` (nouveau, 15/09/2026) : ouverture automatique de la
-  pool de la semaine à venir (`initialize_weekly_pool`), appelée depuis le
-  même cron que le règlement. Voir "Automatisation de l'ouverture de pool"
-  ci-dessus.
+  ci-dessus). Expose aussi `walletFromSecretKey`, une implémentation
+  minimale du wallet Anchor (l'`anchor.Wallet` standard du SDK plante dans
+  l'environnement Workers) — réutilisée telle quelle par `poolLifecycle.ts`
+  plutôt que dupliquée.
+- `poolLifecycle.ts` (nouveau, 15/09/2026) : ouverture **et financement**
+  automatiques de la pool de la semaine à venir
+  (`initialize_weekly_pool` + `fund_pool`), appelés depuis le même cron que
+  le règlement. Voir "Automatisation de l'ouverture de pool" ci-dessus et
+  le point d'attention sur la version d'Anchor JS ci-dessus.
 
 ## Installation
 
@@ -169,8 +197,10 @@ npx wrangler secret put SOLANA_MINT_ADDRESS
 # Optionnel — laisse absent pour garder fund_pool 100% manuel :
 npx wrangler secret put AUTO_FUND_AMOUNT
 # montant fixe (en unités du jeton, PAS en unités brutes/décimales) à
-# transférer automatiquement chaque semaine, ex. "10". Absent ou vide
-# = fund_pool reste manuel, seule l'init est automatique.
+# transférer automatiquement chaque semaine, ex. "10" ou "0.5" (les
+# montants décimaux sont supportés depuis le fix du 19/09/2026, voir
+# point 12 ci-dessus). Absent ou vide = fund_pool reste manuel, seule
+# l'init est automatique.
 ```
 
 ## Développement local
@@ -207,6 +237,11 @@ Le Cron Trigger défini dans `wrangler.jsonc` s'active automatiquement au
 déploiement — vérifiable dans le dashboard Cloudflare (Workers & Pages >
 ton worker > Triggers).
 
+**Rappel** : un `git push` ne redéploie jamais ce Worker tout seul — c'est
+`npx wrangler deploy` (ou `npm run deploy`) qui pousse le code en
+production. Un commit GitHub sans redéploiement documente le code mais ne
+change rien au comportement réel du Worker en ligne.
+
 ## Ce que ce worker fait / suppose déjà fait ailleurs
 
 - `initialize_weekly_pool` **et** `fund_pool` pour le `weekId` à venir —
@@ -220,6 +255,12 @@ ton worker > Triggers).
   test Solana Playground, avec un mint devnet de test (6 décimales)
   simulant SKR.
 - Le noeud `wallets/{uid}` — fait.
+- Le mint des NFT "Sanctuaire Seeker" (mode Proximité) — **hors périmètre
+  de ce Worker**, géré entièrement on-chain par le programme
+  `lms_proof_of_play` (instruction `mint_meeting_nft`) et déclenché
+  directement depuis le jeu (double signature MWA des deux joueurs), sans
+  intervention de ce Worker ni d'aucune autorité backend. Voir
+  `programs/lms_proof_of_play/README.md`.
 
 ## Premier run après déploiement (ou après tout reset du KV)
 
