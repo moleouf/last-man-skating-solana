@@ -7,6 +7,8 @@ import type {
   DeauthorizeOptions,
   SignAndSendTransactionsOptions,
   SignAndSendTransactionsResult,
+  SignTransactionsOptions,
+  SignTransactionsResult,
   SignMessagesOptions,
   SignMessagesResult,
 } from './definitions';
@@ -33,6 +35,10 @@ export class SolanaWalletWeb extends WebPlugin implements SolanaWalletPlugin {
   async signAndSendTransactions(
     _options: SignAndSendTransactionsOptions
   ): Promise<SignAndSendTransactionsResult> {
+    throw this.unavailable('Mobile Wallet Adapter n\'est disponible que sur Android.');
+  }
+
+  async signTransactions(_options: SignTransactionsOptions): Promise<SignTransactionsResult> {
     throw this.unavailable('Mobile Wallet Adapter n\'est disponible que sur Android.');
   }
 

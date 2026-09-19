@@ -37,6 +37,11 @@
         />
     </application>
 
+    <!-- Visibilité de package (Android 11+) requise pour détecter Seed Vault Wallet -->
+    <queries>
+        <package android:name="com.solanamobile.seedvaultimpl" />
+    </queries>
+
     <!-- Support Android TV : app visible sur Play Store TV, écran tactile non requis -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -47,4 +52,22 @@
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="com.android.vending.BILLING" />
+
+    <!-- Nearby Connections (mode PROXIMITÉ) — BLE + WiFi, pas de NFC. minSdk=23, donc les
+         deux jeux de permissions coexistent : Android 30- utilise BLUETOOTH/BLUETOOTH_ADMIN
+         (maxSdkVersion coupe leur portée aux vieux devices), Android 31+ utilise les 3
+         permissions runtime BLUETOOTH_ADVERTISE/CONNECT/SCAN. ACCESS_FINE_LOCATION reste
+         nécessaire sur toute la plage (requis par le scan BLE tant que Nearby Connections ne
+         déclare pas neverForLocation). NEARBY_WIFI_DEVICES (33+) avec neverForLocation=true :
+         le mode Proximité ne fait QUE détecter un pair à proximité, jamais de géolocalisation
+         réelle, donc ce flag évite d'entraîner le prompt localisation sur les devices 33+. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" />
 </manifest>

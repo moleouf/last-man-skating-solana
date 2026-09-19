@@ -34,6 +34,18 @@ export interface SignAndSendTransactionsResult {
   signatures: string[];
 }
 
+export interface SignTransactionsOptions {
+  authToken: string;
+  /** transactions sérialisées en base64 (déjà partiellement signées ou non) */
+  transactions: string[];
+  cluster?: LmsCluster;
+}
+
+export interface SignTransactionsResult {
+  /** transactions signées, sérialisées en base64, dans le même ordre que l'entrée */
+  signedTransactions: string[];
+}
+
 export interface SignMessagesOptions {
   authToken: string;
   /** adresse(s) publique(s) devant signer, base58 */
@@ -63,6 +75,14 @@ export interface SolanaWalletPlugin {
   signAndSendTransactions(
     options: SignAndSendTransactionsOptions
   ): Promise<SignAndSendTransactionsResult>;
+
+  /**
+   * Fait signer une ou plusieurs transactions SANS les envoyer au réseau.
+   * Nécessaire pour un scénario multi-signataires (ex: mint co-signé du mode Proximité) —
+   * marqué "deprecated" côté spec MWA 2.0 au profit de signAndSendTransactions, mais c'est
+   * la seule méthode qui permette de signer sans soumettre.
+   */
+  signTransactions(options: SignTransactionsOptions): Promise<SignTransactionsResult>;
 
   /** Fait signer un ou plusieurs messages arbitraires (ex: preuve de possession de la clé). */
   signMessages(options: SignMessagesOptions): Promise<SignMessagesResult>;

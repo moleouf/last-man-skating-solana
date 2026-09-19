@@ -1,5 +1,6 @@
 package fr.kristen.lastmanskating.solana
 
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.util.Base64
 import com.getcapacitor.JSArray
@@ -219,6 +220,57 @@ class SolanaWalletPlugin : Plugin() {
         }
     }
 
+    // Signe SANS envoyer — nécessaire uniquement pour le mint co-signé du mode Proximité
+    // (2 wallets doivent signer la MÊME transaction avant qu'elle soit soumise une seule
+    // fois ; signAndSendTransactions() soumettrait la 1ère signature seule et échouerait
+    // faute de la 2e). Marquée "deprecated" dans le spec MWA 2.0 au profit de
+    // signAndSendTransactions — mais c'est la seule méthode du SDK qui permette de signer
+    // sans soumettre, donc le seul choix possible pour un scénario multi-signataires. Si
+    // un wallet cesse un jour de la supporter, il faudra revoir ce flux entièrement (pas
+    // de solution de repli connue à ce jour).
+    @PluginMethod
+    fun signTransactions(call: PluginCall) {
+        val token = call.getString("authToken")
+        val txArray: JSArray = call.getArray("transactions") ?: JSArray()
+        if (token == null || txArray.length() == 0) {
+            call.reject("MISSING_PARAMS: authToken et transactions sont requis")
+            return
+        }
+
+        val transactionsBytes = Array(txArray.length()) { i ->
+            Base64.decode(txArray.getString(i), Base64.DEFAULT)
+        }
+
+        val adapter = buildAdapter(call)
+
+        pluginScope.launch {
+            val result = adapter.transact(sender) {
+                reauthorize(
+                    identityUri = Uri.parse(call.getString("identityUri") ?: defaultIdentityUri),
+                    iconUri = Uri.parse(call.getString("iconUri") ?: defaultIconUri),
+                    identityName = call.getString("identityName") ?: "Last Man Skating",
+                    authToken = token
+                )
+                signTransactions(transactions = transactionsBytes)
+            }
+
+            when (result) {
+                is TransactionResult.Success -> {
+                    val signed = result.successPayload
+                    val jsArray = JSArray()
+                    signed?.signedPayloads?.forEach { bytes ->
+                        jsArray.put(Base64.encodeToString(bytes, Base64.NO_WRAP))
+                    }
+                    val ret = JSObject()
+                    ret.put("signedTransactions", jsArray)
+                    call.resolve(ret)
+                }
+                is TransactionResult.NoWalletFound -> call.reject("NO_WALLET_FOUND")
+                is TransactionResult.Failure -> call.reject("SIGN_TRANSACTIONS_FAILED: ${result.e.message}", result.e)
+            }
+        }
+    }
+
     @PluginMethod
     fun signMessages(call: PluginCall) {
         val token = call.getString("authToken")
@@ -262,5 +314,23 @@ class SolanaWalletPlugin : Plugin() {
                 is TransactionResult.Failure -> call.reject("SIGN_MESSAGES_FAILED: ${result.e.message}", result.e)
             }
         }
+    }
+
+    // Détecte la présence du package Seed Vault Wallet (natif Seeker/Saga).
+    // Nécessite le <queries><package android:name="com.solanamobile.seedvaultimpl" />
+    // dans AndroidManifest.xml (visibilité de package Android 11+), sinon retourne
+    // toujours false même si le package est réellement installé.
+    @PluginMethod
+    fun isSeedVaultAvailable(call: PluginCall) {
+        val available = try {
+            context.packageManager.getPackageInfo("com.solanamobile.seedvaultimpl", 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+
+        val ret = JSObject()
+        ret.put("available", available)
+        call.resolve(ret)
     }
 }
