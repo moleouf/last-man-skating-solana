@@ -17,3 +17,10 @@ default = []
 [dependencies]
 anchor-lang = "0.29.0"
 anchor-spl = "0.29.0"
+# PAS de dépendance mpl-core : Solana Playground ne compile qu'une liste
+# fermée de crates pré-approuvés côté serveur, et mpl-core n'y figure pas
+# (contrairement à mpl-token-metadata, par ex.) — éditer ce fichier n'y
+# change rien, le serveur de build l'ignore pour tout crate hors liste.
+# Le CPI vers Metaplex Core est donc construit à la main (voir lib.rs,
+# fonction build_create_v1_instruction) avec juste anchor_lang::solana_program
+# + borsh, tous deux déjà disponibles — zéro dépendance externe ajoutée.

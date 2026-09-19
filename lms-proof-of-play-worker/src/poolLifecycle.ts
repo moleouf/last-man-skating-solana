@@ -124,7 +124,8 @@ export async function ensureWeeklyPoolInitialized(
       wallet.publicKey
     );
     const mintInfo = await getMint(connection, mint);
-    const amountRaw = BigInt(amountUi) * BigInt(10 ** mintInfo.decimals);
+    // Math.round : accepte les montants décimaux ("0.5"), contrairement à BigInt(amountUi).
+    const amountRaw = BigInt(Math.round(amountUi * 10 ** mintInfo.decimals));
 
     const fundSig = await program.methods
       .fundPool(new anchor.BN(amountRaw.toString()))

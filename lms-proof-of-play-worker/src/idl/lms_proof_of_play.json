@@ -4,76 +4,498 @@
     "name": "lms_proof_of_play",
     "version": "0.1.0",
     "spec": "0.1.0",
-    "description": "Converti à la main depuis un export legacy (pré-0.30) du 10/09/2026"
+    "description": "Converti depuis l'export Playground (legacy, Anchor 0.29) du 19/09/2026"
   },
   "instructions": [
     {
       "name": "initializeWeeklyPool",
-      "discriminator": [199, 4, 78, 236, 163, 252, 137, 199],
-      "accounts": [
-        { "name": "authority", "writable": true, "signer": true },
-        { "name": "weeklyPool", "writable": true, "signer": false },
-        { "name": "mint", "writable": false, "signer": false },
-        { "name": "vault", "writable": true, "signer": false },
-        { "name": "tokenProgram", "writable": false, "signer": false },
-        { "name": "systemProgram", "writable": false, "signer": false },
-        { "name": "rent", "writable": false, "signer": false }
+      "discriminator": [
+        199,
+        4,
+        78,
+        236,
+        163,
+        252,
+        137,
+        199
       ],
-      "args": [{ "name": "weekId", "type": "string" }]
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "weeklyPool",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "mint",
+          "writable": false,
+          "signer": false
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "tokenProgram",
+          "writable": false,
+          "signer": false
+        },
+        {
+          "name": "systemProgram",
+          "writable": false,
+          "signer": false
+        },
+        {
+          "name": "rent",
+          "writable": false,
+          "signer": false
+        }
+      ],
+      "args": [
+        {
+          "name": "weekId",
+          "type": "string"
+        }
+      ]
     },
     {
       "name": "fundPool",
-      "discriminator": [36, 57, 233, 176, 181, 20, 87, 159],
-      "accounts": [
-        { "name": "funder", "writable": true, "signer": true },
-        { "name": "funderTokenAccount", "writable": true, "signer": false },
-        { "name": "weeklyPool", "writable": true, "signer": false },
-        { "name": "vault", "writable": true, "signer": false },
-        { "name": "tokenProgram", "writable": false, "signer": false }
+      "discriminator": [
+        36,
+        57,
+        233,
+        176,
+        181,
+        20,
+        87,
+        159
       ],
-      "args": [{ "name": "amount", "type": "u64" }]
+      "accounts": [
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "funderTokenAccount",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "weeklyPool",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "tokenProgram",
+          "writable": false,
+          "signer": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     },
     {
       "name": "submitScore",
-      "discriminator": [212, 128, 45, 22, 112, 82, 85, 235],
+      "discriminator": [
+        212,
+        128,
+        45,
+        22,
+        112,
+        82,
+        85,
+        235
+      ],
       "accounts": [
-        { "name": "authority", "writable": true, "signer": true },
-        { "name": "player", "writable": false, "signer": false },
-        { "name": "weeklyPool", "writable": true, "signer": false },
-        { "name": "playerScore", "writable": true, "signer": false },
-        { "name": "systemProgram", "writable": false, "signer": false }
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "player",
+          "writable": false,
+          "signer": false
+        },
+        {
+          "name": "weeklyPool",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "playerScore",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "systemProgram",
+          "writable": false,
+          "signer": false
+        }
       ],
       "args": [
-        { "name": "weekId", "type": "string" },
-        { "name": "newScore", "type": "u64" }
+        {
+          "name": "weekId",
+          "type": "string"
+        },
+        {
+          "name": "newScore",
+          "type": "u64"
+        }
       ]
     },
     {
       "name": "finalizePool",
-      "discriminator": [74, 182, 193, 101, 92, 152, 202, 142],
-      "accounts": [
-        { "name": "authority", "writable": false, "signer": true },
-        { "name": "weeklyPool", "writable": true, "signer": false }
+      "discriminator": [
+        74,
+        182,
+        193,
+        101,
+        92,
+        152,
+        202,
+        142
       ],
-      "args": [{ "name": "weekId", "type": "string" }]
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": false,
+          "signer": true
+        },
+        {
+          "name": "weeklyPool",
+          "writable": true,
+          "signer": false
+        }
+      ],
+      "args": [
+        {
+          "name": "weekId",
+          "type": "string"
+        }
+      ]
     },
     {
       "name": "claimScratch",
-      "discriminator": [73, 72, 174, 116, 49, 218, 108, 8],
-      "accounts": [
-        { "name": "player", "writable": true, "signer": true },
-        { "name": "weeklyPool", "writable": false, "signer": false },
-        { "name": "playerScore", "writable": true, "signer": false },
-        { "name": "vault", "writable": true, "signer": false },
-        { "name": "playerTokenAccount", "writable": true, "signer": false },
-        { "name": "tokenProgram", "writable": false, "signer": false }
+      "discriminator": [
+        73,
+        72,
+        174,
+        116,
+        49,
+        218,
+        108,
+        8
       ],
-      "args": [{ "name": "weekId", "type": "string" }]
+      "accounts": [
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "weeklyPool",
+          "writable": false,
+          "signer": false
+        },
+        {
+          "name": "playerScore",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "playerTokenAccount",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "tokenProgram",
+          "writable": false,
+          "signer": false
+        }
+      ],
+      "args": [
+        {
+          "name": "weekId",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "initializeMintCounter",
+      "discriminator": [
+        190,
+        127,
+        206,
+        87,
+        77,
+        166,
+        192,
+        136
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mintCounter",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "systemProgram",
+          "writable": false,
+          "signer": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "mintMeetingNft",
+      "discriminator": [
+        222,
+        232,
+        79,
+        169,
+        232,
+        251,
+        147,
+        91
+      ],
+      "accounts": [
+        {
+          "name": "playerA",
+          "writable": false,
+          "signer": true
+        },
+        {
+          "name": "playerB",
+          "writable": false,
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "assetA",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "assetB",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mintCounter",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "playerMintRecordA",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "playerMintRecordB",
+          "writable": true,
+          "signer": false
+        },
+        {
+          "name": "systemProgram",
+          "writable": false,
+          "signer": false
+        },
+        {
+          "name": "mplCoreProgram",
+          "writable": false,
+          "signer": false,
+          "address": "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
+        }
+      ],
+      "args": [
+        {
+          "name": "isPremium",
+          "type": "bool"
+        },
+        {
+          "name": "nameA",
+          "type": "string"
+        },
+        {
+          "name": "uriA",
+          "type": "string"
+        },
+        {
+          "name": "nameB",
+          "type": "string"
+        },
+        {
+          "name": "uriB",
+          "type": "string"
+        }
+      ]
     }
   ],
   "accounts": [
-    { "name": "WeeklyPool", "discriminator": [3, 195, 44, 82, 96, 32, 221, 165] },
-    { "name": "PlayerScore", "discriminator": [9, 136, 69, 222, 93, 178, 186, 241] }
+    {
+      "name": "WeeklyPool",
+      "discriminator": [
+        3,
+        195,
+        44,
+        82,
+        96,
+        32,
+        221,
+        165
+      ]
+    },
+    {
+      "name": "PlayerScore",
+      "discriminator": [
+        9,
+        136,
+        69,
+        222,
+        93,
+        178,
+        186,
+        241
+      ]
+    },
+    {
+      "name": "MintCounter",
+      "discriminator": [
+        29,
+        59,
+        15,
+        69,
+        46,
+        22,
+        227,
+        173
+      ]
+    },
+    {
+      "name": "PlayerMintRecord",
+      "discriminator": [
+        199,
+        206,
+        15,
+        242,
+        68,
+        201,
+        143,
+        119
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "MeetingNftMinted",
+      "discriminator": [
+        21,
+        16,
+        251,
+        169,
+        206,
+        178,
+        220,
+        235
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "WeekIdTooLong",
+      "msg": "week_id dépasse la longueur max prévue pour les seeds"
+    },
+    {
+      "code": 6001,
+      "name": "PoolAlreadyFinalized",
+      "msg": "Cette pool hebdomadaire est déjà finalisée"
+    },
+    {
+      "code": 6002,
+      "name": "PoolNotFinalized",
+      "msg": "Cette pool hebdomadaire n'est pas encore finalisée"
+    },
+    {
+      "code": 6003,
+      "name": "UnauthorizedAuthority",
+      "msg": "Seule l'autorité backend peut effectuer cette action"
+    },
+    {
+      "code": 6004,
+      "name": "UnauthorizedClaimant",
+      "msg": "Ce compte de score n'appartient pas au joueur signataire"
+    },
+    {
+      "code": 6005,
+      "name": "AlreadyClaimed",
+      "msg": "Ce score a déjà été réclamé"
+    },
+    {
+      "code": 6006,
+      "name": "EmptyPool",
+      "msg": "Aucun score enregistré dans cette pool"
+    },
+    {
+      "code": 6007,
+      "name": "PayoutTooSmall",
+      "msg": "Le montant à réclamer est nul après calcul"
+    },
+    {
+      "code": 6008,
+      "name": "MathOverflow",
+      "msg": "Overflow arithmétique"
+    },
+    {
+      "code": 6009,
+      "name": "SamePlayerMeetingItself",
+      "msg": "Les deux joueurs d'une rencontre doivent être des wallets différents"
+    },
+    {
+      "code": 6010,
+      "name": "TierSoldOut",
+      "msg": "Ce tier de NFT Sanctuaire Seeker est épuisé"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidPayer",
+      "msg": "Le payer doit être l'un des deux joueurs de la rencontre"
+    },
+    {
+      "code": 6012,
+      "name": "DuplicateAssetKeypair",
+      "msg": "asset_a et asset_b doivent être deux comptes distincts"
+    }
   ],
   "types": [
     {
@@ -81,15 +503,42 @@
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "authority", "type": "pubkey" },
-          { "name": "mint", "type": "pubkey" },
-          { "name": "vault", "type": "pubkey" },
-          { "name": "weekId", "type": "string" },
-          { "name": "totalScore", "type": "u64" },
-          { "name": "totalPot", "type": "u64" },
-          { "name": "eligibleCount", "type": "u64" },
-          { "name": "finalized", "type": "bool" },
-          { "name": "bump", "type": "u8" }
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "weekId",
+            "type": "string"
+          },
+          {
+            "name": "totalScore",
+            "type": "u64"
+          },
+          {
+            "name": "totalPot",
+            "type": "u64"
+          },
+          {
+            "name": "eligibleCount",
+            "type": "u64"
+          },
+          {
+            "name": "finalized",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
         ]
       }
     },
@@ -98,25 +547,100 @@
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "player", "type": "pubkey" },
-          { "name": "weekId", "type": "string" },
-          { "name": "score", "type": "u64" },
-          { "name": "eligible", "type": "bool" },
-          { "name": "claimed", "type": "bool" },
-          { "name": "bump", "type": "u8" }
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "weekId",
+            "type": "string"
+          },
+          {
+            "name": "score",
+            "type": "u64"
+          },
+          {
+            "name": "eligible",
+            "type": "bool"
+          },
+          {
+            "name": "claimed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MintCounter",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "classicMintedCount",
+            "type": "u64"
+          },
+          {
+            "name": "premiumMintedCount",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlayerMintRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MeetingNftMinted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "playerA",
+            "type": "pubkey"
+          },
+          {
+            "name": "playerB",
+            "type": "pubkey"
+          },
+          {
+            "name": "assetA",
+            "type": "pubkey"
+          },
+          {
+            "name": "assetB",
+            "type": "pubkey"
+          },
+          {
+            "name": "isPremium",
+            "type": "bool"
+          }
         ]
       }
     }
-  ],
-  "errors": [
-    { "code": 6000, "name": "WeekIdTooLong", "msg": "week_id dépasse la longueur max prévue pour les seeds" },
-    { "code": 6001, "name": "PoolAlreadyFinalized", "msg": "Cette pool hebdomadaire est déjà finalisée" },
-    { "code": 6002, "name": "PoolNotFinalized", "msg": "Cette pool hebdomadaire n'est pas encore finalisée" },
-    { "code": 6003, "name": "UnauthorizedAuthority", "msg": "Seule l'autorité backend peut effectuer cette action" },
-    { "code": 6004, "name": "UnauthorizedClaimant", "msg": "Ce compte de score n'appartient pas au joueur signataire" },
-    { "code": 6005, "name": "AlreadyClaimed", "msg": "Ce score a déjà été réclamé" },
-    { "code": 6006, "name": "EmptyPool", "msg": "Aucun score enregistré dans cette pool" },
-    { "code": 6007, "name": "PayoutTooSmall", "msg": "Le montant à réclamer est nul après calcul" },
-    { "code": 6008, "name": "MathOverflow", "msg": "Overflow arithmétique" }
   ]
 }
