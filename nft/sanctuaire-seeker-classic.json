@@ -1,0 +1,36 @@
+{
+  "name": "Sanctuaire Seeker",
+  "symbol": "LMSMEET",
+  "description": "Trophée Proof of Meet — délivré aux deux joueurs de Last Man Skating lors d'une rencontre physique confirmée (détection de proximité + double signature wallet on-chain).",
+  "image": "https://kristen.fr/KristenStudiosGames/nft/sanctuaire-seeker-classic.jpg",
+  "external_url": "https://kristen.fr/KristenStudiosGames/lms.html",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": "Classic"
+    },
+    {
+      "trait_type": "Type",
+      "value": "Proof of Meet"
+    },
+    },
+    {
+      "trait_type": "Jeu",
+      "value": "Last Man Skating"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://kristen.fr/KristenStudiosGames/nft/sanctuaire-seeker-classic.jpg",
+        "type": "image/png"
+      },
+      {
+        "uri": "https://kristen.fr/KristenStudiosGames/nft/sanctuaire-seeker-theme.mp3",
+        "type": "audio/mpeg"
+      }
+    ],
+    "category": "image"
+  },
+  "animation_url": "https://kristen.fr/KristenStudiosGames/nft/sanctuaire-seeker-theme.mp3"
+}

@@ -1,0 +1,39 @@
+{
+  "name": "Sanctuaire Seeker (Premium)",
+  "symbol": "LMSMEET",
+  "description": "Trophée Proof of Meet — variante PREMIUM délivrée quand les deux joueurs de Last Man Skating possèdent un Solana Seeker (Seed Vault détecté des deux côtés) lors d'une rencontre physique confirmée.",
+  "image": "https://kristen.fr/KristenStudiosGames/nft/sanctuaire-seeker-premium.jpg",
+  "external_url": "https://kristen.fr/KristenStudiosGames/lms.html",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": "Premium"
+    },
+    {
+      "trait_type": "Type",
+      "value": "Proof of Meet"
+    },
+    {
+      "trait_type": "Jeu",
+      "value": "Last Man Skating"
+    },
+    {
+      "trait_type": "Hardware",
+      "value": "Seeker-to-Seeker"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://kristen.fr/KristenStudiosGames/nft/sanctuaire-seeker-premium.jpg",
+        "type": "image/png"
+      },
+      {
+        "uri": "https://kristen.fr/KristenStudiosGames/nft/sanctuaire-seeker-theme.mp3",
+        "type": "audio/mpeg"
+      }
+    ],
+    "category": "image"
+  },
+  "animation_url": "https://kristen.fr/KristenStudiosGames/nft/sanctuaire-seeker-theme.mp3"
+}

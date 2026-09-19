@@ -667,8 +667,10 @@ canvas{display:block;}
   border-top:1px solid rgba(255,255,255,.08);padding-top:10px;}
 .tuto-card.ghost{border-color:rgba(0,212,255,.25);background:rgba(0,40,80,0.18);}
 .tuto-card.duel,.tuto-card.online-duel,.tuto-card.ffa{border-color:rgba(160,100,255,.25);background:rgba(35,10,70,0.15);}
+.tuto-card.radar{border-color:rgba(0,230,200,.3);background:rgba(0,45,45,0.18);}
 .tuto-card.world{border-color:rgba(255,80,40,.22);background:rgba(40,0,0,0.15);}
 .tuto-card.token{border-color:rgba(255,215,0,.22);background:rgba(30,20,0,0.15);}
+.tuto-card.sync{border-color:rgba(0,160,255,.28);background:rgba(0,25,55,0.18);}
 .tuto-card.secret{border-color:rgba(160,80,255,.35);background:rgba(30,0,60,0.25);}
 .tuto-card.cheat{border-color:rgba(255,215,0,.55);background:rgba(50,35,0,0.28);animation:tutoCheatGlow 2.5s ease-in-out infinite;}
 @keyframes tutoCheatGlow{0%,100%{box-shadow:0 0 8px rgba(255,215,0,0.2);}50%{box-shadow:0 0 22px rgba(255,215,0,0.55),0 0 40px rgba(255,180,0,0.25);}}
@@ -1530,7 +1532,10 @@ canvas{display:block;}
 </head>
 <body style="background:#00001a;">
 <!-- ── DEBUG : compteur FPS (version de test uniquement) ── -->
-<div id="fps" style="position:fixed;top:6px;right:6px;z-index:99999;background:rgba(0,0,0,0.6);color:#0f0;font-family:monospace;font-size:12px;padding:3px 7px;border-radius:5px;pointer-events:none;letter-spacing:0.5px;display:none;"></div>
+<div id="fps" style="position:fixed;top:calc(6px + env(safe-area-inset-top));right:calc(6px + env(safe-area-inset-right));z-index:99999;background:rgba(0,0,0,0.6);color:#0f0;font-family:monospace;font-size:12px;padding:3px 7px;border-radius:5px;pointer-events:none;letter-spacing:0.5px;display:none;max-width:calc(100vw - 12px - env(safe-area-inset-left) - env(safe-area-inset-right));white-space:pre-wrap;"></div>
+<!-- top posé provisoirement ici (recalculé en JS dès le premier rendu) : #fps passe sur plusieurs
+     lignes en portrait (pre-wrap), donc un offset fixe le faisait passer par-dessus le vert. -->
+<div id="fps-cold" style="position:fixed;top:calc(44px + env(safe-area-inset-top));right:calc(6px + env(safe-area-inset-right));z-index:99999;background:rgba(0,0,40,0.75);color:#5cf;font-family:monospace;font-size:11px;padding:3px 7px;border-radius:5px;pointer-events:none;letter-spacing:0.3px;display:none;white-space:pre;max-width:calc(100vw - 12px - env(safe-area-inset-left) - env(safe-area-inset-right));"></div>
 <!-- ── Portrait lock overlay ── -->
 <div id="portrait-lock">
   <div id="portrait-lock-icon">📱</div>
@@ -1581,6 +1586,7 @@ canvas{display:block;}
   <div id="online-hub-tabs">
     <button id="online-hub-tab-duel" class="ohub-tab active" onclick="_lmsOnlineHubSetTab('duel')" ontouchstart="_lmsOnlineHubSetTab('duel');event.preventDefault();"></button>
     <button id="online-hub-tab-ffa" class="ohub-tab" onclick="_lmsOnlineHubSetTab('ffa')" ontouchstart="_lmsOnlineHubSetTab('ffa');event.preventDefault();"></button>
+    <button id="online-hub-tab-nearby" class="ohub-tab" onclick="_lmsOnlineHubSetTab('nearby')" ontouchstart="_lmsOnlineHubSetTab('nearby');event.preventDefault();"></button>
   </div>
   <div id="online-hub-panel-duel" class="ohub-panel">
     <div id="online-hub-players" onclick="_lmsOnlineHubPlayerListClick(event)" ontouchstart="_lmsOnlineHubPlayerListClick(event);event.preventDefault();" style="display:none;"></div>
@@ -1592,7 +1598,16 @@ canvas{display:block;}
     <div id="online-hub-ffa-empty" class="ohub-empty-hint"></div>
     <button id="online-hub-ffa-code-btn" class="ohub-secondary-btn" onclick="_lmsOnlineHubPick('ffa')" ontouchstart="_lmsOnlineHubPick('ffa');event.preventDefault();"></button>
   </div>
-  <button id="online-hub-cancel" onclick="_lmsOnlineHubClose()" ontouchstart="_lmsOnlineHubClose();event.stopPropagation();">FERMER</button>
+  <!-- ── Proximité (hackathon Solana) — détecte un joueur à côté via Nearby Connections,
+       réutilise ensuite tel quel l'invite Duel existante (_lmsInviteSend). Pas de nouveau
+       netcode de jeu : cette liste ne fait que déclencher la même invite que la liste
+       "en ligne" (.ohp-invite-btn), juste trouvée autrement. ── -->
+  <div id="online-hub-panel-nearby" class="ohub-panel" style="display:none;">
+    <button id="online-hub-nearby-scan-btn" class="ohub-secondary-btn" onclick="_lmsNearbyToggleScan()" ontouchstart="_lmsNearbyToggleScan();event.preventDefault();"></button>
+    <div id="online-hub-nearby-status" class="ohub-empty-hint"></div>
+    <div id="online-hub-nearby-players" onclick="_lmsNearbyListClick(event)" ontouchstart="_lmsNearbyListClick(event);event.preventDefault();" style="display:none;"></div>
+  </div>
+  <button id="online-hub-cancel" onclick="_lmsOnlineHubClose()" ontouchstart="event.preventDefault();event.stopPropagation();_lmsOnlineHubClose();">FERMER</button>
 </div>
 <!-- ── FFA v1836 (tranche 5) : écran de code + lobby (2 à 4 joueurs) — accès dev uniquement,
      même schéma que le duel. Un seul écran couvre saisie du code ET lobby (roster affiché
@@ -1858,6 +1873,10 @@ canvas{display:block;}
     <div class="tuto-icon">🎉</div>
     <div class="tuto-text"><strong>FFA</strong> — Bataille royale en ligne de 2 à 4 joueurs, via un code de salon : dernier debout gagne !</div>
   </div>
+  <div class="tuto-card radar">
+    <div class="tuto-icon">📡</div>
+    <div class="tuto-text" id="tuto-radar-text"></div>
+  </div>
   <div class="tuto-card solana">
     <div class="tuto-icon">⛓️</div>
     <div class="tuto-text"><strong>⛓️ SOLANA (dApp Store)</strong> — Joue des matchs en ligne (Duel ou FFA) pour marquer des points : chaque semaine, réclame ta part de la cagnotte en jetons SKR.<br><span style="color:rgba(120,200,255,.8);font-size:0.88em;">Disponible exclusivement sur la version dApp Store Solana</span></div>
@@ -1875,6 +1894,10 @@ canvas{display:block;}
   <div class="tuto-card token">
     <div class="tuto-icon">🏒</div>
     <div class="tuto-text">Ramasse les <strong>🪙 PIÈCES</strong> qui traînent sur la glace et dans le décor en cours de partie !<br>En fin de round, tu gagnes aussi des <strong>JETONS DE GLACE</strong> selon tes performances (éliminations, survie, victoire).<br>Échange tout ça à <strong>L'ARMURERIE</strong> pour débloquer skins, équipements et bonus !</div>
+  </div>
+  <div class="tuto-card sync">
+    <div class="tuto-icon">🔗</div>
+    <div class="tuto-text"><strong>LIER MON COMPTE</strong> — Change de téléphone ou de PC sans perdre ta progression : dans <strong>RÉGLAGES → LIER MON COMPTE</strong>, génère un code sur l'ancien appareil et entre-le sur le nouveau pour fusionner tes stats et ton classement en ligne.</div>
   </div>
 
   <div class="tuto-section-label">🐟 ASTUCES AVANCÉES</div>
@@ -2341,6 +2364,124 @@ const _IMG_COIN = {};
   });
 })();
 
+// ── PRELOAD — SKIN "SOLANA SEEKER" (variante visuelle du monde 1 en duel RADAR) ──
+// v2231 : le mode Proximité/RADAR rejoue le monde 1 (Lac Gelé) avec 3 assets remplacés —
+// fond, smiley caca → téléphone Seeker, pièces d'or → jeton SKR animé. Aucun impact
+// gameplay/netcode : c'est purement de l'affichage, piloté par _lmsRadarWorldSkin (posé
+// localement et simultanément sur les 2 appareils au moment du handshake Nearby).
+// Chargement paresseux : rien n'est téléchargé tant qu'un duel RADAR n'a pas démarré.
+const _IMG_SEEKER = {};
+let _seekerSkinRequested = false;
+function _loadSeekerSkinAssets(){
+  if(_seekerSkinRequested) return;
+  _seekerSkinRequested = true;
+  // Fond du monde — même format/usage que bg_lac.jpg (2000×2000, tuilé en world-space)
+  { const i = new Image();
+    i.onerror = () => console.warn('[IMG_SEEKER] Introuvable : assets/sprites/lac/solana_seeker.jpg');
+    i.src = 'assets/sprites/lac/solana_seeker.jpg';
+    if(typeof i.decode === 'function'){ i.decode().catch(()=>{}); }
+    _IMG_SEEKER.sky = i; }
+  // Téléphone Seeker (remplace le smiley caca) — PNG statique, chargement classique
+  { const i = new Image();
+    i.onerror = () => console.warn('[IMG_SEEKER] Introuvable : assets/sprites/decor/seeker.png');
+    i.src = 'assets/sprites/decor/seeker.png';
+    if(typeof i.decode === 'function'){ i.decode().catch(()=>{}); }
+    _IMG_SEEKER.phone = i; }
+  // Jeton SKR — WEBP ANIMÉ (71 frames).
+  // v2240 — FIX « jeton figé » : le hack v2235 (un <img> 1×1px caché dans le DOM, en supposant
+  // que drawImage() lirait sa frame courante) ne marchait pas de manière fiable : Chromium coupe
+  // l'animation des images GIF/WEBP dès que le SYSTÈME a "Réduire les animations" activé (Image
+  // Animation Policy), quelle que soit la visibilité de l'élément — exactement le symptôme
+  // rapporté (1ère frame figée). On décode donc nous-mêmes les 71 frames une bonne fois via
+  // l'API WebCodecs (ImageDecoder), et on choisit la frame courante à la main selon le temps
+  // écoulé — indépendant de toute politique d'animation du navigateur, et plus léger qu'un
+  // <img> vivant. Repli sur l'ancien hack <img> si ImageDecoder n'existe pas (Safari/Firefox).
+  _loadSeekerCoinFrames();
+  if(document.body){
+    const i = document.createElement('img');
+    i.alt = ''; i.setAttribute('aria-hidden','true');
+    i.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;z-index:-1;pointer-events:none;';
+    i.onerror = () => console.warn('[IMG_SEEKER] Introuvable : assets/sprites/decor/skr.webp');
+    i.src = 'assets/sprites/decor/skr.webp';
+    document.body.appendChild(i);
+    _IMG_SEEKER.coin = i; // repli uniquement — voir _seekerCoinFrame()
+  } else {
+    const i = new Image(); i.src = 'assets/sprites/decor/skr.webp';
+    _IMG_SEEKER.coin = i;
+  }
+}
+
+// ── v2240 : décodage manuel des frames du jeton SKR, indépendant de l'<img> ci-dessus ──
+let _seekerCoinFrames = null;      // [{bitmap: ImageBitmap, cumMs: number}, ...] une fois prêt
+let _seekerCoinTotalMs = 0;
+let _seekerCoinDecoding = false;
+async function _loadSeekerCoinFrames(){
+  if(_seekerCoinFrames || _seekerCoinDecoding) return;
+  if(typeof ImageDecoder === 'undefined') return; // pas supporté → on garde le repli <img>
+  _seekerCoinDecoding = true;
+  try{
+    const res = await fetch('assets/sprites/decor/skr.webp');
+    const buf = await res.arrayBuffer();
+    const decoder = new ImageDecoder({ data: buf, type: 'image/webp' });
+    await decoder.tracks.ready;
+    const track = decoder.tracks.selectedTrack;
+    const frameCount = (track && track.frameCount) || 1;
+    const frames = [];
+    let cum = 0;
+    for(let i = 0; i < frameCount; i++){
+      const { image } = await decoder.decode({ frameIndex: i });
+      const durMs = image.duration ? image.duration / 1000 : 33; // µs → ms, ~30fps par défaut
+      const bmp = await createImageBitmap(image);
+      image.close();
+      cum += durMs;
+      frames.push({ bitmap: bmp, cumMs: cum });
+    }
+    if(decoder.close) decoder.close();
+    _seekerCoinTotalMs = cum || 1;
+    _seekerCoinFrames = frames;
+  }catch(e){
+    console.warn('[IMG_SEEKER] Décodage frame-par-frame du jeton SKR impossible, repli <img> :', e);
+    _seekerCoinFrames = null;
+  }
+  _seekerCoinDecoding = false;
+}
+// Retourne l'image à dessiner pour CE frame de jeu : la frame décodée courante si prête,
+// sinon l'<img> de repli (figé sur les navigateurs sans ImageDecoder — mieux que rien).
+function _seekerCoinFrame(){
+  if(_seekerCoinFrames && _seekerCoinFrames.length){
+    const t = performance.now() % _seekerCoinTotalMs;
+    for(const f of _seekerCoinFrames){ if(t <= f.cumMs) return f.bitmap; }
+    return _seekerCoinFrames[_seekerCoinFrames.length - 1].bitmap;
+  }
+  return _IMG_SEEKER.coin || null;
+}
+
+// Skin actif ? (monde 1 + duel issu du mode RADAR). Utilisé uniquement au moment du dessin.
+function _seekerSkinActive(){
+  try {
+    if(currentWorld !== 1) return false;
+    if(_lmsRadarWorldSkin === true) return true;
+    // v2240 : reste vrai pendant tout l'écran de fin du duel qui vient de se terminer, même si
+    // _lmsOnlineDuelEndSync() a déjà remis _lmsRadarWorldSkin à false entre-temps.
+    if(_lmsRadarWorldSkinEndedWasActive === true) return true;
+    return false;
+  } catch(e){ return false; }
+}
+function _seekerImgReady(k){
+  const i = _IMG_SEEKER[k];
+  return !!(i && i.complete && i.naturalWidth > 0);
+}
+// Fond du monde 1 à utiliser — variante Seeker si le skin est actif ET l'image prête,
+// sinon bg_lac.jpg habituel (donc dégradation propre si l'asset manque).
+function _w1SkyImg(){
+  if(_seekerSkinActive() && _seekerImgReady('sky')) return _IMG_SEEKER.sky;
+  return _IMG_W1.sky;
+}
+function _w1SkyReady(){
+  const i = _w1SkyImg();
+  return !!(i && i.complete && i.naturalWidth > 0);
+}
+
 // ── PRELOAD — caisses destructibles (tous mondes) ──
 const _IMG_CAISSE = {};
 (function(){
@@ -2675,6 +2816,10 @@ function _drawGoloFromDict(ctx, pl, dict, fallbackFn){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id || 0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -3575,6 +3720,20 @@ const I18N = {
     onlineHubDuelCodeBtn: 'Entrer un code reçu',
     onlineHubDuelEmpty: 'Aucun joueur en ligne — défie un ami avec un code.',
     onlineHubFfaCodeBtn: 'Créer un salon par code',
+    onlineHubNearbyTitle: 'RADAR',
+    onlineHubNearbyScanBtn: '📡 Rechercher un joueur à proximité',
+    onlineHubNearbyScanning: '📡 Recherche en cours…',
+    onlineHubNearbyStop: 'ARRÊTER',
+    onlineHubNearbyEmpty: 'Aucun joueur détecté à proximité pour l\'instant.',
+    onlineHubNearbyConnectBtn: 'CONNECTER',
+    onlineHubNearbyConnecting: (name) => `Connexion à ${name}…`,
+    onlineHubNearbyConnected: (name) => `Connecté à ${name} — lancement du duel…`,
+    onlineHubNearbyUnavailable: 'Détection de proximité indisponible sur cet appareil.',
+    onlineHubNearbyPermissionDenied: 'Bluetooth/localisation refusés — impossible de détecter les joueurs à proximité.',
+    // v2193 : le mode Proximité est symétrique (les 2 devices scannent), mais UN SEUL des deux
+    // initie la connexion (tie-break par uid) — ce texte explique l'attente côté non-initiateur.
+    onlineHubNearbyWaitingPeer: (name) => `${name} détecté — connexion en cours…`,
+    onlineHubNearbyRetrying: '📡 Échec de connexion — nouvelle recherche…',
     ffaAutoInviteBtn: '👥 Inviter les 3 premiers dispos',
     ffaAutoInviteNoOne: 'Personne de disponible pour le moment',
     onlinePresenceCount: (n) => n === 1 ? '🟢 1 autre joueur en ligne' : `🟢 ${n} autres joueurs en ligne`,
@@ -3630,6 +3789,7 @@ const I18N = {
     claimNeedWallet: 'Connecte ton wallet avant de réclamer.',
     claimNoPool: 'Aucune cagnotte trouvée pour cette semaine.',
     claimNoScore: 'Tu n\'as pas encore de score enregistré cette semaine.',
+    claimWeekInProgress: 'Cette semaine est encore en cours — ton score sera comptabilisé après le règlement hebdomadaire.',
     claimNotFinalized: 'La cagnotte de cette semaine n\'est pas encore finalisée.',
     claimAlreadyClaimed: 'Tu as déjà réclamé ta part cette semaine.',
     claimZeroReward: 'Aucune récompense à réclamer cette semaine.',
@@ -3951,11 +4111,16 @@ const I18N = {
     tutoDuelText: '<strong>DUEL</strong> — Affronte un adversaire en 1 contre 1, en local sur le même appareil.',
     tutoOnlineDuelText: '<strong>DUEL EN LIGNE</strong> — Même principe que le Duel, mais à distance : entre un code de salon pour affronter un ami en ligne.',
     tutoFfaText: '<strong>FFA</strong> — Bataille royale en ligne de 2 à 4 joueurs, via un code de salon : dernier debout gagne !',
-    tutoSolanaText: '<strong>⛓️ SOLANA (dApp Store)</strong> — Joue des matchs en ligne (Duel ou FFA) pour marquer des points : chaque semaine, réclame ta part de la cagnotte en jetons SKR.<br><span style="color:rgba(120,200,255,.8);font-size:0.88em;">Disponible exclusivement sur la version dApp Store Solana</span>',
+    // v2231 — étiquette du téléphone Seeker (skin RADAR) : date du bloc genesis Solana.
+    // Format de date localisé : jour-mois en FR, mois-jour en EN.
+    seekerGenesisDate: '16 MARS 2020',
+    seekerGenesisLabel: 'BLOC GENESIS',
+    tutoSolanaText: '<strong>⛓️ SOLANA (dApp Store)</strong> — Joue des matchs en ligne (Duel ou FFA) pour marquer des points : victoire en Duel = 10 pts, victoire en FFA = 6 pts.<br>Chaque semaine, la cagnotte en jetons SKR est partagée : <strong>75 % au prorata des points</strong>, <strong>25 % à parts égales</strong> entre tous les joueurs éligibles — il faut <strong>au moins 1 victoire en ligne</strong> dans la semaine pour être éligible. Réclame ta part de la cagnotte SKR.<br><span style="color:rgba(150,255,190,.8);font-size:0.85em;">Pas de mise, pas de tirage au sort : seul ton jeu détermine ta part.</span><br><span style="color:rgba(120,200,255,.8);font-size:0.88em;">Disponible exclusivement sur la version dApp Store Solana</span>',
     tutoSectionWorld: '🌍 STRUCTURE DU JEU',
     tutoWorldText: 'Chaque monde a ses propres ennemis et son <strong>BOSS RACKI</strong>.<br>Bat Racki pour débloquer le monde suivant — c\'est la colonne vertébrale de ta progression !',
     tutoSectionToken: '🪙 PROGRESSION',
     tutoTokenText: 'Ramasse les <strong>🪙 PIÈCES</strong> qui traînent sur la glace et dans le décor en cours de partie !<br>En fin de round, tu gagnes aussi des <strong>JETONS DE GLACE</strong> selon tes performances (éliminations, survie, victoire).<br>Échange tout ça à <strong>L\'ARMURERIE</strong> pour débloquer skins, équipements et bonus !',
+    tutoSyncText: '<strong>🔗 LIER MON COMPTE</strong> — Change de téléphone ou de PC sans perdre ta progression : dans <strong>RÉGLAGES → LIER MON COMPTE</strong>, génère un code sur l\'ancien appareil et entre-le sur le nouveau pour fusionner tes stats et ton classement en ligne.',
     crateCoins: (n) => `🪙 +${n} JETONS !`,
     crateStickUnlocked: (name) => `🏒 CROSSE DÉBLOQUÉE : ${name} !`,
     crateHelmetUnlocked: (name) => `⛑️ CASQUE DÉBLOQUÉ : ${name} !`,
@@ -4238,6 +4403,18 @@ const I18N = {
     onlineHubDuelCodeBtn: 'Enter a received code',
     onlineHubDuelEmpty: 'No one online — challenge a friend with a code.',
     onlineHubFfaCodeBtn: 'Create a room by code',
+    onlineHubNearbyTitle: 'Nearby',
+    onlineHubNearbyScanBtn: '📡 Scan for nearby players',
+    onlineHubNearbyScanning: '📡 Scanning…',
+    onlineHubNearbyStop: 'STOP',
+    onlineHubNearbyEmpty: 'No nearby player detected yet.',
+    onlineHubNearbyConnectBtn: 'CONNECT',
+    onlineHubNearbyConnecting: (name) => `Connecting to ${name}…`,
+    onlineHubNearbyConnected: (name) => `Connected to ${name} — starting duel…`,
+    onlineHubNearbyUnavailable: 'Proximity detection unavailable on this device.',
+    onlineHubNearbyPermissionDenied: 'Bluetooth/location denied — can\'t detect nearby players.',
+    onlineHubNearbyWaitingPeer: (name) => `${name} found — connecting…`,
+    onlineHubNearbyRetrying: '📡 Connection failed — scanning again…',
     ffaAutoInviteBtn: '👥 Invite first 3 available',
     ffaAutoInviteNoOne: 'No one available right now',
     onlinePresenceCount: (n) => n === 1 ? '🟢 1 other player online' : `🟢 ${n} other players online`,
@@ -4293,6 +4470,7 @@ const I18N = {
     claimNeedWallet: 'Connect your wallet before claiming.',
     claimNoPool: 'No pool found for this week.',
     claimNoScore: 'You don\'t have a recorded score for this week yet.',
+    claimWeekInProgress: 'This week is still in progress — your score will be recorded after the weekly settlement.',
     claimNotFinalized: 'This week\'s pool isn\'t finalized yet.',
     claimAlreadyClaimed: 'You already claimed your share this week.',
     claimZeroReward: 'No reward to claim this week.',
@@ -4614,11 +4792,14 @@ const I18N = {
     tutoDuelText: '<strong>DUEL</strong> — Face off 1v1 against an opponent, locally on the same device.',
     tutoOnlineDuelText: '<strong>ONLINE DUEL</strong> — Same as Duel, but online: enter a room code to face a friend remotely.',
     tutoFfaText: '<strong>FFA</strong> — Free-For-All: 2 to 4 players online via a room code — last one standing wins!',
-    tutoSolanaText: '<strong>⛓️ SOLANA (dApp Store)</strong> — Play online matches (Duel or FFA) to score points: each week, claim your share of the pool in SKR tokens.<br><span style="color:rgba(120,200,255,.8);font-size:0.88em;">Available exclusively on the Solana dApp Store version</span>',
+    seekerGenesisDate: 'MAR 16, 2020',
+    seekerGenesisLabel: 'GENESIS BLOCK',
+    tutoSolanaText: '<strong>⛓️ SOLANA (dApp Store)</strong> — Play online matches (Duel or FFA) to score points: a Duel win is 10 pts, an FFA win is 6 pts.<br>Each week the SKR token pool is split: <strong>75% pro-rata to points</strong>, <strong>25% shared equally</strong> among all eligible players — you need <strong>at least 1 online win</strong> that week to qualify. Claim your share of the SKR pool.<br><span style="color:rgba(150,255,190,.8);font-size:0.85em;">No entry fee, no random draw: only your play decides your share.</span><br><span style="color:rgba(120,200,255,.8);font-size:0.88em;">Available exclusively on the Solana dApp Store version</span>',
     tutoSectionWorld: '🌍 GAME STRUCTURE',
     tutoWorldText: 'Each world has its own enemies and <strong>BOSS RACKI</strong>.<br>Beat Racki to unlock the next world — it\'s the backbone of your progression!',
     tutoSectionToken: '🪙 PROGRESSION',
     tutoTokenText: 'Pick up <strong>🪙 COINS</strong> scattered on the ice and in the environment!<br>At the end of each round, you also earn <strong>ICE TOKENS</strong> based on your performance (kills, survival, victory).<br>Spend them at the <strong>ARMORY</strong> to unlock skins, gear, and bonuses!',
+    tutoSyncText: '<strong>🔗 LINK MY ACCOUNT</strong> — Switch phone or PC without losing your progress: in <strong>SETTINGS → LINK MY ACCOUNT</strong>, generate a code on the old device and enter it on the new one to merge your stats and online ranking.',
     crateCoins: (n) => `🪙 +${n} TOKENS!`,
     crateStickUnlocked: (name) => `🏒 STICK UNLOCKED: ${name}!`,
     crateHelmetUnlocked: (name) => `⛑️ HELMET UNLOCKED: ${name}!`,
@@ -5226,12 +5407,34 @@ function _renderTuto(){
   const secKeys = ['tutoSectionGhost','tutoSectionGameModes','tutoSectionWorld','tutoSectionToken','tutoSectionSecret'];
   secLabels.forEach((s,i)=>{ if(secKeys[i]) s.textContent = t(secKeys[i]); });
   // Textes des cartes spéciales
-  const specialCards = document.querySelectorAll('.tuto-card.ghost, .tuto-card.duel, .tuto-card.online-duel, .tuto-card.ffa, .tuto-card.solana, .tuto-card.world, .tuto-card.token, .tuto-card.secret');
-  const specialKeys = ['tutoGhostText','tutoDuelText','tutoOnlineDuelText','tutoFfaText','tutoSolanaText','tutoWorldText','tutoTokenText','tutoSecretText'];
+  const specialCards = document.querySelectorAll('.tuto-card.ghost, .tuto-card.duel, .tuto-card.online-duel, .tuto-card.ffa, .tuto-card.radar, .tuto-card.solana, .tuto-card.world, .tuto-card.token, .tuto-card.sync, .tuto-card.secret');
+  _lmsTutoRenderRadarText(); // v2196 : texte RADAR, cas a part (voir specialKeys)
+  // v2196 : la carte SYNC (juste après ARMURERIE) a une clé normale (tutoSyncText) — seule
+  // RADAR est un cas à part, voir juste en dessous.
+  // v2196 : la carte RADAR (entre FFA et SOLANA) n'a plus de clé dans specialKeys — son texte
+  // dépend de l'état de la roadmap NFT (badge/tier premium), donc bilingue mais PAS un simple
+  // t('cle') statique comme les autres. Voir _lmsTutoRenderRadarText() plus bas dans ce fichier,
+  // appelée juste après cette boucle. Toute carte ajoutée entre FFA et SOLANA doit repasser par
+  // cette liste ET par le sélecteur specialCards juste au-dessus (appariement par POSITION).
+  const specialKeys = ['tutoGhostText','tutoDuelText','tutoOnlineDuelText','tutoFfaText','','tutoSolanaText','tutoWorldText','tutoTokenText','tutoSyncText','tutoSecretText'];
   specialCards.forEach((c,i)=>{
     const textEl = c.querySelector('.tuto-text');
     if(textEl && specialKeys[i]) textEl.innerHTML = t(specialKeys[i]);
   });
+  // v2196 : carte RADAR du How to Play — mentionne les recompenses NFT prevues (badge de
+  // rencontre co-signe, tier PREMIUM si Seed Vault detecte des deux cotes, skin "Seeker Squad"
+  // apres 2 rencontres avec des devices differents). Marque "bientot" tant que le mint on-chain
+  // n'est pas branche (roadmap uniquement a ce stade).
+  function _lmsTutoRenderRadarText(){
+    const radarTextEl = document.getElementById('tuto-radar-text');
+    if(!radarTextEl) return;
+    if(_lang === 'fr'){
+      radarTextEl.innerHTML = '<strong>📡 RADAR</strong> — Detecte un joueur reellement a cote de toi (Bluetooth/Wi-Fi, sans internet ni code) et lance un Duel d\'un geste.<br><span style="color:rgba(120,255,220,.8);font-size:0.88em;">🏅 Bientot : badge on-chain de rencontre IRL, version <strong>PREMIUM</strong> si les 2 joueurs ont un vrai Seeker, et skin <strong>Seeker Squad</strong> apres 2 rencontres sur des appareils differents.</span><br><span style="color:rgba(255,255,255,.5);font-size:0.82em;">Android uniquement</span>';
+    } else {
+      radarTextEl.innerHTML = '<strong>📡 RADAR</strong> — Finds a player who is physically next to you (Bluetooth/Wi-Fi, no internet, no code) and starts a Duel in one tap.<br><span style="color:rgba(120,255,220,.8);font-size:0.88em;">🏅 Coming soon: on-chain meeting badge, <strong>PREMIUM</strong> tier if both players have a real Seeker, and a <strong>Seeker Squad</strong> skin after 2 meetings on different devices.</span><br><span style="color:rgba(255,255,255,.5);font-size:0.82em;">Android only</span>';
+    }
+  }
+
   // Carte ÎLOTS SECRETS / SECRET ISLANDS — mise à jour selon _lang
   const islandsEl = document.getElementById('tuto-islands-text');
   if(islandsEl){
@@ -5308,7 +5511,7 @@ let W, H;
 let _crackOffscreenCV = null, _crackOffscreenCTX = null, _crackOffscreenW = 0, _crackOffscreenH = 0;
 function _ensureCrackOffscreen(){
   if(_isMobile) return false;
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = window.devicePixelRatio || 1; // RETOUR v2199 : DPR brut, decorrele de _dprCap
   const cw = Math.round(W * dpr), ch = Math.round(H * dpr);
   if(!_crackOffscreenCV || _crackOffscreenW !== cw || _crackOffscreenH !== ch){
     _crackOffscreenCV = document.createElement('canvas');
@@ -5393,7 +5596,7 @@ let _w12BgCanvas=null,_w12BgCtx=null,_w12BgW=0,_w12BgH=0,_w12BgCamX=0,_w12BgCamY
 // ── OffscreenCanvas W12 Château : château+tours (throttle 3, world-space, invalidé si caméra bouge) ──
 let _w12CastleCanvas=null,_w12CastleCtx=null,_w12CastleW=0,_w12CastleH=0,_w12CastleCamX=0,_w12CastleCamY=0,_w12CastleZoom=0;
 // ── OffscreenCanvas W1 Lac Gelé : tuilage PNG ciel (throttle 3, world-space, invalidé si caméra bouge) ──
-let _w1SkyCanvas=null,_w1SkyCtx=null,_w1SkyW=0,_w1SkyH=0,_w1SkyCamX=0,_w1SkyCamY=0,_w1SkyZoom=0;
+let _w1SkyCanvas=null,_w1SkyCtx=null,_w1SkyW=0,_w1SkyH=0,_w1SkyCamX=0,_w1SkyCamY=0,_w1SkyZoom=0,_w1SkySkinCached=null;
 let _w9SkyCanvas=null,_w9SkyCtx=null,_w9SkyW=0,_w9SkyH=0,_w9SkyCamX=0,_w9SkyCamY=0,_w9SkyZoom=0;
 let _w4SkyCanvas=null,_w4SkyCtx=null,_w4SkyW=0,_w4SkyH=0,_w4SkyCamX=0,_w4SkyCamY=0,_w4SkyZoom=0;
 let _w4CrackCache=null; // géométrie précalculée des 22 fissures incandescentes de la glace
@@ -5512,13 +5715,32 @@ if(!_isCapacitorApp){
 
 let _dprCap = _isCapacitorApp ? 1.25 : 1.5; // plafond DPR courant — ajusté dynamiquement selon _perfQuality (1.0 low / 1.25 mid / 1.5 high)
 
-function resize(){
+let _lastAppliedDprCap = null; // dernier _dprCap effectivement appliqué au canvas — permet de détecter un changement de qualité adaptative même sans changement de innerWidth/innerHeight
+let _dbgResizeTotal = 0; // cumule depuis le chargement, jamais remis a zero
+let _dbgResizeCount = 0; // nb de resize() réellement exécutés (backing store réalloué) depuis le dernier reset de l'overlay debug
+function resize(force){
   const _newW = window.innerWidth, _newH = window.innerHeight;
   // Garde-fou : sur mobile, `resize` se déclenche souvent sans vrai changement de
   // dimensions (barre d'adresse, clavier, barre de nav Android qui va/vient) — sans
   // ce early-return, ça invalidait TOUS les caches offscreen ci-dessous à chaque fois,
   // forçant leur reconstruction en boucle même en pleine partie.
-  if(_newW === W && _newH === H && CV.width > 0) return;
+  // ── REVENU AU COMPORTEMENT v2199, avec une porte de sortie ciblée (v2215) ──
+  // Le bypass ajouté en v2200 (resize() forcé dès que _dprCap changeait, même sans
+  // changement de innerWidth/innerHeight) reste supprimé pour toute HAUSSE de _dprCap :
+  // le canvas garde alors son ancienne résolution jusqu'au prochain vrai resize/rotation,
+  // ce qui préserve l'effet rotation (le "reste rapide") sans risque de saccade.
+  // Seule une BAISSE de _dprCap peut désormais forcer ce resize (force===true, voir plus
+  // bas) : c'est le seul cas qui allège la charge de composition pile quand l'appareil
+  // vient de démontrer qu'il en avait besoin, au lieu de continuer à peindre plus de
+  // pixels que ce que le système de qualité a lui-même jugé nécessaire.
+  const _sizeUnchanged = (_newW === W && _newH === H && CV.width > 0);
+  if(_sizeUnchanged && !force) return;
+  _dbgResizeCount++; _dbgResizeTotal++;
+  // Un forçage à taille CSS inchangée (baisse de _dprCap seule) ne doit PAS invalider les
+  // caches offscreen ci-dessous : ils sont dimensionnés en W/H (CSS), pas en pixels device,
+  // donc rien n'y a réellement changé — les invalider ici gaspillerait du CPU pile au
+  // moment où le moteur essaie justement de réduire la charge.
+  const _cssSizeChanged = !_sizeUnchanged;
   const dpr = Math.min(window.devicePixelRatio || 1, _dprCap);
   W = _newW;
   H = _newH;
@@ -5528,14 +5750,20 @@ function resize(){
   CV.style.height = H + 'px';
   CTX.setTransform(dpr, 0, 0, dpr, 0, 0); // scale une fois, tout le reste en coords CSS
   if(typeof STATE !== 'undefined' && STATE === 'playing') positionJumpButton();
-  // Invalider les caches OffscreenCanvas monde Halloween (dimensions changées)
-  _w10StarsW=0; _w10TreeW=0; _w10VigW=0; _w10NightW=0; _w10CemBackW=0; _w10CemFrontW=0; _w10FogW=0;
-  _w4BgW=0; _w4AurW=0; _w13BgW=0; _w13AurW=0; _w13SpkW=0; _w12BgW=0; _w12CastleW=0;
-  _w1SkyW=0;
-  _w9SkyW=0;
-  _w4SkyW=0;
-  _w10SkyW=0;
-  _crackOffscreenW = 0; // invalider le cache offscreen cracks
+  // Invalider les caches OffscreenCanvas monde Halloween UNIQUEMENT si les dimensions
+  // CSS ont réellement changé — ces caches sont dimensionnés en W/H (CSS), pas en
+  // pixels device, donc un simple changement de _dprCap (qualité adaptative) ne les
+  // rend pas obsolètes. Les invalider inutilement à ce moment-là gaspille du CPU
+  // pile quand le moteur essaie justement de réduire la charge.
+  if(_cssSizeChanged){
+    _w10StarsW=0; _w10TreeW=0; _w10VigW=0; _w10NightW=0; _w10CemBackW=0; _w10CemFrontW=0; _w10FogW=0;
+    _w4BgW=0; _w4AurW=0; _w13BgW=0; _w13AurW=0; _w13SpkW=0; _w12BgW=0; _w12CastleW=0;
+    _w1SkyW=0;
+    _w9SkyW=0;
+    _w4SkyW=0;
+    _w10SkyW=0;
+    _crackOffscreenW = 0; // invalider le cache offscreen cracks (dimensionné en dpr réel, pas _dprCap, mais suit W/H)
+  }
 }
 resize();
 let _resizeDebounceTimer = null;
@@ -6509,7 +6737,9 @@ function _spawnCacaTrapLocal(){
     eyePhase: 0,
   });
   sndCacaLand();
-  showCommentator('💩', '#a0522d', 1200);
+  // v2231 : même événement, pictogramme adapté au skin RADAR/Seeker
+  if(_seekerSkinActive()) showCommentator('📱', '#14F195', 1200);
+  else showCommentator('💩', '#a0522d', 1200);
 }
 
 // ── Smileys caca partagés — génération côté hôte (voir FIX plus haut) ──
@@ -6545,7 +6775,9 @@ function _lmsOnlineDuelApplyCacaSpawn(key, d){
     _netKey: key, // relie ce piège à son entrée Firebase (voir consommation dans updateCacaTraps)
   });
   sndCacaLand();
-  showCommentator('💩', '#a0522d', 1200);
+  // v2231 : même événement, pictogramme adapté au skin RADAR/Seeker
+  if(_seekerSkinActive()) showCommentator('📱', '#14F195', 1200);
+  else showCommentator('💩', '#a0522d', 1200);
 }
 
 function updateCacaTraps(){
@@ -7724,13 +7956,124 @@ function drawFlyingHeads(){
   }
 }
 
+// ── PIÈGE "TÉLÉPHONE SEEKER" (skin RADAR) — remplace le smiley caca dans le monde 1 ──
+// Même objet de données (cacaTraps), même hitbox, même explosion : seul le rendu change.
+// Le téléphone est volontairement grand (≈ taille d'un joueur) pour que le clin d'œil soit
+// lisible : l'écran affiche le 16 mars 2020, date du bloc genesis / lancement du mainnet
+// Solana — mis en valeur par une étiquette flottante au-dessus du sprite.
+function _drawSeekerPhoneTrap(c, p, bob, lz, glow){
+  const img = _IMG_SEEKER.phone;
+  const _h  = 185;                                   // v2240 : encore plus gros (était 150)
+  const _w  = _h * (img.naturalWidth / img.naturalHeight);
+  const _SC = _h / 150; // facteur pour tout ce qui est en pixels absolus ci-dessous (halo, étiquette, particules)
+  const _baseY = 14;                                 // pied du téléphone posé sur la glace
+
+  CTX.save();
+  CTX.translate(p.sx, p.sy + bob);
+  CTX.scale(lz, lz);
+  CTX.rotate(c.wiggle);
+
+  // ── Ombre au sol : ellipse de contact (le sprite est haut, sans ça il flotte)
+  // + ombre portée orientée (même système que rocher/sapin/stalagmite, niveau 2 éclairage) ──
+  CTX.globalAlpha = 0.28;
+  CTX.fillStyle = '#000';
+  CTX.beginPath(); CTX.ellipse(0, _baseY + 2, _w*0.42, _w*0.16, 0, 0, Math.PI*2); CTX.fill();
+  CTX.save(); CTX.translate(0, _baseY);
+  if(typeof _drawDecorLightShadow === 'function') _drawDecorLightShadow(CTX, img, _w, _h);
+  CTX.restore();
+
+  // ── Halo cyan/violet pulsant (DANGER !) — pendant du halo marron du caca ──
+  if(_shadowAllowed){ CTX.shadowColor='#14F195'; CTX.shadowBlur=26*_SC*glow; }
+  CTX.globalAlpha = 0.24 + 0.20*glow;
+  const hG = safeRadialGradient(CTX, 0, -_h*0.35, 0, 0, -_h*0.35, 78*_SC);
+  hG.addColorStop(0,   'rgba(20,241,149,0.55)');
+  hG.addColorStop(0.5, 'rgba(153,69,255,0.35)');
+  hG.addColorStop(1,   'rgba(0,0,0,0)');
+  CTX.fillStyle = hG;
+  CTX.beginPath(); CTX.arc(0, -_h*0.35, 78*_SC, 0, Math.PI*2); CTX.fill();
+  CTX.shadowBlur = 0;
+
+  // ── Le téléphone ──
+  CTX.globalAlpha = 1;
+  CTX.drawImage(img, -_w/2, _baseY - _h, _w, _h);
+
+  // ── Reflet balayant l'écran (effet « vitre ») ──
+  const _sweep = ((c.bob*0.35) % (Math.PI*2)) / (Math.PI*2);
+  CTX.save();
+  CTX.globalAlpha = 0.16;
+  CTX.globalCompositeOperation = 'lighter';
+  CTX.beginPath(); CTX.rect(-_w*0.30, _baseY - _h*0.94, _w*0.60, _h*0.88); CTX.clip();
+  CTX.fillStyle = '#bfe9ff';
+  CTX.save();
+  CTX.translate(-_w*0.5 + _sweep*_w*1.6, _baseY - _h*0.5);
+  CTX.rotate(-0.4);
+  CTX.fillRect(-10, -_h*0.8, 16, _h*1.6);
+  CTX.restore();
+  CTX.restore();
+
+  // ── Étiquette « GENESIS » : met en valeur la date affichée sur l'écran ──
+  // v2240 : étiquette agrandie avec le téléphone (police 13→16, sous-titre 9→11, boîte élargie)
+  const _lblA = 0.55 + 0.45*Math.sin(c.glowPhase*1.1);
+  CTX.globalAlpha = 0.9;
+  CTX.textAlign = 'center';
+  CTX.font = 'bold ' + Math.round(16*_SC) + 'px Arial';
+  const _lbl = t('seekerGenesisDate');
+  const _lw  = CTX.measureText(_lbl).width + 22*_SC;
+  const _ly  = _baseY - _h - 30*_SC;
+  CTX.fillStyle = 'rgba(8,12,28,0.78)';
+  CTX.beginPath();
+  if(CTX.roundRect) CTX.roundRect(-_lw/2, _ly - 16*_SC, _lw, 25*_SC, 7);
+  else CTX.rect(-_lw/2, _ly - 16*_SC, _lw, 25*_SC);
+  CTX.fill();
+  CTX.strokeStyle = 'rgba(20,241,149,' + (0.45 + 0.4*_lblA).toFixed(2) + ')';
+  CTX.lineWidth = 1.5; CTX.stroke();
+  CTX.fillStyle = '#14F195';
+  CTX.fillText(_lbl, 0, _ly + 3*_SC);
+  CTX.globalAlpha = 0.85 * _lblA;
+  CTX.font = 'bold ' + Math.round(11*_SC) + 'px Arial';
+  CTX.fillStyle = '#9945FF';
+  CTX.fillText(t('seekerGenesisLabel'), 0, _ly + 19*_SC);
+
+  // ── Petites particules de données en orbite (pendant des mouches du caca) ──
+  CTX.globalAlpha = 0.8;
+  for(let fi=0; fi<3; fi++){
+    const fa = c.bob*1.2 + fi*(Math.PI*2/3);
+    const fr = 34 + Math.sin(c.bob*2+fi)*6;
+    const fx = Math.cos(fa)*fr, fy = -_h*0.42 + Math.sin(fa)*fr*0.45;
+    CTX.fillStyle = (fi % 2) ? '#14F195' : '#9945FF';
+    CTX.beginPath(); CTX.arc(fx, fy, 2.6*_SC, 0, Math.PI*2); CTX.fill();
+    CTX.globalAlpha = 0.35;
+    CTX.beginPath(); CTX.arc(fx, fy, 6.5*_SC, 0, Math.PI*2); CTX.fill();
+    CTX.globalAlpha = 0.8;
+  }
+
+  // ── Panneau DANGER clignotant (identique au caca) ──
+  if(Math.sin(c.glowPhase*1.8) > 0.3){
+    CTX.globalAlpha = 0.9;
+    CTX.fillStyle = '#ff2200';
+    CTX.font = 'bold ' + Math.round(14*_SC) + 'px Arial';
+    CTX.fillText('⚠', 0, _baseY - _h - 40*_SC);
+  }
+
+  CTX.restore();
+}
+
 function drawCacaTraps(){
+  // v2231 : en duel RADAR (skin Seeker), le piège n'est plus un smiley caca mais un
+  // téléphone Seeker géant — même piège, même hitbox, même comportement réseau.
+  const _seekerTrap = _seekerSkinActive() && _seekerImgReady('phone');
+
   for(const c of cacaTraps){
     if(!c.alive) continue;
     const p   = ip(c.wx, c.wy);
     const bob = Math.sin(c.bob)*5;
     const lz  = 0.3 + Math.min(0.7, c.age/18); // scale-in : part de 30%, atteint 100% en 18 frames
     const glow = 0.55 + 0.35*Math.sin(c.glowPhase);
+
+    if(_seekerTrap){
+      _drawSeekerPhoneTrap(c, p, bob, lz, glow);
+      continue;
+    }
 
     CTX.save();
     CTX.translate(p.sx, p.sy + bob);
@@ -7839,7 +8182,7 @@ for(const pl of players){
     CTX.globalAlpha = Math.min(1, pl._cacaStunTimer/20);
     CTX.font = `${18 + Math.sin(gameFrame*0.3)*3}px Arial`;
     CTX.textAlign='center';
-    CTX.fillText('💩', 0, -pl.r*1.8 - 10);
+    CTX.fillText(_seekerTrap ? '📱' : '💩', 0, -pl.r*1.8 - 10);
     CTX.restore();
   }
 }
@@ -9014,6 +9357,19 @@ function getHOF(){
 function saveHOF(hof){ const _v=JSON.stringify(hof); try{ localStorage.setItem(HOF_KEY,_v); }catch(e){} _store.set(HOF_KEY,_v); }
 function getInitials(){ return localStorage.getItem(HOF_INITIALS_KEY) || 'AAA'; }
 function saveInitials(s){ try{ localStorage.setItem(HOF_INITIALS_KEY, s); }catch(e){} _store.set(HOF_INITIALS_KEY, s); }
+
+// v2199 : si un pseudo a été tapé dans Réglages, on préremplit les 3 initiales du popup
+// "nouveau record" avec son début plutôt que de partir d'un champ vide. Lit directement
+// PLAY_NAME_KEY (pas getPlayerName(), qui retombe sur getInitials() — un ancien score
+// enregistré autrefois sous d'autres initiales ne doit pas passer pour "un pseudo tapé").
+// Même nettoyage (alphanumérique, majuscules) que confirmHOFEntry() pour rester cohérent
+// avec ce que la validation acceptera de toute façon.
+function _lmsHofPrefillFromPlayerName(){
+  let raw = '';
+  try{ raw = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim(); }catch(e){}
+  if(!raw) return ''; // rien tapé en Réglages → comportement inchangé, champ vide, AAA par défaut
+  return raw.replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0, 3);
+}
 
 // ── Profil / pseudo (v1900) ──────────────────────────────────────────────
 // Distinct du système d'initiales du Top 3 local (3 lettres, saisies à chaque
@@ -10395,7 +10751,10 @@ function _showHOFEntryPrompt(rank, kills, currentScore){
   const popup = document.getElementById('hof-entry-popup');
   if(!popup) return;
   const input = document.getElementById('hof-ep-input');
-  if(input){ input.value = ''; }
+  // v2199 : reprend les 3 premières lettres du pseudo Réglages s'il y en a un (voir
+  // _lmsHofPrefillFromPlayerName) ; sinon champ vide, comportement inchangé (AAA par défaut
+  // à la confirmation). Le joueur peut toujours effacer/retaper via le clavier custom.
+  if(input){ input.value = _lmsHofPrefillFromPlayerName(); }
   popup.style.display = 'flex';
   requestAnimationFrame(()=>{ popup.style.opacity='1'; popup.style.transform='scale(1)'; });
   popup._pendingRank = rank;
@@ -10541,7 +10900,7 @@ let _syncRedeemArmedCode = null; // v2065 : code pour lequel le bouton VALIDER e
 
 async function _lmsGenerateSyncCode(){
   if(!_lmsFbDb || !_lmsAuthUid) return null;
-  const code = await _lmsGenRoomCodeUniqueAsync('syncCodes');
+  const code = await _lmsGenRoomCodeUniqueAsync('syncCodes', 6); // v2198 : 6 chars, pas 4 (voir _lmsGenRoomCode)
   _lmsSyncCodeRef = _lmsFbDb.ref('syncCodes/' + code);
   await _lmsSyncCodeRef.set({ uid: _lmsAuthUid, ts: firebase.database.ServerValue.TIMESTAMP }).catch(()=>{});
   setTimeout(() => { if(_lmsSyncCodeRef) _lmsSyncCodeRef.remove().catch(()=>{}); }, SYNC_CODE_TTL_MS);
@@ -11159,15 +11518,36 @@ function _updateFpsDisplay(now){
     const _bk = _perfBreakdown, _n = Math.max(1,_perfBreakdownSamples);
     const _bg = (_bk.bg/_n).toFixed(1), _pl = (_bk.players/_n).toFixed(1), _fx = (_bk.fx/_n).toFixed(1), _ui = (_bk.ui/_n).toFixed(1);
     const _phy = (_bk.phy/_n).toFixed(1), _stp = (_bk.steps/_n).toFixed(2);
-    const _dprNow = (window.devicePixelRatio || 1).toFixed(2);
+    // DPR EFFECTIF appliqué au canvas, pas le DPR brut de l'écran (window.devicePixelRatio
+    // ne bouge jamais avec _perfQuality — afficher le brut ici masquait justement la baisse
+    // de résolution qu'on cherche à vérifier, ex: "LOW mais dpr:3" alors que le canvas est
+    // bien redescendu à 1.0 derrière).
+    // DPR RÉELLEMENT appliqué = canvas.width / css width, calculé directement à partir des
+    // deux valeurs déjà affichées sur cette même ligne (canvas: / css:). min(devicePixelRatio,
+    // _dprCap) affichait la CIBLE de _dprCap, pas l'état réel du canvas — sur une hausse de
+    // qualité, on ne force plus resize() (exprès, pour préserver l'effet rotation), donc la
+    // cible peut annoncer 1.25 alors que le canvas est encore à 1.0 en attendant une vraie
+    // rotation. Dériver dpr: de canvas/css élimine toute possibilité de ce genre d'écart.
+    const _dprNow = (W > 0 ? (CV.width / W) : 1).toFixed(2);
     const _avgFpsNow = (_avgFrameMs > 0 ? (1000/_avgFrameMs) : 60).toFixed(1);
+    const _gap = _dbgGapSamples > 0 ? (_dbgGapMsSum/_dbgGapSamples).toFixed(1) : '–';
     _fpsEl.textContent = _fpsCounterFrames + ' FPS (avg:' + _avgFpsNow + ') · Q' + _perfQuality + ' (' + qLabel + ') · fx' + _fxBudget + ' · blur:' + (_shadowAllowed ? 'ON' : 'OFF')
       + '  |  phy:' + _phy + 'ms(' + _stp + 'x)  bg:' + _bg + 'ms  pl:' + _pl + 'ms  fx:' + _fx + 'ms  ui:' + _ui + 'ms'
+      + '  |  gap:' + _gap + 'ms  rsz:' + _dbgResizeCount + '/' + _dbgResizeTotal
       + '  |  canvas:' + CV.width + 'x' + CV.height + '  css:' + Math.round(W) + 'x' + Math.round(H) + '  dpr:' + _dprNow;
     _fpsCounterFrames = 0;
     _fpsCounterLast = now;
     _perfBreakdown = {bg:0, players:0, fx:0, ui:0, phy:0, steps:0};
     _perfBreakdownSamples = 0;
+    _dbgGapMsSum = 0; _dbgGapSamples = 0;
+    _dbgResizeCount = 0;
+    // Le journal figé (#fps-cold) ne se remet plus à jour une fois gelé, mais sa position
+    // doit continuer à suivre la hauteur du vert (ex: rotation après le gel) — sinon le bleu
+    // fige aussi sa position et finit par chevaucher le vert si celui-ci change de hauteur.
+    if(_coldStartLog.length > 0){
+      const _c = document.getElementById('fps-cold');
+      if(_c && _c.style.display !== 'none') _repositionColdStartLog(_c);
+    }
   }
 }
 
@@ -11189,6 +11569,85 @@ function _accumPhysicsBreakdown(ms, nSteps){
 let _perfQualityCooldown = 0; // nb de cycles de recalcul (10 frames chacun) restants avant qu'un nouveau changement de qualité soit autorisé
 const _PERF_COOLDOWN_CYCLES = 6; // ~60 frames ≈ 1s à 60fps entre deux changements de qualité
 
+// ── Throttle des réallocations physiques du canvas déclenchées par _dprCap seul ──
+// (voir commentaire détaillé au point d'appel dans _updatePerfQuality)
+// Fenêtre de "rodage" au lancement (chargement des assets, JIT...) pendant laquelle on retarde
+// TOUTE réallocation réelle du canvas déclenchée par l'IA de qualité adaptative. Les premières
+// secondes sont naturellement lentes/erratiques à cause du chargement — un vrai resize() pendant
+// cette fenêtre (surtout coûteux sur un grand canvas, ex. écran 2K/4K) cause lui-même des sauts
+// d'image, ce qui peut faire osciller _perfQuality encore plus. _perfQuality/_dprCap continuent
+// de changer normalement pendant ce temps (donc les FX se réduisent bien si besoin) — seule la
+// réallocation physique du canvas est différée jusqu'à la fin du rodage.
+const _PERF_STARTUP_GRACE_MS = 4000;
+const _DPR_RESIZE_MIN_INTERVAL_MS = 1500;
+let _lastDprResizeTs = performance.now() + (_PERF_STARTUP_GRACE_MS - _DPR_RESIZE_MIN_INTERVAL_MS); // décale le throttle existant pour que le 1er resize() réel n'ait lieu qu'après le rodage
+let _dprResizePending = false;
+function _applyPendingDprResize(){
+  _dprResizePending = false;
+  // ── NEUTRALISÉ (retour v2199) ──
+  // Ce rattrapage différé n'a plus lieu d'être : resize() ne réagit plus à un changement
+  // de _dprCap seul. La fonction est conservée vide pour ne pas casser le setTimeout
+  // éventuellement déjà programmé ailleurs.
+}
+
+// ── DEBUG : journal figé du démarrage à froid ──
+// Objectif : pouvoir diagnostiquer le tout premier lancement (portrait vs paysage) sans
+// jamais avoir besoin d'activer le panneau dev AVANT que le jeu démarre (impossible avec
+// une simple capture d'écran) et sans que l'acte de capturer l'écran pollue la mesure
+// (l'overlay natif "Partager/Modifier" qui apparaît après un screenshot gonfle gap:/js:
+// si la capture est prise PENDANT que la fenêtre de mesure est encore active).
+// Cette capture tourne TOUJOURS en arrière-plan (coût nul : elle ne fait que recopier des
+// valeurs déjà calculées par le breakdown existant, aucun nouvel appel performance.now()).
+// Elle se fige après le dernier palier et ne bouge plus — l'utilisateur peut alors ouvrir
+// le panneau dev n'importe quand et prendre une capture sans course contre la montre.
+let _coldStartT0 = 0;
+let _coldStartMarks = [500, 1000, 1500, 2500, 4000]; // ms depuis le premier appel
+let _coldStartLog = [];
+function _coldStartCapture(now, avgMs){
+  if(_coldStartT0 === 0) _coldStartT0 = now;
+  if(_coldStartMarks.length === 0) return; // figé, plus rien à capturer
+  const elapsed = now - _coldStartT0;
+  if(elapsed < _coldStartMarks[0]) return;
+  _coldStartMarks.shift();
+  const _n = Math.max(1, _perfBreakdownSamples);
+  _coldStartLog.push({
+    t: Math.round(elapsed),
+    fps: avgMs > 0 ? (1000/avgMs).toFixed(1) : '–',
+    q: _perfQuality,
+    bg: (_perfBreakdown.bg/_n).toFixed(1),
+    pl: (_perfBreakdown.players/_n).toFixed(1),
+    fx: (_perfBreakdown.fx/_n).toFixed(1),
+    ui: (_perfBreakdown.ui/_n).toFixed(1),
+    phy: (_perfBreakdown.phy/_n).toFixed(1),
+    cv: CV.width + 'x' + CV.height,
+    css: Math.round(W) + 'x' + Math.round(H)
+  });
+  _renderColdStartLog();
+}
+// Cale #fps-cold (bleu) juste sous la hauteur RÉELLE de #fps (vert), plutôt qu'un offset fixe :
+// #fps est en white-space:pre-wrap et passe sur 2-3 lignes en portrait (largeur réduite), donc
+// sa hauteur varie selon l'orientation — un top:44px codé en dur le faisait passer par-dessus
+// les lignes vertes dès que ça wrappait, rendant le bleu illisible/superposé en portrait.
+function _repositionColdStartLog(el){
+  if(_fpsEl === null) _fpsEl = document.getElementById('fps');
+  if(!_fpsEl || !el) return;
+  const _r = _fpsEl.getBoundingClientRect();
+  el.style.top = (_r.bottom + 6) + 'px';
+}
+function _renderColdStartLog(){
+  const el = document.getElementById('fps-cold');
+  if(!el) return;
+  if(!_DEBUG_SHOW_FPS || _coldStartLog.length === 0){ el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  const orient = (W >= H) ? 'paysage' : 'portrait';
+  el.textContent = 'COLD START (' + orient + ', css ' + Math.round(W) + 'x' + Math.round(H) + ')\n'
+    + _coldStartLog.map(s => 't+' + s.t + 'ms  ' + s.fps + 'fps  Q' + s.q
+      + '  bg:' + s.bg + ' pl:' + s.pl + ' fx:' + s.fx + ' ui:' + s.ui + ' phy:' + s.phy
+      + '  cv:' + s.cv).join('\n');
+  _repositionColdStartLog(el);
+}
+function _dbgResetColdStartLog(){ _coldStartT0 = 0; _coldStartMarks = [500,1000,1500,2500,4000]; _coldStartLog = []; _renderColdStartLog(); }
+
 function _updatePerfQuality(now){
   _updateFpsDisplay(now);
   if(_perfLastTime === 0){ _perfLastTime = now; return; }
@@ -11203,6 +11662,7 @@ function _updatePerfQuality(now){
 
   const avg = _perfFrameTimes.reduce((a,b)=>a+b,0) / _perfFrameTimes.length;
   _avgFrameMs = avg; // exposé globalement pour la logique shadowBlur 20/40fps (voir plus bas dans drawScene)
+  _coldStartCapture(now, avg);
   const prev = _perfQuality;
   let next = prev;
 
@@ -11247,8 +11707,24 @@ function _updatePerfQuality(now){
     // DPR adaptatif : low=1.0 (net gain pixels), mid=1.25, high=1.5 (inchangé)
     const _newDprCap = next === 0 ? 1.0 : next === 1 ? 1.25 : 1.5;
     if(_newDprCap !== _dprCap){
+      const _dprDropping = _newDprCap < _dprCap;
       _dprCap = _newDprCap;
-      resize(); // ré-applique le DPR ; invalide aussi les caches offscreen (dimensions device-pixels changées)
+      // ── v2215 : resize() forcé, mais uniquement quand _dprCap BAISSE ──
+      // Cause isolée le 17/09 : quand la qualité chute (LOW détecté) mais qu'aucune
+      // rotation ne survient, _dprCap descend sans jamais déclencher resize() — le canvas
+      // reste alloué à l'ancienne résolution plus haute (ex: DPR effectif 1.25 alors que
+      // LOW impose 1.0). Il peint donc ~25% de pixels de plus que ce que le système de
+      // qualité vient lui-même de juger nécessaire, exactement au moment où l'appareil
+      // peine déjà. On force donc resize() ici, uniquement dans ce sens (baisse), pour
+      // réduire immédiatement la charge de composition.
+      // On NE force jamais resize() quand _dprCap MONTE : ça reproduirait le couplage
+      // avec l'ancien wrapper _scheduleLoop() (v2207/v2208/v2210), vraie cause des
+      // saccades, et ça casserait l'effet rotation (la résolution doit rester bloquée en
+      // hausse tant qu'aucune rotation/resize CSS réel ne survient — c'est le "reste
+      // rapide"). resize(true) ici ne réalloue jamais plus grand que _dprCap actuel, donc
+      // aucun risque de recréer ce couplage : on ne fait que rattraper une résolution deja
+      // jugée trop haute.
+      if(_dprDropping) resize(true);
     }
   }
 }
@@ -11907,9 +12383,11 @@ let _lmsInviteActive = null; // { id, data } actuellement affichée dans la popu
 let _lmsInviteExpireTimer = null;
 let _lmsInviteQueue = []; // invites reçues pendant qu'une autre est déjà affichée (rares, mais possible)
 
-function _lmsGenRoomCodeUniqueAsync(root){
+function _lmsGenRoomCodeUniqueAsync(root, len){
   // Variante de _lmsGenRoomCodeUnique() sans <input> : retourne une Promise<code> au lieu d'écrire
   // dans un champ — nécessaire ici car le code doit être connu AVANT d'écrire l'invite en base.
+  // v2198 : `len` optionnel, propagé tel quel à _lmsGenRoomCode() — voir son commentaire (défaut 4,
+  // 6 pour 'syncCodes' uniquement, passé explicitement par _lmsGenerateSyncCode()).
   return new Promise((resolve) => {
     const staleCountsAsFree = (root === 'duelRooms');
     const attempt = (code, tries) => {
@@ -11919,10 +12397,10 @@ function _lmsGenRoomCodeUniqueAsync(root){
         const stale = staleCountsAsFree && v && _lmsRoomIsStale(v);
         if(!v || stale){ resolve(code); return; }
         if(tries >= _LMS_ROOMCODE_MAX_TRIES){ resolve(code); return; }
-        attempt(_lmsGenRoomCode(), tries + 1);
+        attempt(_lmsGenRoomCode(len), tries + 1);
       }).catch(()=> resolve(code));
     };
-    attempt(_lmsGenRoomCode(), 1);
+    attempt(_lmsGenRoomCode(len), 1);
   });
 }
 
@@ -12231,10 +12709,17 @@ function _lmsShareRoomCode(kind){
   }
 }
 
-function _lmsGenRoomCode(){
+// v2198 : longueur paramétrable (défaut 4, INCHANGÉ pour les codes de salle Duel/FFA — ce sont
+// des codes qu'on lit à voix haute/tape vite entre amis, saisis à la main sur l'écran de fin de
+// partie). Les codes de sync (LIER MON COMPTE) passent à 6 : l'espace de recherche passe de
+// ~1,19M à ~1,29 milliard de combinaisons, ce qui rend un brute-force par script non rentable —
+// contrairement à un code de salle, un code de sync donne accès à la progression/classement
+// d'un compte, ça justifie ce traitement différent malgré la gêne de 2 caractères en plus à taper.
+function _lmsGenRoomCode(len){
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sans 0/O/1/I pour éviter les confusions
+  const n = len || 4;
   let s = '';
-  for(let i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  for(let i = 0; i < n; i++) s += chars[Math.floor(Math.random() * chars.length)];
   return s;
 }
 
@@ -12787,11 +13272,22 @@ let _lmsFFAKidSelectOnCancel = null;
 let _lmsOnlineHubActiveTab = 'duel';
 
 function _lmsOnlineHubOpen(){
+  // v2233 — fermeture du cas résiduel « skin RADAR fantôme ».
+  // Le flag _lmsRadarWorldSkin est posé au handshake Nearby et n'était coupé qu'à la fin d'un
+  // vrai duel. Si le handshake réussissait mais que l'invite était annulée/expirée avant le
+  // lancement, le flag restait armé : un duel classique lancé ensuite sur le monde 1 affichait
+  // le skin Solana à tort. Toute réouverture du hub en ligne (donc tout retour au point de
+  // départ, quel que soit le chemin) le désarme désormais. Le vrai chemin RADAR n'est pas
+  // concerné : il pose le flag APRÈS l'ouverture du hub, au moment du handshake.
+  _lmsRadarWorldSkin = false;
+  _lmsRadarSkinArmedAt = 0;
+  _lmsRadarWorldSkinEndedWasActive = false;
   const overlay = document.getElementById('online-hub-overlay');
   const titleEl = document.getElementById('online-hub-title');
   const subEl = document.getElementById('online-hub-sub');
   const tabDuelEl = document.getElementById('online-hub-tab-duel');
   const tabFfaEl = document.getElementById('online-hub-tab-ffa');
+  const tabNearbyEl = document.getElementById('online-hub-tab-nearby');
   const duelCodeBtn = document.getElementById('online-hub-duel-code-btn');
   const ffaCodeBtn = document.getElementById('online-hub-ffa-code-btn');
   const cancelBtn = document.getElementById('online-hub-cancel');
@@ -12799,9 +13295,12 @@ function _lmsOnlineHubOpen(){
   if(subEl) subEl.textContent = t('onlineHubSub');
   if(tabDuelEl) tabDuelEl.textContent = t('onlineHubDuelTitle');
   if(tabFfaEl) tabFfaEl.textContent = t('onlineHubFfaTitle');
+  if(tabNearbyEl) tabNearbyEl.textContent = t('onlineHubNearbyTitle');
   if(duelCodeBtn) duelCodeBtn.textContent = t('onlineHubDuelCodeBtn');
   if(ffaCodeBtn) ffaCodeBtn.textContent = t('onlineHubFfaCodeBtn');
   if(cancelBtn) cancelBtn.textContent = t('onlineHubCancel');
+  _lmsNearbyRenderScanBtn(); // v2187 : texte initial du bouton scan (état repos)
+  _lmsNearbyCheckSupport(); // v2195 : masque l'onglet RADAR sur PC/TV/Android<12 (voir la fonction)
   // v1959 : même geste défensif que _lmsFFAOpen()/_lmsOnlineDuelOpen() — ce hub s'ouvre
   // normalement toujours depuis le menu (STATE déjà 'menu'), donc ce cas ne se déclenche pas
   // aujourd'hui, mais on le protège au cas où un futur point d'entrée l'ouvrirait en pleine partie.
@@ -12816,6 +13315,7 @@ function _lmsOnlineHubOpen(){
   const overlay = document.getElementById('online-hub-overlay');
   if(overlay) overlay.classList.remove('active');
   _lmsOnlinePresenceUnregister();
+  _lmsNearbyStop(); // v2187 : coupe le scan/la connexion Nearby si le hub se ferme pendant une recherche
   _lmsResumeFromMenuPauseIfClear(); // v1959 : voir _lmsOnlineHubOpen()
 }
 
@@ -12826,12 +13326,19 @@ function _lmsOnlineHubSetTab(tab){
   _lmsOnlineHubActiveTab = tab;
   const tabDuelEl = document.getElementById('online-hub-tab-duel');
   const tabFfaEl = document.getElementById('online-hub-tab-ffa');
+  const tabNearbyEl = document.getElementById('online-hub-tab-nearby');
   const panelDuelEl = document.getElementById('online-hub-panel-duel');
   const panelFfaEl = document.getElementById('online-hub-panel-ffa');
+  const panelNearbyEl = document.getElementById('online-hub-panel-nearby');
   if(tabDuelEl) tabDuelEl.classList.toggle('active', tab === 'duel');
   if(tabFfaEl) tabFfaEl.classList.toggle('active', tab === 'ffa');
+  if(tabNearbyEl) tabNearbyEl.classList.toggle('active', tab === 'nearby');
   if(panelDuelEl) panelDuelEl.style.display = (tab === 'duel') ? 'flex' : 'none';
   if(panelFfaEl) panelFfaEl.style.display = (tab === 'ffa') ? 'flex' : 'none';
+  if(panelNearbyEl) panelNearbyEl.style.display = (tab === 'nearby') ? 'flex' : 'none';
+  // v2187 : quitter l'onglet Proximité coupe le scan — évite de laisser Bluetooth/WiFi actifs
+  // en arrière-plan pendant que le joueur regarde un autre onglet.
+  if(tab !== 'nearby') _lmsNearbyStop();
 }
 function _lmsOnlineHubPick(mode){
   // FIX v1858 : on fermait le hub AVANT de savoir si l'écran cible pouvait réellement
@@ -13176,6 +13683,7 @@ function _lmsFFABeginSync(roomRef){
   _lmsOnlineDuelPendingDecorByRound = {};
   _caisses = [];
   _lmsOnlineDuelEndedWasActive = false;
+  _lmsRadarWorldSkinEndedWasActive = false;
   _lmsOnlineDuelEndedOpponentSkin = null;
   _lmsOnlineDuelEndedOpponentStick = null;
   _lmsOnlineDuelEndedOpponentHelmet = null;
@@ -13610,6 +14118,13 @@ let _lmsOnlineDuelOpponentSkin = null;
 // d'appeler _lmsOnlineDuelEndSync() (voir _lmsOnlineDuelSnapshotAndEndSync ci-dessous),
 // que showEndScreen() utilise à la place des variables live désormais nettoyées.
 let _lmsOnlineDuelEndedWasActive = false;
+// v2240 — FIX « smiley caca / fond lac gelé qui reviennent sur l'écran de fin du duel RADAR ».
+// Même famille de bug/même remède que _lmsOnlineDuelEndedWasActive ci-dessus : _lmsRadarWorldSkin
+// est remis à false par _lmsOnlineDuelEndSync() dès la fin de match détectée, donc AVANT que
+// showEndScreen()/la cinématique de victoire n'aient fini de se dessiner — le téléphone (si pas
+// percuté) retombait sur son rendu caca, et le fond du monde 1 sur bg_lac.jpg, en plein écran de
+// fin. On capture donc l'état juste avant la coupure, exactement comme pour EndedWasActive.
+let _lmsRadarWorldSkinEndedWasActive = false;
 // v1925 : REJOUER (MÊMES AMIS) — même principe de snapshot que EndedWasActive juste au-dessus :
 // _lmsFFAMode est remis à false par _lmsOnlineDuelEndSync() AVANT que showEndScreen() ne décide
 // quel bouton "rejouer en ligne" proposer (duel ou FFA) — sans ce flag capturé au même instant,
@@ -13966,6 +14481,7 @@ function _lmsOnlineDuelBeginSync(roomRef, myRole){
   // distant" dès qu'il obtenait l'id===1, réutilisant le skin figé d'un duel déjà terminé depuis
   // longtemps. Voir les 3 sites qui lisent _lmsOnlineDuelEndedWasActive/_lmsOnlineDuelEndedOpponentSkin.
   _lmsOnlineDuelEndedWasActive = false;
+  _lmsRadarWorldSkinEndedWasActive = false;
   _lmsOnlineDuelEndedOpponentSkin = null;
   _lmsOnlineDuelEndedOpponentStick = null;
   _lmsOnlineDuelEndedOpponentHelmet = null;
@@ -14789,6 +15305,7 @@ function _lmsOnlineDuelRevealRound(expectedRound){
 // à _lmsOnlineDuelEndSync() dans ces cas précis, sous peine de perdre l'info pour showEndScreen().
 function _lmsOnlineDuelSnapshotAndEndSync(){
   _lmsOnlineDuelEndedWasActive = !!_lmsOnlineDuelActive;
+  _lmsRadarWorldSkinEndedWasActive = !!_lmsRadarWorldSkin;
   _lmsRematchEndedWasFFA = !!_lmsFFAMode;
   _lmsFFASnapshotOpponentIdentity(1);
   // FIX (audit, rematch FFA + bug "avatar vectoriel du gagnant côté perdants") : seul le slot 1
@@ -14807,7 +15324,26 @@ function _lmsOnlineDuelSnapshotAndEndSync(){
   _lmsOnlineDuelEndSync();
 }
 function _lmsOnlineDuelEndSync(){
+  // v2233 — FIX skin RADAR absent en mode Proximité.
+  // Cette fonction est appelée dans DEUX contextes très différents : (a) la vraie fin d'un duel,
+  // (b) un nettoyage défensif AVANT d'ouvrir une nouvelle salle (_lmsInviteAccept,
+  // _lmsOnlineDuelOpen, _lmsFFAOpen). Or le handshake Nearby pose _lmsRadarWorldSkin = true
+  // puis appelle immédiatement _lmsInviteSend → _lmsOnlineDuelOpen → ce nettoyage (b), qui
+  // remettait le flag à false une fraction de seconde après l'avoir posé, sur les 2 appareils.
+  // D'où un duel « lac gelé nu » : ni fond Solana, ni téléphone, ni jeton SKR — les 3 d'un coup,
+  // puisque les 3 sont gardés par le même _seekerSkinActive().
+  // On ne coupe donc le skin que sur une vraie fin de duel (un duel était actif), jamais sur un
+  // nettoyage préventif qui suit un handshake Nearby.
+  const _wasActive = (_lmsOnlineDuelActive === true);
   _lmsOnlineDuelActive = false;
+  // Fenêtre de 90 s : au-delà, ce n'est plus le nettoyage qui suit immédiatement un handshake,
+  // donc rien à préserver — le flag est coupé comme avant.
+  let _fromNearby = false;
+  try { _fromNearby = (_lmsNearbyHandshakeDone === true) && (Date.now() - (_lmsRadarSkinArmedAt||0) < 90000); } catch(e){ _fromNearby = false; }
+  if(_wasActive || !_fromNearby){
+    _lmsRadarWorldSkin = false; // fin du duel RADAR — le skin (fond/caca/pièces) ne doit pas fuiter sur le duel suivant
+  }
+
   _lmsOnlineDuelShowWait(false); // sécurité si le duel est coupé pendant qu'on attend la barrière
   if(_lmsOnlineDuelBroadcastTimer){ clearInterval(_lmsOnlineDuelBroadcastTimer); _lmsOnlineDuelBroadcastTimer = null; }
   if(_lmsOnlineDuelForfeitWatchdog){ clearInterval(_lmsOnlineDuelForfeitWatchdog); _lmsOnlineDuelForfeitWatchdog = null; }
@@ -16235,6 +16771,35 @@ const _DEBUG_FORCE_HOURGLASS = false;
 const _DEBUG_FORCE_MINI = false; // TEMP — force spawn fiole verte très souvent
 let _DEBUG_SHOW_FPS = false; // overlay FPS — activé automatiquement avec le mode dev (Alt+D ou séquence mondes)
 
+// ── DEBUG : mesure du "gap" hors-JS (délai entre deux rAF successifs, côté navigateur) ──
+// Boucle rAF INDÉPENDANTE de loop(), qui ne touche à AUCUN des points d'appel du jeu.
+// Historique : une version précédente enveloppait requestAnimationFrame(loop) dans une
+// fonction _scheduleLoop() appelée aux ~25 points de reprise du jeu. Même gatée derrière
+// _DEBUG_SHOW_FPS (donc sans coût de mesure quand le debug est off), cette seule couche
+// d'indirection suffisait à faire saccader le jeu sur certains appareils/WebView — sans
+// qu'on ait pu établir précisément pourquoi (probable effet de bord JIT/scheduling propre
+// à l'environnement). Cette boucle-ci mesure un gap ÉQUIVALENT (l'intervalle réel entre
+// deux opportunités de rendu du navigateur, ce qui est indépendant de QUI appelle rAF) sans
+// jamais modifier le chemin chaud du jeu : elle démarre/s'arrête seule avec _DEBUG_SHOW_FPS.
+let _dbgGapMsSum = 0, _dbgGapSamples = 0;
+let _dbgGenLoopRunning = false;
+let _dbgGenLastTs = 0;
+function _dbgGapLoop(ts){
+  if(!_DEBUG_SHOW_FPS){ _dbgGenLoopRunning = false; return; } // s'arrête seule à la fermeture du panneau dev
+  if(_dbgGenLastTs > 0){
+    _dbgGapMsSum += (ts - _dbgGenLastTs);
+    _dbgGapSamples++;
+  }
+  _dbgGenLastTs = ts;
+  requestAnimationFrame(_dbgGapLoop);
+}
+function _dbgEnsureGapLoop(){
+  if(_dbgGenLoopRunning) return;
+  _dbgGenLoopRunning = true;
+  _dbgGenLastTs = 0;
+  requestAnimationFrame(_dbgGapLoop);
+}
+
 // ── Items ultra-rares — 1 seul par partie (sauf si _DEBUG_FORCE_HOURGLASS) ──
 const PU_ULTRA = [
   { id:'boost',     emoji:'⚡', col:'#ffe000', label:'SPEED BOOST'   },
@@ -17179,6 +17744,559 @@ function _lmsSolanaWalletPlugin(){
   return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SolanaWallet;
 }
 
+// ── v2187 : mode PROXIMITÉ (hackathon Solana) — détection Nearby Connections ────
+// Réutilise 100% le système d'invite Duel existant (_lmsInviteSend, voir plus bas dans
+// ce fichier) : une fois deux devices connectés en Nearby, ils s'échangent uid+pseudo,
+// et le côté avec l'uid le plus petit (comparaison de chaînes, déterministe des deux
+// côtés) appelle _lmsInviteSend() exactement comme un clic sur la liste "en ligne" —
+// l'autre reçoit la popup d'invite normale. Aucun nouveau netcode de jeu.
+function _lmsNearbyPlugin(){
+  return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LmsNearby;
+}
+
+let _lmsNearbyScanning = false;
+let _lmsNearbyPeers = {}; // endpointId -> {name, key, lastSeen}
+let _lmsNearbyConnectingTo = null; // endpointId en cours de connexion, ou null
+let _lmsNearbyHandshakeDone = false; // true dès qu'une invite a été envoyée/attendue pour cette connexion
+// v2230 : flag 100% LOCAL (jamais échangé sur le réseau — voir le commentaire dans
+// payloadReceived pour le raisonnement) posé dès que MON PROPRE handshake RADAR aboutit.
+// Lu au rendu (fond/caca/pièces) tant qu'on est dans un duel issu de RADAR, remis à false
+// à la fin du duel (voir _lmsOnlineDuelEndSync).
+let _lmsRadarWorldSkin = false;
+// v2233 : horodatage de l'armement du skin RADAR (handshake Nearby). Sert de fenêtre de
+// validité : au-delà, un flag resté armé par un chemin annulé n'est plus jamais honoré.
+let _lmsRadarSkinArmedAt = 0;
+let _lmsNearbyListenersBound = false;
+let _lmsNearbyBusy = false; // un start/stop natif est en vol — bloque le re-tap
+// v2228 : purge périodique par péremption — cf. bug doublon #3 (clé différente générée par
+// l'autre device après son propre cycle fermer/rouvrir, donc dédup par clé impuissante ici :
+// les deux entrées sont "légitimement" différentes par clé, mais correspondent au même device
+// physique). lastSeen posé/rafraîchi à chaque endpointFound ; purge de ce qui n'a pas été revu
+// depuis _LMS_NEARBY_STALE_MS pendant que le scan tourne encore.
+const _LMS_NEARBY_STALE_MS = 8000;
+let _lmsNearbyPurgeTimer = null;
+let _lmsNearbyRestartTimer = null;
+let _lmsNearbyHandshakeTimer = null;
+let _lmsNearbyMyKey = ''; // clé d'identité de CETTE session de scan (voir _lmsNearbyNewKey)
+let _lmsNearbyAutoConnectCalls = 0; // v2221 : preuve à l'écran que _lmsNearbyMaybeAutoConnect tourne bien
+
+// v2193 : le nom annoncé en Nearby transporte aussi une clé d'identité ("pseudo\u001Fclé").
+// Sans ça, au moment où on découvre un endpoint on ne connaît QUE son pseudo — impossible
+// de décider qui initie la connexion, donc les deux devices appelaient requestConnection()
+// en même temps (le joueur tapait CONNECTER des deux côtés) et Nearby partait en collision :
+// écran bloqué sur "Recherche en cours" sans la moindre erreur.
+// v2194 : la clé n'est plus l'uid Firebase seul mais "uid#nonce", le nonce étant tiré au
+// hasard à CHAQUE démarrage de scan. Deux raisons : (a) si les deux devices sont connectés
+// au MÊME compte Firebase, les uid sont identiques et la comparaison "uid < uid" est fausse
+// des deux côtés → les deux attendent, plus personne n'initie ; (b) si l'auth Firebase n'a
+// pas encore abouti, uid vaut null et il n'y avait plus aucun départage possible.
+// v2200 : séparateur PRINTABLE, pas un caractère de contrôle. Diagnostic sur device : le
+// bandeau de debug n'affichait jamais "lui:..." des deux côtés — preuve que \u001F (Unit
+// Separator, invisible) ne survivait pas au trajet dans le nom d'endpoint Nearby (BLE/Wi-Fi
+// filtre ou tronque les caractères non imprimables). Le pseudo arrivait intact, tout ce qui
+// suivait le caractère invisible était perdu -> key toujours vide des deux côtés, personne
+// n'était INIT, la connexion automatique ne partait jamais.
+// '¦' (U+00A6, broken bar) est imprimable, absent des claviers standards FR/EN, et est en plus
+// retiré explicitement du pseudo dans _lmsNearbySelfTag() par sécurité.
+// v2220 : le caractère précédent ('¦', U+00A6) est PRINTABLE mais reste hors ASCII (Latin-1
+// étendu). Sur device, "lui:" restait vide des deux côtés même après ce correctif — même
+// symptôme qu'avec le caractère de contrôle invisible d'avant. Diagnostic : le nom d'endpoint
+// Nearby transite par des couches BLE qui, très souvent, ne garantissent que de l'ASCII pur
+// (0-127) et filtrent/corrompent silencieusement tout le reste, imprimable ou non. '~' (tilde,
+// ASCII 126) est un caractère ASCII pur, absent des pseudos usuels — le choix le plus sûr.
+const _LMS_NEARBY_SEP = '~';
+const _LMS_NEARBY_BUILD = 'v2228';
+// Diagnostic à l'écran (build + clés + rôle INIT/WAIT) — à repasser à false avant la vidéo
+// de démo. C'est le seul moyen de savoir, sans câble USB, quel device fait quoi.
+const _LMS_NEARBY_DEBUG = true;
+
+function _lmsNearbyNewKey(){
+  const nonce = Math.random().toString(36).slice(2, 8);
+  return String(_lmsAuthUid || 'anon') + '#' + nonce;
+}
+
+function _lmsNearbyShortKey(k){
+  const s = String(k || '');
+  if(!s) return '∅';
+  return s.length <= 9 ? s : (s.slice(0, 4) + '…' + s.slice(-4));
+}
+
+function _lmsNearbyDbg(peer){
+  if(!_LMS_NEARBY_DEBUG) return '';
+  let out = ' [' + _LMS_NEARBY_BUILD + ' moi:' + _lmsNearbyShortKey(_lmsNearbyMyKey) + ' appels:' + _lmsNearbyAutoConnectCalls;
+  if(peer){
+    out += ' lui:' + _lmsNearbyShortKey(peer.key);
+    if(peer.key) out += (_lmsNearbyMyKey < peer.key) ? ' INIT' : ' WAIT';
+  }
+  return out + ']';
+}
+
+function _lmsNearbySelfTag(){
+  // v2200 : le pseudo ne doit jamais pouvoir contenir le séparateur, sinon le split ferait
+  // apparaître un faux "reste" dans le nom et tronquerait la clé — split() coupe au PREMIER
+  // séparateur trouvé (voir _lmsNearbyParseTag), donc un pseudo piégé casserait le parsing.
+  const name = String((typeof getPlayerName === 'function' ? getPlayerName() : '') || 'Joueur')
+    .split(_LMS_NEARBY_SEP).join('').slice(0, 40);
+  return name + _LMS_NEARBY_SEP + _lmsNearbyMyKey;
+}
+
+function _lmsNearbyParseTag(raw){
+  const str = String(raw || '');
+  const i = str.indexOf(_LMS_NEARBY_SEP);
+  if(i === -1) return { name: str || '???', key: '' }; // build plus ancien en face
+  return { name: str.slice(0, i) || '???', key: str.slice(i + 1) };
+}
+
+// v2195 : l'onglet RADAR n'est affiché QUE là où il peut réellement marcher.
+//  - Navigateur/PC : le plugin natif LmsNearby n'existe pas (Nearby Connections est une API
+//    Play Services Android, sans équivalent web — même avec un dongle Bluetooth sur le PC,
+//    une page web n'y a pas accès). Onglet masqué.
+//  - Android TV, absence de Bluetooth LE, Android < 12 : c'est le natif qui tranche, via
+//    isSupported() (voir NearbyProximityPlugin.kt).
+// Un build natif antérieur à v2195 n'a pas isSupported() : dans ce cas on laisse l'onglet
+// visible (comportement d'avant), plutôt que de le faire disparaître sans raison.
+let _lmsNearbySupported = null; // null = pas encore vérifié
+
+function _lmsNearbyApplyTabVisibility(){
+  const tabEl = document.getElementById('online-hub-tab-nearby');
+  if(!tabEl) return;
+  const visible = (_lmsNearbySupported !== false);
+  tabEl.style.display = visible ? '' : 'none';
+  // Si l'onglet disparaît alors qu'il était actif (changement d'état en cours de session),
+  // on rebascule sur Duel pour ne pas laisser un panneau orphelin affiché.
+  if(!visible && _lmsOnlineHubActiveTab === 'nearby') _lmsOnlineHubSetTab('duel');
+}
+
+function _lmsNearbyCheckSupport(){
+  const plugin = _lmsNearbyPlugin();
+  if(!plugin){ _lmsNearbySupported = false; _lmsNearbyApplyTabVisibility(); return; }
+  if(typeof plugin.isSupported !== 'function'){
+    // Build natif pas encore à jour — on n'a aucune raison de masquer l'onglet.
+    _lmsNearbySupported = true;
+    _lmsNearbyApplyTabVisibility();
+    return;
+  }
+  if(_lmsNearbySupported !== null){ _lmsNearbyApplyTabVisibility(); return; } // déjà connu
+  plugin.isSupported().then(res => {
+    _lmsNearbySupported = !!(res && res.supported);
+    if(!_lmsNearbySupported) console.log('[nearby] onglet RADAR masqué — raison:', res && res.reason, 'sdk:', res && res.sdkInt);
+    _lmsNearbyApplyTabVisibility();
+  }).catch(err => {
+    console.warn('[nearby] isSupported a échoué, onglet laissé visible:', err);
+    _lmsNearbySupported = true;
+    _lmsNearbyApplyTabVisibility();
+  });
+}
+
+function _lmsNearbyRenderScanBtn(){
+  const btn = document.getElementById('online-hub-nearby-scan-btn');
+  if(!btn) return;
+  btn.textContent = _lmsNearbyScanning ? t('onlineHubNearbyStop') : t('onlineHubNearbyScanBtn');
+}
+
+function _lmsNearbyRenderStatus(text){
+  const el = document.getElementById('online-hub-nearby-status');
+  if(el) el.textContent = text;
+}
+
+function _lmsNearbyRenderList(){
+  const box = document.getElementById('online-hub-nearby-players');
+  if(!box) return;
+  const ids = Object.keys(_lmsNearbyPeers);
+  if(!ids.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = '';
+  box.innerHTML = ids.map(id => {
+    const safeName = _lmsEscHtml(_lmsNearbyPeers[id].name);
+    const safeId = _lmsEscHtml(id);
+    // Réutilise volontairement .online-hub-player-row/.ohp-name/.ohp-invite-btn — même
+    // rendu visuel que la liste "en ligne" du panneau Duel, juste un handler différent.
+    // Ce sont de vrais <button> avec onclick : la navigation D-pad Android TV les découvre
+    // automatiquement (voir NAVIGATION SPATIALE MENUS), rien à déclarer ici.
+    // v2222 : onclick/ontouchstart DIRECTEMENT sur le bouton, en plus de la délégation sur le
+    // conteneur (#online-hub-nearby-players[onclick]) — sur device, appuyer sur CONNECTER ne
+    // produisait aucun effet, pas même les messages d'erreur ajoutés en v2219, ce qui pointe
+    // vers un toucher qui n'atteint jamais _lmsNearbyListClick() via closest(). Un handler porté
+    // par le bouton lui-même ne dépend plus de la délégation ni de la détection de cible.
+    return '<div class="online-hub-player-row">'
+      + '<span class="ohp-name">' + safeName + '</span>'
+      + '<button class="ohp-invite-btn" data-nearby-connect-id="' + safeId + '" '
+      // v2222 : onclick/ontouchstart directement sur le bouton (alert() de diagnostic v2223 retiré,
+      // confirmé que le tap atteignait bien le JS — le bug est plus loin, voir watchdog v2224).
+      + 'onclick="_lmsNearbyConnect(\'' + safeId + '\')" '
+      // v2225 : preventDefault/stopPropagation retirés du touchstart — avec l'alert() (v2223)
+      // ils s'exécutaient trop tard pour être honorés par le moteur tactile (no-op), ce qui
+      // masquait qu'ils supprimaient en réalité l'état :active natif du bouton (effet "roll"
+      // disparu une fois l'alert enlevée). Le garde _lmsNearbyConnectingTo protège déjà contre
+      // un double-appel touchstart+click sur le même endpoint, donc plus besoin de bloquer la
+      // propagation ici.
+      + 'ontouchstart="_lmsNearbyConnect(\'' + safeId + '\');">'
+      + t('onlineHubNearbyConnectBtn') + '</button>'
+      + '</div>';
+  }).join('');
+}
+
+// Lance réellement la demande de connexion vers un endpoint donné.
+function _lmsNearbyConnect(endpointId){
+  // v2226 : tout le corps sous try/catch — appelée depuis un onclick/ontouchstart inline, une
+  // exception synchrone ici (ex: _lmsNearbyPlugin() qui plante) est avalée silencieusement par
+  // le navigateur, sans AUCUNE trace à l'écran ni même en console visible sans câble. Symptôme
+  // observé sur device : ni les branches synchrones (plugin/peer/déjà en cours) ni le watchdog
+  // 8s ne s'affichaient — signe que la fonction plantait avant sa première ligne utile.
+  try{
+    _lmsNearbyConnectInner(endpointId);
+  }catch(e){
+    _lmsNearbyRenderStatus('🔴 exception _lmsNearbyConnect: ' + ((e && (e.message || e)) || '?'));
+  }
+}
+
+function _lmsNearbyConnectInner(endpointId){
+  const plugin = _lmsNearbyPlugin();
+  const peer = _lmsNearbyPeers[endpointId];
+  // v2219 : ces deux cas rendaient CONNECTER inerte au clic, sans aucun retour à l'écran —
+  // exactement le symptôme "rien ne se passe" remonté sur device. Diagnostic maintenant visible.
+  if(!plugin){ _lmsNearbyRenderStatus('⚠️ plugin LmsNearby introuvable (build natif pas à jour ?)'); return; }
+  if(!peer){ _lmsNearbyRenderStatus('⚠️ endpoint disparu de la liste — relance le scan.'); return; }
+  if(_lmsNearbyConnectingTo === endpointId){
+    // Cas normal depuis v2200 : l'auto-connect (voir _lmsNearbyMaybeAutoConnect) est probablement
+    // déjà parti tout seul à la découverte. On le dit au lieu de laisser le bouton sans effet visible.
+    _lmsNearbyRenderStatus(t('onlineHubNearbyConnecting', peer.name) + ' (déjà en cours)' + _lmsNearbyDbg(peer));
+    return;
+  }
+  _lmsNearbyConnectingTo = endpointId;
+  _lmsNearbyRenderStatus(t('onlineHubNearbyConnecting', peer.name) + _lmsNearbyDbg(peer));
+  // v2224 : watchdog — si connectTo() ne résout, ne rejette, ET ne déclenche jamais
+  // 'connectionInitiated' dans ce délai, on démasque un hang silencieux (promise natale
+  // jamais résolue/rejetée) au lieu de rester bloqué indéfiniment sur "déjà en cours" à
+  // chaque tentative suivante (auto-connect OU manuelle) sur ce même endpoint.
+  // v2229 : 8s jugé trop court sur device réel (radio parfois lente à répondre sans que
+  // ce soit un vrai blocage) — porté à 15s.
+  setTimeout(() => {
+    if(_lmsNearbyConnectingTo === endpointId){
+      _lmsNearbyConnectingTo = null;
+      _lmsNearbyRenderStatus('⏱️ timeout connectTo (ni erreur ni connectionInitiated après 15s) — relance possible.' + _lmsNearbyDbg(peer));
+    }
+  }, 15000);
+  plugin.connectTo({ endpointId: endpointId, displayName: _lmsNearbySelfTag() }).catch(err => {
+    console.error('[nearby] connectTo error:', err);
+    if(_lmsNearbyConnectingTo === endpointId) _lmsNearbyConnectingTo = null;
+    _lmsNearbyRenderStatus('⚠️ connect: ' + ((err && (err.message || err)) || '?'));
+  });
+}
+
+// Tie-break déterministe : la clé la plus PETITE (comparaison de chaînes, donc même résultat
+// des deux côtés) est la seule à appeler connectTo(). L'autre ne fait rien et attend
+// onConnectionInitiated. Les deux joueurs tapent RADAR, la paire se forme seule.
+// AUCUNE branche muette ici : chaque cas écrit quelque chose à l'écran, sinon on retombe sur
+// le symptôme "ça reste sur Recherche en cours et on ne sait pas pourquoi".
+function _lmsNearbyMaybeAutoConnect(endpointId){
+  const peer = _lmsNearbyPeers[endpointId];
+  // v2221 : trace INCONDITIONNELLE et rendue immédiatement, avant tout guard — si un guard
+  // rend derrière (return silencieux), ce texte reste affiché tel quel puisque rien ne
+  // l'écrase plus ensuite. Preuve directe, à l'écran, que cette fonction est bien appelée.
+  // Si "🔎 vu:" n'apparaît JAMAIS alors que la liste affiche pourtant un joueur avec
+  // CONNECTER, le problème est en amont (l'écouteur 'endpointFound'), pas ici.
+  _lmsNearbyAutoConnectCalls++;
+  _lmsNearbyRenderStatus('🔎 vu: ' + (peer ? peer.name : '?') + _lmsNearbyDbg(peer));
+  if(!peer) return;
+  if(_lmsNearbyHandshakeDone) return;
+  if(_lmsNearbyConnectingTo) return; // une connexion est déjà en cours avec quelqu'un
+  if(!peer.key){
+    // Le device d'en face annonce un nom sans clé → il tourne un build antérieur à v2193.
+    _lmsNearbyRenderStatus('⚠️ ' + peer.name + ' : build ancien en face, pas de départage possible — CONNECTER d\'UN SEUL côté.' + _lmsNearbyDbg(peer));
+    return;
+  }
+  if(peer.key === _lmsNearbyMyKey){
+    _lmsNearbyRenderStatus('⚠️ clés identiques (même device ?) — relance le scan.' + _lmsNearbyDbg(peer));
+    return;
+  }
+  if(_lmsNearbyMyKey < peer.key){
+    _lmsNearbyConnect(endpointId);
+  } else {
+    _lmsNearbyRenderStatus(t('onlineHubNearbyWaitingPeer', peer.name) + _lmsNearbyDbg(peer));
+  }
+}
+
+function _lmsNearbyListClick(ev){
+  const btn = ev.target && ev.target.closest ? ev.target.closest('[data-nearby-connect-id]') : null;
+  if(!btn){
+    // v2219 : diagnostic — un appui qui atteint le conteneur mais rate le bouton (overlay,
+    // hitbox décalée) donnait exactement le symptôme "rien ne se passe" sans aucune trace.
+    console.warn('[nearby] tap reçu par le conteneur mais aucun bouton CONNECTER sous le doigt', ev.target);
+    return;
+  }
+  const endpointId = btn.getAttribute('data-nearby-connect-id');
+  if(!endpointId){ console.warn('[nearby] bouton CONNECTER sans data-nearby-connect-id ?!'); return; }
+  _lmsNearbyConnect(endpointId);
+}
+
+// Relance une recherche propre après un échec : sans ça le joueur restait devant un message
+// figé, sans advertising ni discovery actifs côté natif.
+function _lmsNearbyRestartScan(){
+  if(_lmsNearbyRestartTimer) return;
+  _lmsNearbyRestartTimer = setTimeout(() => {
+    _lmsNearbyRestartTimer = null;
+    if(!_lmsNearbyScanning || _lmsNearbyHandshakeDone) return;
+    const plugin = _lmsNearbyPlugin();
+    if(!plugin) return;
+    _lmsNearbyPeers = {};
+    _lmsNearbyConnectingTo = null;
+    _lmsNearbyMyKey = _lmsNearbyNewKey(); // nouvelle clé → nouveau départage
+    _lmsNearbyRenderList();
+    plugin.setLocalPayload({ value: _lmsNearbyPayload() }).catch(()=>{});
+    plugin.start({ displayName: _lmsNearbySelfTag(), mode: 'both' })
+      .then(() => _lmsNearbyRenderStatus(t('onlineHubNearbyScanning') + _lmsNearbyDbg(null)))
+      .catch(() => {});
+  }, 1200);
+}
+
+function _lmsNearbyPayload(){
+  return JSON.stringify({
+    uid: _lmsAuthUid,
+    key: _lmsNearbyMyKey,
+    name: (typeof getPlayerName === 'function' ? getPlayerName() : '') || '???'
+  });
+}
+
+function _lmsNearbyClearHandshakeTimer(){
+  if(_lmsNearbyHandshakeTimer){ clearTimeout(_lmsNearbyHandshakeTimer); _lmsNearbyHandshakeTimer = null; }
+}
+
+function _lmsNearbyBindListeners(plugin){
+  if(_lmsNearbyListenersBound) return;
+  _lmsNearbyListenersBound = true;
+
+  // v2200 : un même appareil peut être annoncé plusieurs fois avec des endpointId DIFFÉRENTS —
+  // Nearby en P2P_CLUSTER découvre par plusieurs mediums radio en parallèle (BLE, puis Wi-Fi/
+  // mDNS), et chacun déclenche son propre onEndpointFound pour le MÊME pair physique. Sans
+  // déduplication, un même joueur apparaissait deux fois dans la liste (vu sur device). On
+  // déduplique par clé (fiable, unique par session de scan) plutôt que par nom (deux joueurs
+  // peuvent avoir le même pseudo).
+  plugin.addListener('endpointFound', (data) => {
+    const peer = _lmsNearbyParseTag(data.displayName);
+    peer.lastSeen = Date.now();
+    if(peer.key){
+      const already = Object.keys(_lmsNearbyPeers).find(id => _lmsNearbyPeers[id].key === peer.key);
+      if(already && already !== data.endpointId) return; // même pair, medium différent : ignoré
+    }
+    _lmsNearbyPeers[data.endpointId] = peer;
+    _lmsNearbyRenderList();
+    _lmsNearbyMaybeAutoConnect(data.endpointId);
+  });
+
+  plugin.addListener('endpointLost', (data) => {
+    // Ne supprime que si CET endpointId était bien celui retenu (voir dédup ci-dessus) — un
+    // medium secondaire qui disparaît ne doit pas faire disparaître un pair toujours détecté
+    // par un autre medium.
+    if(_lmsNearbyPeers[data.endpointId]){
+      delete _lmsNearbyPeers[data.endpointId];
+      _lmsNearbyRenderList();
+    }
+  });
+
+  // L'état natif fait foi — le bouton "ARRÊTER" mentait quand startAdvertising() avait
+  // échoué en silence côté Play Services.
+  plugin.addListener('scanState', (data) => {
+    const running = !!(data && (data.advertising || data.discovering));
+    if(_lmsNearbyScanning !== running && !_lmsNearbyHandshakeDone){
+      _lmsNearbyScanning = running;
+      _lmsNearbyRenderScanBtn();
+    }
+  });
+
+  plugin.addListener('connectionInitiated', (data) => {
+    const peer = _lmsNearbyParseTag(data.displayName);
+    if(!_lmsNearbyPeers[data.endpointId]) _lmsNearbyPeers[data.endpointId] = peer;
+    _lmsNearbyConnectingTo = data.endpointId;
+    _lmsNearbyRenderStatus('🤝 ' + peer.name + '…' + _lmsNearbyDbg(peer));
+  });
+
+  plugin.addListener('connectionResult', (data) => {
+    if(!data.success){
+      _lmsNearbyConnectingTo = null;
+      // Le code numérique Nearby (ConnectionsStatusCodes) est essentiel pour comprendre
+      // POURQUOI ça échoue — remettre juste "Recherche en cours" cachait l'info.
+      _lmsNearbyRenderStatus('⚠️ connection failed: status ' + data.statusCode);
+      _lmsNearbyRestartScan();
+      return;
+    }
+    // Payload local déjà envoyé côté natif dès la connexion établie (voir
+    // NearbyProximityPlugin.kt) — on attend maintenant payloadReceived côté JS pour
+    // savoir QUI est le pair avant de décider qui envoie l'invite.
+    _lmsNearbyHandshakeDone = false;
+    const peer = _lmsNearbyPeers[data.endpointId];
+    _lmsNearbyRenderStatus(t('onlineHubNearbyConnecting', (peer && peer.name) || '???') + _lmsNearbyDbg(peer));
+    // Connexion établie mais payload jamais reçu = cul-de-sac silencieux (advertising et
+    // discovery viennent d'être coupés côté natif) : on le dit et on relance.
+    _lmsNearbyClearHandshakeTimer();
+    _lmsNearbyHandshakeTimer = setTimeout(() => {
+      _lmsNearbyHandshakeTimer = null;
+      if(_lmsNearbyHandshakeDone) return;
+      _lmsNearbyRenderStatus('⚠️ connecté mais aucun échange reçu — nouvelle recherche…');
+      _lmsNearbyConnectingTo = null;
+      _lmsNearbyRestartScan();
+    }, 10000);
+  });
+
+  plugin.addListener('payloadReceived', (data) => {
+    if(_lmsNearbyHandshakeDone) return; // sécurité anti double-déclenchement
+    let peer;
+    try{ peer = JSON.parse(data.value); }catch(e){ return; }
+    if(!peer || !peer.uid){
+      _lmsNearbyRenderStatus('⚠️ pair sans uid Firebase — impossible de lancer le duel.');
+      return;
+    }
+    if(!_lmsAuthUid){
+      // Firebase pas encore authentifié : sans uid local on ne peut ni trancher qui invite
+      // ni envoyer l'invite. On le dit au lieu de rester muet sur "Recherche en cours".
+      _lmsNearbyRenderStatus('⚠️ ' + t('onlineDuelUnavailable'));
+      return;
+    }
+    if(peer.uid === _lmsAuthUid){
+      // Même compte Firebase sur les deux devices : l'invite partirait dans sa propre
+      // boîte invites/<uid>. Le Duel en ligne classique a exactement la même limite.
+      _lmsNearbyClearHandshakeTimer();
+      _lmsNearbyRenderStatus('⚠️ même compte Firebase sur les 2 appareils — duel impossible.');
+      return;
+    }
+    _lmsNearbyClearHandshakeTimer();
+    _lmsNearbyHandshakeDone = true;
+    // v2230 : on pose le flag skin RADAR ICI, pas via un champ réseau. Le handshake Nearby se
+    // produit indépendamment et symétriquement sur les 2 appareils (chacun calcule son propre
+    // tie-break, chacun reçoit son propre payloadReceived) — donc chaque device sait déjà
+    // localement "je viens de RADAR" à cet instant précis, sans avoir besoin que ce soit
+    // synchronisé côté Firebase : les 2 l'auront positionné au même moment de toute façon.
+    // Remis à false en fin de duel dans _lmsOnlineDuelEndSync.
+    _lmsRadarWorldSkin = true;
+    _lmsRadarSkinArmedAt = Date.now();
+    // v2231 : on déclenche ici le préchargement des 3 assets du skin (fond, téléphone, jeton
+    // SKR animé) — l'invite/room prend quelques secondes, donc ils sont prêts au premier frame.
+    if(typeof _loadSeekerSkinAssets === 'function') _loadSeekerSkinAssets();
+    if(typeof _loadLacAssets === 'function') _loadLacAssets(); // terrain du duel RADAR = monde 1
+    _lmsNearbyRenderStatus(t('onlineHubNearbyConnected', peer.name || '???'));
+    // Même départage que pour l'initiation de la connexion (clé si dispo, uid sinon) :
+    // un seul des deux envoie l'invite Duel, l'autre reçoit la popup d'invite normale
+    // (déjà posée ailleurs dans ce fichier, s'affiche par-dessus le hub si besoin).
+    const mine = peer.key ? _lmsNearbyMyKey : _lmsAuthUid;
+    const theirs = peer.key ? peer.key : peer.uid;
+    if(mine < theirs){
+      // v2230 : monde forcé à 1 (lac gelé, terrain du skin RADAR) côté hôte AVANT l'invite —
+      // _lmsInviteSend fait de l'appelant l'hôte tout de suite, et c'est currentWorld de l'hôte
+      // qui est diffusé à la room (voir world: currentWorld dans _lmsOnlineDuelBothConnected)
+      // puis appliqué chez l'invité via _applyNetworkWorld (voir _lmsOnlineDuelWaitAsGuest).
+      // Zéro champ réseau à ajouter : le mécanisme existant de sync du monde fait tout le travail.
+      currentWorld = 1;
+      _lmsInviteSend(peer.uid, peer.name || '???', 'duel');
+    }
+    _lmsNearbyStop();
+  });
+
+  plugin.addListener('disconnected', (data) => {
+    if(_lmsNearbyConnectingTo === data.endpointId) _lmsNearbyConnectingTo = null;
+  });
+
+  plugin.addListener('nearbyError', (data) => {
+    console.error('[nearby] error phase=' + data.phase + ' status=' + data.statusCode + ':', data.message);
+    // Visible directement à l'écran (statut du panneau RADAR) — pas besoin de brancher un
+    // câble/chrome://inspect pour voir pourquoi rien ne se passe sur device.
+    _lmsNearbyRenderStatus('⚠️ ' + data.phase + ' (' + data.statusCode + '): ' + (data.message || '?'));
+  });
+}
+
+function _lmsNearbyPurgeStale(){
+  const now = Date.now();
+  let changed = false;
+  Object.keys(_lmsNearbyPeers).forEach(id => {
+    const p = _lmsNearbyPeers[id];
+    if(p.lastSeen && (now - p.lastSeen) > _LMS_NEARBY_STALE_MS && id !== _lmsNearbyConnectingTo){
+      delete _lmsNearbyPeers[id];
+      changed = true;
+    }
+  });
+  if(changed) _lmsNearbyRenderList();
+}
+
+function _lmsNearbyToggleScan(){
+  const plugin = _lmsNearbyPlugin();
+  if(!plugin){ alert(t('onlineHubNearbyUnavailable')); return; }
+  if(_lmsNearbyBusy) return; // un start/stop natif est déjà en vol (anti double-tap)
+  if(_lmsNearbyScanning){ _lmsNearbyStop(); return; }
+
+  _lmsNearbyBindListeners(plugin);
+  _lmsNearbyPeers = {};
+  _lmsNearbyConnectingTo = null;
+  _lmsNearbyHandshakeDone = false;
+  _lmsNearbyClearHandshakeTimer();
+  _lmsNearbyMyKey = _lmsNearbyNewKey();
+  _lmsNearbyRenderList();
+  _lmsNearbyBusy = true;
+
+  plugin.setLocalPayload({ value: _lmsNearbyPayload() }).then(() => {
+    // Le displayName annoncé porte aussi la clé (voir _lmsNearbySelfTag) : c'est elle qui
+    // permet le départage dès la découverte, avant toute connexion.
+    return plugin.start({ displayName: _lmsNearbySelfTag(), mode: 'both' });
+  }).then(() => {
+    _lmsNearbyBusy = false;
+    _lmsNearbyScanning = true;
+    _lmsNearbyRenderScanBtn();
+    _lmsNearbyRenderStatus(t('onlineHubNearbyScanning') + _lmsNearbyDbg(null));
+    if(!_lmsNearbyPurgeTimer) _lmsNearbyPurgeTimer = setInterval(_lmsNearbyPurgeStale, 2000);
+  }).catch(err => {
+    _lmsNearbyBusy = false;
+    console.error('[nearby] start error:', err);
+    const msg = (err && String(err.message || err).indexOf('PERMISSION_DENIED') !== -1)
+      ? t('onlineHubNearbyPermissionDenied')
+      : t('onlineHubNearbyUnavailable');
+    _lmsNearbyRenderStatus('⚠️ ' + ((err && (err.message || err)) || '?'));
+    alert(msg);
+  });
+}
+
+function _lmsNearbyStop(){
+  const plugin = _lmsNearbyPlugin();
+  if(_lmsNearbyRestartTimer){ clearTimeout(_lmsNearbyRestartTimer); _lmsNearbyRestartTimer = null; }
+  if(_lmsNearbyPurgeTimer){ clearInterval(_lmsNearbyPurgeTimer); _lmsNearbyPurgeTimer = null; }
+  _lmsNearbyClearHandshakeTimer();
+  _lmsNearbyScanning = false;
+  _lmsNearbyConnectingTo = null;
+  _lmsNearbyPeers = {};
+  _lmsNearbyRenderList();
+  _lmsNearbyRenderScanBtn();
+  _lmsNearbyRenderStatus(_lmsNearbyHandshakeDone ? '' : t('onlineHubNearbyEmpty'));
+  if(plugin && typeof plugin.stop === 'function'){
+    _lmsNearbyBusy = true;
+    plugin.stop().catch(()=>{}).then(()=>{ _lmsNearbyBusy = false; });
+  }
+}
+
+// ── Détection Seed Vault (Seeker/Saga) ───────────────────────────────────
+// null = pas encore vérifié, true/false = résultat du dernier check.
+// Indépendant du wallet MWA : simple check de package Android, pas besoin
+// d'authorize()/connexion — donc déclenché à l'ouverture des Settings
+// (voir openSettingsPopup), pas après une connexion wallet réussie.
+let _lmsSeedVaultAvailable = null;
+let _lmsSeedVaultChecked = false; // évite de re-déclencher l'alert de test à chaque ouverture
+
+function _lmsCheckSeedVault(){
+  if(_lmsSeedVaultChecked) return;
+  const plugin = _lmsSolanaWalletPlugin();
+  if(!plugin || typeof plugin.isSeedVaultAvailable !== 'function'){
+    // Attendu si le plugin natif n'a pas encore été rebuild avec la méthode
+    // isSeedVaultAvailable() — pas une erreur bloquante, juste pas encore dispo.
+    console.warn('[seedvault] plugin absent ou build pas encore à jour (isSeedVaultAvailable manquant)');
+    return;
+  }
+  _lmsSeedVaultChecked = true;
+  plugin.isSeedVaultAvailable().then(result => {
+    _lmsSeedVaultAvailable = !!(result && result.available);
+    console.log('[seedvault] disponible:', _lmsSeedVaultAvailable);
+    // TEST VISUEL TEMPORAIRE — à retirer une fois validé en conditions réelles sur device,
+    // remplacer par un vrai badge UI quand on branchera le système de rencontre IRL.
+    alert('Seed Vault détecté : ' + (_lmsSeedVaultAvailable ? 'OUI (Seeker)' : 'NON'));
+  }).catch(err => {
+    console.error('[seedvault] échec du check:', err);
+  });
+}
+
 function _lmsConnectSolanaWallet(){
   const plugin = _lmsSolanaWalletPlugin();
   if(!plugin){
@@ -17664,7 +18782,10 @@ async function _lmsClaimPoolReward(){
       // corrects et inchangés, sans les dupliquer ici.
       const ctx = await _lmsFindClaimableContext();
       if(ctx.status === 'no_pool'){ alert(t('claimNoPool')); return; }
-      if(ctx.status === 'no_score'){ alert(t('claimNoScore')); return; }
+      if(ctx.status === 'no_score'){
+        alert(ctx.weekId === _lmsWeekKey() ? t('claimWeekInProgress') : t('claimNoScore'));
+        return;
+      }
       if(!ctx.finalized){ alert(t('claimNotFinalized')); return; }
       if(ctx.claimed){ alert(t('claimAlreadyClaimed')); return; }
       alert(t('claimZeroReward'));
@@ -28479,7 +29600,7 @@ document.addEventListener('keydown', e => {
     const dt = document.getElementById('dev-tools');
     const visible = dt.style.display === 'flex';
     dt.style.display = visible ? 'none' : 'flex';
-    _DEBUG_SHOW_FPS = !visible; // FPS suit l'état du panneau dev
+    _DEBUG_SHOW_FPS = !visible; if(_DEBUG_SHOW_FPS){ _dbgEnsureGapLoop(); _renderColdStartLog(); } else if(typeof document!=='undefined'){ const _c=document.getElementById('fps-cold'); if(_c) _c.style.display='none'; } // FPS suit l'état du panneau dev
     const toast = document.getElementById('locked-toast');
     if(toast){ toast.textContent = visible ? '🛠 DEV OFF' : '🛠 DEV ON'; toast.style.background='linear-gradient(135deg,rgba(0,0,80,.95),rgba(0,60,160,.95))'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1500); }
     return;
@@ -31384,6 +32505,128 @@ function drawBlizzardEvent(){
   CTX.restore();
 }
 
+// ── Niveau 3 éclairage : grading couleur + vignette par monde (v2241) ──
+// Teinte multiply légère (identité chromatique) + vignette radiale, mise en cache par
+// (monde, largeur, hauteur) — se re-génère seule au resize puisque la clé change. Coût : 1
+// fillRect (teinte) + 1 drawImage (vignette pré-rendue). Seul niveau à coût plein écran → câblé
+// derrière _perfQuality (coupé en LOW, comme les autres effets de ce coût dans le fichier).
+// v2244 : restreint à Japon(3), Himalaya(9), Arène Finale(13) uniquement (retiré des autres
+// mondes + de la variante Seeker, monde 1 n'ayant plus de grade). Intensité redivisée par 2 par
+// rapport aux valeurs de test "à fond". Fondu progressif géré par _updateGradeFade() ci-dessous
+// (même logique de lerp ~1s que _lightingAmount() pour les ombres) au lieu d'un switch net au
+// changement de monde ou de palier qualité.
+const _WORLD_GRADE = {
+  3:  { tint:'255,175,195', tintA:0.225,  vig:0.36,  vigCol:'40,10,20' }, // Japon — rosé sakura
+  9:  { tint:'205,220,255', tintA:0.225,  vig:0.36,  vigCol:'0,10,25'  }, // Himalaya — blanc/bleu lumineux
+  13: { tint:'255,215,120', tintA:0.225,  vig:0.375, vigCol:'20,12,0'  }, // Arène Finale — doré épique
+};
+let _vigCache = { key: null, canvas: null };
+function _getVignetteCanvas(g, w, h){
+  const key = g.vigCol + '|' + g.vig + '|' + w + '|' + h;
+  if(_vigCache.key === key) return _vigCache.canvas;
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const c = cv.getContext('2d');
+  const grad = c.createRadialGradient(w/2, h/2, Math.min(w,h)*0.30, w/2, h/2, Math.max(w,h)*0.72);
+  grad.addColorStop(0, 'rgba(' + g.vigCol + ',0)');
+  grad.addColorStop(1, 'rgba(' + g.vigCol + ',' + g.vig + ')');
+  c.fillStyle = grad;
+  c.fillRect(0, 0, w, h);
+  _vigCache = { key: key, canvas: cv };
+  return cv;
+}
+function _drawWorldGradeAndVignette(){
+  _updateGradeFade();
+  if(_gradeTintA <= 0.001 && _gradeVig <= 0.001) return; // rien à l'écran → coût zéro
+  CTX.save();
+  CTX.globalCompositeOperation = 'multiply';
+  CTX.globalAlpha = _gradeTintA;
+  CTX.fillStyle = 'rgb(' + _gradeTint + ')';
+  CTX.fillRect(0, 0, W, H);
+  CTX.globalCompositeOperation = 'source-over';
+  CTX.globalAlpha = 1;
+  CTX.drawImage(_getVignetteCanvas({ vigCol:_gradeVigCol, vig:_gradeVig }, W, H), 0, 0);
+  CTX.restore();
+}
+// Fondu ~1s (même constante que _lightingAmount) : seule l'intensité (tintA/vig) s'anime, la
+// couleur (tint/vigCol) reste celle du dernier monde gradé rencontré tant qu'on n'est pas
+// totalement repassé à zéro — évite un flash de mauvaise couleur pendant le fondu de sortie.
+let _gradeTintA = 0, _gradeVig = 0, _gradeTint = '0,0,0', _gradeVigCol = '0,0,0', _gradeFadeFrame = -1;
+function _updateGradeFade(){
+  const gf = (typeof gameFrame === 'number') ? gameFrame : 0;
+  if(gf === _gradeFadeFrame) return;
+  _gradeFadeFrame = gf;
+  const g = (_perfQuality > 0) ? _WORLD_GRADE[currentWorld] : null;
+  if(g){ _gradeTint = g.tint; _gradeVigCol = g.vigCol; }
+  const targetTintA = g ? g.tintA : 0, targetVig = g ? g.vig : 0;
+  _gradeTintA += (targetTintA - _gradeTintA) * 0.05;
+  _gradeVig   += (targetVig   - _gradeVig)   * 0.05;
+  if(Math.abs(targetTintA - _gradeTintA) < 0.001) _gradeTintA = targetTintA;
+  if(Math.abs(targetVig   - _gradeVig)   < 0.001) _gradeVig   = targetVig;
+}
+
+// ── Niveau 4 éclairage : lightmap additive basse résolution (v2241) ──
+// Canvas à 1/4 de résolution, un gradient radial par source lumineuse (power-ups, explosions,
+// jetons SKR, néons du fond Seeker), composité en 'lighter'. Réservé aux appareils qui encaissent
+// déjà le shadowBlur (_shadowAllowed) — sur les autres, le coût n'est simplement pas payé.
+// v2242 : intensité globale réduite de moitié (trop brutal en l'état) + fondu progressif partagé
+// avec _lightingAmount()/_lightingQualityOk() (même mécanisme que les ombres portées, ~1s de lerp
+// au lieu d'un interrupteur net sur le toggle _shadowAllowed).
+const _LM_SCALE = 0.25;
+const _LM_INTENSITY = 0.45; // ~55% de moins qu'avant (était 1.0)
+let _lmCanvas = null, _lmCtx = null;
+function _drawLightmap(cx, cy, zoom){
+  if(_perfQuality === 0) return;
+  if(!_lightingQualityOk()) return; // fondu en cours ou nul → rien à dessiner, coût zéro
+  const lw = Math.max(1, Math.round(W * _LM_SCALE)), lh = Math.max(1, Math.round(H * _LM_SCALE));
+  if(!_lmCanvas || _lmCanvas.width !== lw || _lmCanvas.height !== lh){
+    _lmCanvas = document.createElement('canvas');
+    _lmCanvas.width = lw; _lmCanvas.height = lh;
+    _lmCtx = _lmCanvas.getContext('2d');
+  }
+  const lc = _lmCtx;
+  lc.clearRect(0, 0, lw, lh);
+  lc.globalCompositeOperation = 'lighter';
+
+  function _blob(wx, wy, r, col, alpha){
+    const pr = ip(wx, wy);
+    const sx = (cx + pr.sx * zoom) * _LM_SCALE;
+    const sy = (cy + pr.sy * zoom) * _LM_SCALE;
+    const rr = Math.max(2, r * _LM_SCALE * zoom);
+    if(sx < -rr || sx > lw + rr || sy < -rr || sy > lh + rr) return;
+    const g = lc.createRadialGradient(sx, sy, 0, sx, sy, rr);
+    g.addColorStop(0, 'rgba(' + col + ',' + alpha + ')');
+    g.addColorStop(1, 'rgba(' + col + ',0)');
+    lc.fillStyle = g;
+    lc.beginPath(); lc.arc(sx, sy, rr, 0, Math.PI * 2); lc.fill();
+  }
+
+  if(typeof powerupSpawns !== 'undefined'){
+    for(const pu of powerupSpawns){
+      if(!pu.alive) continue;
+      _blob(pu.wx, pu.wy, 90, pu.ultra ? '255,80,220' : '255,210,90', 0.5);
+    }
+  }
+  for(const sw of shockwaves){
+    _blob(sw.wx, sw.wy, 60 + sw.r * 0.6, '255,140,60', 0.45 * (sw.life / sw.ml));
+  }
+  // Jetons SKR : glow additif dans tous les mondes (v2242 — plus limité au skin Seeker)
+  for(const gc of _goldCoins){
+    if(gc.life <= 0) continue;
+    _blob(gc.wx, gc.wy, 70, '20,241,149', 0.5);
+  }
+  if(_seekerSkinActive()){
+    // Néons du fond — 2 points fixes, glow ambiant façon enseignes (thème Solana), réservé au skin
+    _blob(-curRadius * 0.5, -curRadius * 0.5, curRadius * 0.9, '20,241,149', 0.10);
+    _blob(curRadius * 0.5,  curRadius * 0.5,  curRadius * 0.9, '153,69,255', 0.10);
+  }
+
+  CTX.save();
+  CTX.globalCompositeOperation = 'lighter';
+  CTX.globalAlpha = _LM_INTENSITY * _lightingAmount();
+  CTX.drawImage(_lmCanvas, 0, 0, lw, lh, 0, 0, W, H);
+  CTX.restore();
+}
+
 function drawScene(){
   CTX.clearRect(0,0,W,H);
   const _tS0 = performance.now(); // ── DEBUG perf breakdown
@@ -31674,7 +32917,7 @@ function drawScene(){
 
   // ── Décors monde — passe ARRIÈRE (objets derrière les joueurs) ──
   drawWorldDecorBack();
-  if(currentWorld === 1 && !(_IMG_W1.sky && _IMG_W1.sky.complete && _IMG_W1.sky.naturalWidth > 0)) drawNearTreesW1Back();
+  if(currentWorld === 1 && !_w1SkyReady()) drawNearTreesW1Back();
   if(currentWorld === 10){ const _w10PngOk = _IMG_W10.sky && _IMG_W10.sky.complete && _IMG_W10.sky.naturalWidth > 0; if(!_w10PngOk){ _drawHalloweenCemetery('back'); _drawPumpkins('back'); } }
 
   // ── Monde 12 : tas de briques (devant le décor, derrière les joueurs) ──
@@ -31699,7 +32942,7 @@ function drawScene(){
 
   // ── Décors monde — passe AVANT (objets devant les joueurs) ──
   drawWorldDecorFront();
-  if(currentWorld === 1 && !(_IMG_W1.sky && _IMG_W1.sky.complete && _IMG_W1.sky.naturalWidth > 0)) drawNearTreesW1Front();
+  if(currentWorld === 1 && !_w1SkyReady()) drawNearTreesW1Front();
   if(currentWorld === 10){ const _w10PngOk = _IMG_W10.sky && _IMG_W10.sky.complete && _IMG_W10.sky.naturalWidth > 0; if(!_w10PngOk){ _drawHalloweenCemetery('front'); _drawPumpkins('front'); } }
   // ── Powerup spawns + pièces d'or (par-dessus les décors de glace : rocher, bambou, etc.) ──
   drawPowerups();
@@ -31742,6 +32985,12 @@ function drawScene(){
 
   const _tS3 = performance.now(); // ── DEBUG perf breakdown
   CTX.restore(); // fin transform ISO
+
+  // ── Éclairage niveaux 3 & 4 (v2241) — juste après le décor ISO, avant les FX screen-space
+  // brillants (aurore, neige, éclairs) pour que ceux-ci restent lisibles par-dessus. ──
+  _drawWorldGradeAndVignette();
+  _drawLightmap(cx, cy, zoom);
+
   _drawCoinPopups(); // popups +N🪙 en screen-space
   _drawNestCompass(); // boussole discrète vers le nid (2s au départ)
   // ── Boussoles vers les îlots secrets (monde 13) ──
@@ -31997,7 +33246,9 @@ function _drawAmbientVignette(){
 // ══════════════════════════════════════════════════════════════
 function drawBackgroundWorld1(){
   const lakeR = RW * 7.0;
-  const _lacPngReady = _IMG_W1.sky && _IMG_W1.sky.complete && _IMG_W1.sky.naturalWidth > 0;
+  // v2231 : l'image de fond peut être bg_lac.jpg OU solana_seeker.jpg (skin RADAR/Seeker)
+  const _lacSkyImg   = _w1SkyImg();
+  const _lacPngReady = _lacSkyImg && _lacSkyImg.complete && _lacSkyImg.naturalWidth > 0;
 
   if(_lacPngReady){
     // ── PNG fond en world-space, tuiles H+V avec miroir vertical ──
@@ -32007,20 +33258,21 @@ function drawBackgroundWorld1(){
     const _w1cx   = W/2 + dynamicCamOffX;
     const _w1cy   = H/2 + H*0.05 + dynamicCamOffY - (H > W ? 50 : 0);
     const _w1zoom = currentZoom;
-    const _w1Moved = Math.abs(_w1cx-_w1SkyCamX)>0.5 || Math.abs(_w1cy-_w1SkyCamY)>0.5 || Math.abs(_w1zoom-_w1SkyZoom)>0.001;
+    const _w1Moved = Math.abs(_w1cx-_w1SkyCamX)>0.5 || Math.abs(_w1cy-_w1SkyCamY)>0.5 || Math.abs(_w1zoom-_w1SkyZoom)>0.001
+                  || _w1SkySkinCached !== _lacSkyImg; // bascule bg_lac <-> solana_seeker : cache à refaire
     if(gameFrame % 3 === 0 || _w1Moved || !_w1SkyCanvas || _w1SkyW!==W || _w1SkyH!==H){
       if(!_w1SkyCanvas || _w1SkyW!==W || _w1SkyH!==H){
         _w1SkyCanvas=_makeOffscreen(W,H); _w1SkyCtx=_w1SkyCanvas.getContext('2d');
         _w1SkyW=W; _w1SkyH=H;
       }
-      _w1SkyCamX=_w1cx; _w1SkyCamY=_w1cy; _w1SkyZoom=_w1zoom;
+      _w1SkyCamX=_w1cx; _w1SkyCamY=_w1cy; _w1SkyZoom=_w1zoom; _w1SkySkinCached=_lacSkyImg;
       const bc=_w1SkyCtx;
       bc.clearRect(0,0,W,H);
       bc.save();
       bc.translate(_w1cx,_w1cy);
       bc.scale(_w1zoom,_w1zoom);
       try{
-        const _iW = _IMG_W1.sky.naturalWidth, _iH = _IMG_W1.sky.naturalHeight;
+        const _iW = _lacSkyImg.naturalWidth, _iH = _lacSkyImg.naturalHeight;
         const _dW = RW * 7;
         const _dH = _dW * (_iH / _iW);
         if(isFinite(_dW) && isFinite(_dH) && _dW > 0 && _dH > 0){
@@ -32038,9 +33290,9 @@ function drawBackgroundWorld1(){
               if(_mirrorY){
                 bc.translate(0, _ty + _dH);
                 bc.scale(1, -1);
-                bc.drawImage(_IMG_W1.sky, _tx - 1, 0 - 0.5, _dW + 2, _dH + 2);
+                bc.drawImage(_lacSkyImg, _tx - 1, 0 - 0.5, _dW + 2, _dH + 2);
               } else {
-                bc.drawImage(_IMG_W1.sky, _tx - 1, _ty - 0.5, _dW + 2, _dH + 2);
+                bc.drawImage(_lacSkyImg, _tx - 1, _ty - 0.5, _dW + 2, _dH + 2);
               }
               bc.restore();
             }
@@ -34678,6 +35930,195 @@ const _w4EmberRockGradCache = new WeakMap();
 // ── Rendu d'un décor individuel ──
 // splitY (optionnel) : si fourni, clip au-dessus (passe front) ou en-dessous (passe back)
 // splitPart : 'above' = partie haute (devant joueur), 'below' = partie basse (derrière joueur)
+// ═══════════════════════════════════════════════════
+// ── ÉCLAIRAGE — Niveaux 1 & 2 (direction de lumière + ombres portées PNG) ──
+// v2231 : jusqu'ici chaque décor dessine son propre "reflet glace" (miroir vertical sous le
+// sprite, cosmétique) mais aucune vraie ombre portée orientée. Les 2 fonctions ci-dessous
+// ajoutent ça de façon générique (un seul endroit à maintenir, pas une réécriture des ~30
+// cases du switch de _drawDecor) :
+//   Niveau 1 — une direction de lumière par monde (angle + longueur), pas de coût runtime.
+//   Niveau 2 — silhouette du PNG lui-même (pas une ellipse) utilisée comme ombre portée,
+//              mise en cache par image (1 seul rendu par sprite, jamais refait ensuite).
+// Coût : quasi nul après le 1er frame — un drawImage supplémentaire par décor visible.
+// ═══════════════════════════════════════════════════
+const LIGHT_DIR = {
+  // angle en radians (0 = vers la droite, sens horaire écran), len = longueur de l'ombre
+  // en fraction de la hauteur du sprite, soft = flou approx (multi-passes low-cost)
+  // v2233 : toutes les valeurs alpha divisées par 2 — le premier réglage était calibré sur une
+  // ombre en grande partie masquée par le sprite ; une fois la projection corrigée (ombre
+  // pleinement visible sur la glace), la même opacité devenait bien trop marquée.
+  // decorMul : atténuation appliquée AUX DÉCORS/OBJETS seulement (pas aux personnages).
+  // v2239 : -25% sur les mondes clairs (glace/neige blanche), où le multiply mord beaucoup plus.
+  1:  { angle:  2.35, len: 0.42, soft: 2, alpha: 0.15, decorMul: 0.75 }, // Lac Gelé — soleil bas, ombres longues
+  2:  { angle:  2.05, len: 0.30, soft: 1, alpha: 0.22 }, // Glace Spatiale — lumière diffuse, ombres courtes
+  3:  { angle:  2.55, len: 0.38, soft: 2, alpha: 0.14, decorMul: 0.75 }, // Zen/Sakura
+  9:  { angle:  2.20, len: 0.46, soft: 2, alpha: 0.16, decorMul: 0.75 }, // Himalaya — soleil très bas
+  10: { angle:  2.70, len: 0.34, soft: 1, alpha: 0.26 }, // Halloween
+  12: { angle:  2.40, len: 0.36, soft: 2, alpha: 0.30 }, // Château
+  // v2237 : mondes qui n'avaient pas d'entrée (ils retombaient sur _default).
+  4:  { angle:  2.60, len: 0.26, soft: 1, alpha: 0.28 }, // Volcan — lumière basse rasante, ombres courtes (la lave éclaire d'en bas)
+  6:  { angle:  2.00, len: 0.24, soft: 1, alpha: 0.20 }, // Fond marin — lumière verticale filtrée par l'eau, ombres très diffuses
+  13: { angle:  2.45, len: 0.38, soft: 2, alpha: 0.26 }, // Arène Finale — soleil franc
+  _default: { angle: 2.35, len: 0.36, soft: 1, alpha: 0.20 },
+  // ⚠️ v2238 — POURQUOI LES ALPHAS DIFFÈRENT AUTANT D'UN MONDE À L'AUTRE :
+  // l'ombre est composée en 'multiply'. Sur la glace blanche du lac gelé, 0.15 suffit largement
+  // (noir × blanc = très contrasté). Sur un sol SOMBRE (château, volcan, fond marin, Halloween),
+  // noir × sol-déjà-sombre ≈ le sol lui-même : l'ombre est calculée et composée mais quasiment
+  // invisible — c'est ce qui donnait l'impression que ces IA/décors "n'avaient pas d'ombre",
+  // alors que tous les points d'appel étaient bien câblés. Ces mondes ont donc besoin d'un alpha
+  // 2× plus élevé pour un rendu visuellement ÉQUIVALENT. C'est le seul endroit à régler.
+};
+function _lightDirFor(world){ return LIGHT_DIR[world] || LIGHT_DIR._default; }
+
+// Cache silhouette : src → { canvas, w, h }. Une silhouette = le PNG entier repeint en noir
+// plat en conservant son alpha (donc sa forme exacte), calculée une seule fois par image.
+const _shadowSilhouetteCache = new Map();
+// v2233 : le cache reçoit maintenant aussi des SPRITESHEETS de personnages (bien plus gros que
+// les PNG de décor). Une silhouette pèse exactement la taille de l'image source en RGBA, donc on
+// plafonne le total : au-delà, on renonce simplement à l'ombre portée de ce sprite (dégradation
+// propre, aucun crash mémoire sur mobile). En pratique une partie n'affiche qu'une poignée de
+// types de personnages, on reste très loin du plafond.
+let _shadowSilhouetteBudget = 12e6; // pixels cumulés (~48 Mo en RGBA)
+let _shadowSilKeySeq = 0;
+function _getShadowSilhouette(img){
+  if(!img) return null;
+  // v2237 : les SKINS ÉQUIPÉS ne sont pas des <img> mais des canvas « bakés » par
+  // _bakeSkinFrame/_bakeSkinFrameFlipped (une frame de spritesheet aplatie, ou une image
+  // miroir). Ils n'ont ni .src ni .naturalWidth : l'ancienne garde les rejetait en silence,
+  // donc AUCUN des ~60 skins n'avait d'ombre portée — seuls les PNG bruts en avaient une.
+  // On les accepte ici, avec une clé de cache attribuée à la volée (l'identité du canvas est
+  // stable : il vient de _skinAdapterCache, jamais recréé).
+  const _isCv = (typeof HTMLCanvasElement !== 'undefined') && (img instanceof HTMLCanvasElement);
+  if(_isCv){ if(img._painted !== true || !img.width || !img.height) return null; }
+  else if(!img.complete || !img.naturalWidth) return null;
+  const key = _isCv ? (img._silKey || (img._silKey = '#cv' + (++_shadowSilKeySeq))) : img.src;
+  let entry = _shadowSilhouetteCache.get(key);
+  if(entry) return entry;
+  const iw = _isCv ? img.width : img.naturalWidth, ih = _isCv ? img.height : img.naturalHeight;
+  if(iw * ih > _shadowSilhouetteBudget) return null; // budget épuisé → pas d'ombre pour ce sprite
+  _shadowSilhouetteBudget -= iw * ih;
+  const c = _makeOffscreen(iw, ih);
+  const cx = c.getContext('2d');
+  cx.drawImage(img, 0, 0, iw, ih);
+  cx.globalCompositeOperation = 'source-in';
+  cx.fillStyle = '#000';
+  cx.fillRect(0, 0, iw, ih);
+  entry = { canvas: c, w: iw, h: ih };
+  _shadowSilhouetteCache.set(key, entry);
+  return entry;
+}
+
+// Dessine l'ombre portée d'un sprite PNG (décor OU personnage), orientée selon la lumière du
+// monde courant. À appeler AVANT de dessiner le sprite lui-même, dans le repère déjà translaté
+// sur (0,0) = point d'ancrage bas-centre.
+// w,h : dimensions de rendu du sprite (mêmes valeurs que celles passées à drawImage).
+// opts (optionnel) : { srcRect:{sx,sy,sw,sh} pour un spritesheet, alphaMul, offsetY }
+function _drawSpriteLightShadow(ctx, img, w, h, opts){
+  if(!_lightingQualityOk()) return;
+  const sil = _getShadowSilhouette(img);
+  if(!sil) return;
+  const o = opts || {};
+  const L = _lightDirFor(currentWorld);
+  // ── v2233 : correction de la projection ──
+  // v2232 gardait la silhouette « debout » (y de -h à 0) en l'aplatissant sur place : l'ombre
+  // retombait donc DANS le gabarit du sprite, et le sprite dessiné juste après la recouvrait
+  // intégralement. Résultat : calculée, composée… et invisible.
+  // Ici on la rabat au sol comme un reflet : le sommet du sprite (y = -h) est projeté SOUS le
+  // pied (y = +flat*h), décalé latéralement dans la direction opposée à la lumière. L'ombre
+  // s'étale donc sur la glace, à côté/devant le sprite, et rien ne la recouvre.
+  //   (x, y) → (x - shear*y, -flat*y)   soit ctx.transform(1, 0, -shear, -flat, 0, 0)
+  const shear = Math.cos(L.angle) * L.len * 2.2;  // < 0 ⇒ l'ombre part vers la gauche
+  const flat  = Math.max(0.18, Math.sin(L.angle)) * L.len * 1.15; // longueur au sol
+  // v2239 : fondu qualité + atténuation décor spécifique aux mondes clairs.
+  const aMul  = (o.alphaMul !== undefined ? o.alphaMul : 1)
+              * _lightingAmount()
+              * (o.decor ? (L.decorMul || 1) : 1);
+  const passes = Math.max(1, L.soft | 0);
+  const sr = o.srcRect || null;
+  ctx.save();
+  if(o.offsetY) ctx.translate(0, o.offsetY);
+  ctx.globalCompositeOperation = 'multiply';
+  // 1 à 3 passes très légèrement décalées/dilatées : bord adouci sans vrai flou gaussien.
+  for(let i = 0; i < passes; i++){
+    const t = passes > 1 ? i / (passes - 1) : 0;
+    const k = 1 + t * 0.10;                       // dilatation progressive
+    ctx.save();
+    ctx.globalAlpha = (L.alpha / passes) * aMul;
+    ctx.translate(0, h * 0.012 * t);              // micro-décalage vertical entre passes
+    ctx.transform(1, 0, -shear * k, -flat * k, 0, 0);
+    if(sr) ctx.drawImage(sil.canvas, sr.sx, sr.sy, sr.sw, sr.sh, -w/2, -h, w, h);
+    else    ctx.drawImage(sil.canvas, -w/2, -h, w, h);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// Ombre portée d'un PNG de décor — cas particulier (pas de spritesheet) de la fonction ci-dessus.
+function _drawDecorLightShadow(ctx, img, w, h, alphaMul){
+  _drawSpriteLightShadow(ctx, img, w, h, { alphaMul: alphaMul, decor: true });
+}
+
+// Ombre portée d'un PERSONNAGE (niveau 2). Un cran plus légère que les décors : le personnage
+// bouge en permanence et une ombre trop marquée sous lui devient vite fatigante à l'œil.
+// Wrapper tolérant : jamais d'exception remontée dans une boucle de rendu de joueur.
+const _CHAR_SHADOW_MUL = 0.55;
+function _drawCharLightShadow(ctx, img, w, h, srcRect){
+  try {
+    if(typeof _drawSpriteLightShadow !== 'function') return;
+    _drawSpriteLightShadow(ctx, img, w, h, { srcRect: srcRect || null, alphaMul: _CHAR_SHADOW_MUL });
+  } catch(e){}
+}
+
+// ── Ombre au sol pour un décor VECTORIEL (v2238) ──
+// Les décors dessinés au trait (anémones, coraux, algues, geysers…) n'ont pas de PNG, donc pas
+// de silhouette possible : on leur donne à la place une tache elliptique décalée dans la même
+// direction de lumière que les ombres portées PNG. Volontairement très discrète — c'est un
+// point d'ancrage au sol, pas une vraie ombre projetée.
+// rx/ry sont déjà exprimés en unités écran (ry doit inclure l'aplatissement iso SK).
+function _drawVectorGroundShadow(ctx, rx, ry, alphaMul){
+  if(!_lightingQualityOk()) return;
+  const L = _lightDirFor(currentWorld);
+  const dx = -Math.cos(L.angle) * L.len * rx * 1.6;      // décalage dans la direction opposée à la lumière
+  const dy =  Math.max(0.10, Math.sin(L.angle)) * L.len * ry * 0.9;
+  ctx.save();
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.globalAlpha = L.alpha * 0.65 * (alphaMul === undefined ? 1 : alphaMul)
+                  * _lightingAmount() * (L.decorMul || 1);
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(dx, dy, rx * 1.25, Math.max(0.5, ry), 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// Coupe-circuit qualité : les ombres portées sont un pur bonus visuel, jamais du gameplay —
+// on les désactive au même palier que les autres effets coûteux (_shadowAllowed existant),
+// donc aucun réglage supplémentaire à exposer, et zéro risque de ralentir les appareils faibles.
+// ── v2239 : FONDU au lieu d'un interrupteur ──
+// Le système adaptatif peut basculer Q0↔Q1 en cours de partie : jusqu'ici toutes les ombres
+// apparaissaient/disparaissaient d'un coup sur une seule frame, ce qui saute violemment à l'œil
+// (d'autant que c'est souvent au moment d'un pic de charge). On lerp maintenant vers la cible
+// sur ~1 s, et ce facteur multiplie l'alpha de TOUTES les ombres (silhouettes PNG + tâches
+// vectorielles). Coût : une soustraction par frame, le coupe-circuit reste exactement le même.
+let _lightingFade = 0;        // 0 = aucune ombre, 1 = ombres pleines
+let _lightingFadeFrame = -1;  // dernière frame où le lerp a été avancé (1 pas par frame max)
+function _lightingAmount(){
+  let target = 1;
+  try { target = (_shadowAllowed === false) ? 0 : 1; } catch(e){ target = 1; }
+  const gf = (typeof gameFrame === 'number') ? gameFrame : 0;
+  if(gf !== _lightingFadeFrame){
+    _lightingFadeFrame = gf;
+    _lightingFade += (target - _lightingFade) * 0.05;   // ~1 s à 60 fps
+    if(Math.abs(target - _lightingFade) < 0.004) _lightingFade = target;
+  }
+  return _lightingFade;
+}
+function _lightingQualityOk(){
+  // > 0 : on continue à dessiner pendant tout le fondu descendant, sinon la coupure serait
+  // de nouveau instantanée. Sous le seuil, on sort tôt → zéro coût quand les ombres sont off.
+  return _lightingAmount() > 0.004;
+}
+
 function _drawDecor(d, ctx, splitY, splitPart){
   // ── Décor déjà englouti définitivement : ne réapparaît jamais, même si la glace regrossit (ex: crack RACKI) ──
   if(d._sunk) return;
@@ -34760,6 +36201,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
       if(_rsImg && _rsImg.complete && _rsImg.naturalWidth){
         const _rsH = s * 0.88;
         const _rsW = _rsH * _rsRatio;
+        // ── Ombre portée orientée (niveau 2 éclairage) — AVANT le reflet/sprite ──
+        _drawDecorLightShadow(ctx, _rsImg, _rsW, _rsH, _sinkAlpha);
         // ── Reflet glace (miroir sous le pied, estompé) ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.18;
@@ -34850,6 +36293,10 @@ function _drawDecor(d, ctx, splitY, splitPart){
       if(_pineImg && _pineImg.complete && _pineImg.naturalWidth){
         const _pwBase = s * 1.1;
         const _pw = (d.placedIdx || 0) % 2 === 1 ? _pwBase * 0.82 : _pwBase;
+        // ── Ombre portée orientée (niveau 2 éclairage) ──
+        ctx.save(); ctx.translate(0, shadowY);
+        try{ _drawDecorLightShadow(ctx, _pineImg, _pw, _pw); }catch(e){}
+        ctx.restore();
         // ── Reflet glace — miroir complet sous la base du tronc, très discret ──
         ctx.save();
         ctx.globalAlpha = 0.1;
@@ -34871,6 +36318,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
       if(_stalImg && _stalImg.complete && _stalImg.naturalWidth){
         const _stalH = s * 1.05; // légèrement plus haute que le rocher
         const _stalW = _stalH * _stalRatio;
+        // ── Ombre portée orientée (niveau 2 éclairage) ──
+        _drawDecorLightShadow(ctx, _stalImg, _stalW, _stalH, _sinkAlpha);
         // ── Reflet glace (miroir sous la base, estompé) ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.15;
@@ -34943,6 +36392,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
       if(_crImg && _crImg.complete && _crImg.naturalWidth){
         const _crH = s * 0.85;
         const _crW = _crH * _crRatio;
+        // ── Ombre portée orientée (niveau 2 éclairage, v2237) ──
+        _drawDecorLightShadow(ctx, _crImg, _crW, _crH, _sinkAlpha);
         // ── Reflet glace — miroir sous le pied, estompé ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.18;
@@ -34995,6 +36446,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
       // PNG lanterne.png — même logique que bambou (ancrage bas-centre, depth sort via splitY)
       const _lantImg = _IMG_W3.lanterne;
       if(_lantImg && _lantImg.complete && _lantImg.naturalWidth){
+        // ── Ombre portée orientée (niveau 2 éclairage, v2237) ──
+        _drawDecorLightShadow(ctx, _lantImg, s * 0.5, s * 0.5, _sinkAlpha);
         // ── Reflet glace ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.13;
@@ -35015,6 +36468,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
       // PNG rocher-zen.png — ancrage bas-centre, pas de rotation
       const _zenImg = _IMG_W3.rocher_zen;
       if(_zenImg && _zenImg.complete && _zenImg.naturalWidth){
+        // ── Ombre portée orientée (niveau 2 éclairage, v2237) ──
+        _drawDecorLightShadow(ctx, _zenImg, s * 0.4, s * 0.288, _sinkAlpha);
         // ── Reflet glace ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.13;
@@ -35036,6 +36491,12 @@ function _drawDecor(d, ctx, splitY, splitPart){
       const _bamImg = _IMG_W3.bambou;
       if(_bamImg && _bamImg.complete && _bamImg.naturalWidth){
         const _bamSway = Math.sin(f * 0.019 + d.anim) * 0.10;
+        // ── Ombre portée orientée (niveau 2 éclairage, v2237) — même rot/sway que le sprite ──
+        ctx.save();
+        ctx.rotate(d.rot || 0);
+        ctx.transform(1, 0, _bamSway, 1, 0, 0);
+        _drawDecorLightShadow(ctx, _bamImg, s, s, _sinkAlpha);
+        ctx.restore();
         // ── Reflet glace ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.13;
@@ -35068,6 +36529,13 @@ function _drawDecor(d, ctx, splitY, splitPart){
         // Largeur = s*1.282*1.15, hauteur = s*1.15 (+15%) ; pied du tronc a ~88% hauteur
         const cw = s * 1.282 * 1.15, ch = s * 1.15;
         const _cerSway = Math.sin(f * 0.022 + d.anim) * 0.065;
+        // ── Ombre portée orientée (niveau 2 éclairage, v2237) ──
+        // Le cerisier est le seul décor non ancré bas-centre : il est dessiné à -ch*0.88, donc
+        // le bas réel de l'image tombe à +ch*0.12. Sans ce offsetY l'ombre partirait du feuillage.
+        ctx.save();
+        ctx.transform(1, 0, _cerSway, 1, 0, 0);
+        _drawSpriteLightShadow(ctx, _cerImg, cw, ch, { alphaMul: _sinkAlpha, offsetY: ch * 0.12, decor: true });
+        ctx.restore();
         // ── Reflet glace ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.12;
@@ -35238,6 +36706,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
     }
 
     case 'lava_rock': {
+      // ── Ombre au sol orientée (éclairage niveau 2 — variante vectorielle, v2239) ──
+      _drawVectorGroundShadow(ctx, s * 0.50, s * 0.50 * SK * 0.50, _sinkAlpha);
       const lrAngle = v * 0.55;
       const lrW = s*0.50, lrH = s*0.44;   // demi-axes de la base elliptique
       const lrTopY = -s*(0.18 + _rng(d.seed)*0.30);  // hauteur aléatoire : plat à très haut
@@ -35365,6 +36835,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
     }
 
     case 'geyser': {
+      // ── Ombre au sol orientée (éclairage niveau 2 — variante vectorielle, v2239) ──
+      _drawVectorGroundShadow(ctx, s * 0.30, s * 0.30 * SK * 0.45, _sinkAlpha * 0.7);
       // Trou de lave au sol
       ctx.save(); ctx.scale(1,SK*0.4);
       ctx.beginPath(); ctx.arc(0,0,s*0.28,0,Math.PI*2);
@@ -35412,6 +36884,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
     }
 
     case 'ember_rock': {
+      // ── Ombre au sol orientée (éclairage niveau 2 — variante vectorielle, v2239) ──
+      _drawVectorGroundShadow(ctx, s * 0.46, s * 0.46 * SK * 0.50, _sinkAlpha);
       const erAngle = v * 0.70 + 0.3;
       const erW = s*0.46, erH = s*0.40;
       const erTopY = -s*(0.16 + _rng(d.seed+5)*0.28);  // hauteur aléatoire : plat à haut
@@ -35534,6 +37008,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
     }
 
     case 'anemone': {
+      // ── Ombre au sol discrète (niveau 2 éclairage — variante vectorielle, v2238) ──
+      _drawVectorGroundShadow(ctx, s * 0.30, s * 0.30 * SK * 0.55, _sinkAlpha);
       // Corps central
       ctx.save(); ctx.scale(1,SK*0.45);
       ctx.beginPath(); ctx.arc(0,0,s*0.22,0,Math.PI*2);
@@ -35582,11 +37058,14 @@ function _drawDecor(d, ctx, splitY, splitPart){
           drawBranch(ex, ey, blen*0.62, bangle + spread, depth+1);
         }
       }
+      _drawVectorGroundShadow(ctx, s * 0.26, s * 0.26 * SK * 0.55, _sinkAlpha);
       drawBranch(0, 0, s*0.48, -Math.PI/2 + (v-1.5)*0.15, 0);
       break;
     }
 
     case 'seaweed': {
+      // ── Ombre au sol discrète (niveau 2 éclairage — variante vectorielle, v2238) ──
+      _drawVectorGroundShadow(ctx, s * 0.16, s * 0.16 * SK * 0.6, _sinkAlpha * 0.8);
       const swCols = ['#1a8822','#2aaa30','#0a6618','#33cc44'];
       ctx.strokeStyle = swCols[v]; ctx.lineWidth = s*0.10; ctx.lineCap='round';
       const segs2 = 5 + (v);
@@ -35635,7 +37114,9 @@ function _drawDecor(d, ctx, splitY, splitPart){
       // PNG decortetedemort.png 146×180 — ancrage bas-centre
       const _sdImg = _IMG_W10 && _IMG_W10.skull_decor;
       const _sdReady = _sdImg && _sdImg.complete && _sdImg.naturalWidth > 0;
-      ctx.save(); ctx.globalAlpha = 0.20 * _sinkAlpha;
+      // v2237 : divisée par 2 — elle ne porte plus seule l'ombre (vraie ombre portée ci-dessous),
+      // elle redevient un simple point de contact au sol. Même logique que les personnages en v2233.
+      ctx.save(); ctx.globalAlpha = 0.10 * _sinkAlpha;
       ctx.scale(1, SK * 0.30);
       ctx.beginPath(); ctx.ellipse(0, s*0.04, s*0.38, s*0.13, 0, 0, Math.PI*2);
       ctx.fillStyle = '#000'; ctx.fill();
@@ -35643,6 +37124,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
       if(_sdReady){
         const _sdH = s * 1.484375;
         const _sdW = _sdH * (146 / 180);
+        // ── Ombre portée orientée (niveau 2 éclairage, v2237) ──
+        _drawDecorLightShadow(ctx, _sdImg, _sdW, _sdH, _sinkAlpha);
         // ── Reflet (miroir sous le pied, estompé) — même système que rock_snow ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.18;
@@ -35672,7 +37155,9 @@ function _drawDecor(d, ctx, splitY, splitPart){
       // PNG epouvantail.png 150×165 — ancrage bas-centre
       const _scImg = _IMG_W10 && _IMG_W10.scarecrow;
       const _scReady = _scImg && _scImg.complete && _scImg.naturalWidth > 0;
-      ctx.save(); ctx.globalAlpha = 0.20 * _sinkAlpha;
+      // v2237 : divisée par 2 — elle ne porte plus seule l'ombre (vraie ombre portée ci-dessous),
+      // elle redevient un simple point de contact au sol. Même logique que les personnages en v2233.
+      ctx.save(); ctx.globalAlpha = 0.10 * _sinkAlpha;
       ctx.scale(1, SK * 0.30);
       ctx.beginPath(); ctx.ellipse(0, s*0.04, s*0.34, s*0.12, 0, 0, Math.PI*2);
       ctx.fillStyle = '#000'; ctx.fill();
@@ -35680,6 +37165,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
       if(_scReady){
         const _scH = s * 1.484375;
         const _scW = _scH * (150 / 165);
+        // ── Ombre portée orientée (niveau 2 éclairage, v2237) ──
+        _drawDecorLightShadow(ctx, _scImg, _scW, _scH, _sinkAlpha);
         // ── Reflet (miroir sous le pied, estompé) — même système que rock_snow ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.18;
@@ -35710,8 +37197,10 @@ function _drawDecor(d, ctx, splitY, splitPart){
       const pDark = ['#aa3300','#991100','#aa5500','#771100'][v];
       const pLight= ['#ffaa44','#ff7722','#ffcc55','#ff6622'][v];
 
-      // Ombre au sol
-      ctx.save(); ctx.globalAlpha=0.22*_sinkAlpha;
+      // ── Ombre au sol orientée (éclairage niveau 2 — variante vectorielle, v2239) ──
+      _drawVectorGroundShadow(ctx, s * 0.34, s * 0.34 * SK * 0.45, _sinkAlpha);
+      // Ombre au sol (v2239 : /2 — elle ne porte plus seule l'ombre, simple point de contact)
+      ctx.save(); ctx.globalAlpha=0.11*_sinkAlpha;
       ctx.scale(1, SK*0.32);
       ctx.beginPath(); ctx.ellipse(0, s*0.02, s*0.44, s*0.18, 0, 0, Math.PI*2);
       ctx.fillStyle='#000'; ctx.fill();
@@ -35801,7 +37290,9 @@ function _drawDecor(d, ctx, splitY, splitPart){
       const _gsPngReady = _gsImg && _gsImg.complete && _gsImg.naturalWidth > 0;
 
       // Ombre au sol
-      ctx.save(); ctx.globalAlpha = 0.22;
+      // v2237 : divisée par 2 — elle ne porte plus seule l'ombre (vraie ombre portée ci-dessous),
+      // elle redevient un simple point de contact au sol. Même logique que les personnages en v2233.
+      ctx.save(); ctx.globalAlpha = 0.11;
       ctx.scale(1, SK * 0.30);
       ctx.beginPath(); ctx.ellipse(0, s * 0.04, s * 0.42, s * 0.14, 0, 0, Math.PI * 2);
       ctx.fillStyle = '#000'; ctx.fill();
@@ -35812,6 +37303,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
         const _gsNatW = 150, _gsNatH = 183;
         const _gsH = s * 1.1875;
         const _gsW = _gsH * (_gsNatW / _gsNatH);
+        // ── Ombre portée orientée (niveau 2 éclairage, v2237) ──
+        _drawDecorLightShadow(ctx, _gsImg, _gsW, _gsH, _sinkAlpha);
         // ── Reflet (miroir sous le pied, estompé) — même système que rock_snow ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.18;
@@ -35883,6 +37376,12 @@ function _drawDecor(d, ctx, splitY, splitPart){
       ctx.globalAlpha = _sinkAlpha;
       ctx.translate(0, _sinkOffY);
 
+      // ── Ombre portée orientée (niveau 2 éclairage, v2237) — sous le reflet ──
+      ctx.save();
+      ctx.rotate(sway);
+      _drawDecorLightShadow(ctx, _adImg, baseW, baseH, _sinkAlpha);
+      ctx.restore();
+
       // ── Reflet (miroir flouté sous l'objet, fondu en dégradé vers le bas) — remplace l'ombre ellipse ──
       {
         const _rfW = Math.ceil(baseW), _rfH = Math.ceil(baseH*0.42);
@@ -35922,9 +37421,12 @@ function _drawDecor(d, ctx, splitY, splitPart){
       // Balancement subtil du vent
       const sway = Math.sin(f * 0.018 + d.anim) * 0.04;
 
+      // ── Ombre au sol orientée (éclairage niveau 2 — variante vectorielle, v2239) ──
+      _drawVectorGroundShadow(ctx, s * 0.30, s * 0.30 * SK * 0.45, 1);
       // Ombre au sol — ellipse aplatie sous le pied du tronc
+      // v2239 : /2 — simple point de contact, l'ombre orientée ci-dessus fait le reste.
       ctx.save();
-      ctx.globalAlpha = 0.32;
+      ctx.globalAlpha = 0.16;
       ctx.fillStyle = '#000';
       ctx.beginPath();
       ctx.ellipse(0, s*0.07, s*0.32, s*0.07, 0, 0, Math.PI*2);
@@ -36310,6 +37812,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
       if(_brlImg && _brlImg.complete && _brlImg.naturalWidth){
         const _brlH = s * 0.78;
         const _brlW = _brlH * _brlRatio;
+        // ── Ombre portée orientée (niveau 2 éclairage, v2237) ──
+        _drawDecorLightShadow(ctx, _brlImg, _brlW, _brlH, _sinkAlpha);
         // ── Reflet (miroir plat sous le pied, estompé) — même système que rock_snow ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.18;
@@ -36331,6 +37835,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
       if(_colImg && _colImg.complete && _colImg.naturalWidth){
         const _colH = s * 0.95;
         const _colW = _colH * _colRatio;
+        // ── Ombre portée orientée (niveau 2 éclairage, v2237) ──
+        _drawDecorLightShadow(ctx, _colImg, _colW, _colH, _sinkAlpha);
         // ── Reflet (miroir plat sous le pied, estompé) — même système que rock_snow ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.18;
@@ -36352,6 +37858,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
       if(_twrImg && _twrImg.complete && _twrImg.naturalWidth){
         const _twrH = s;
         const _twrW = _twrH * _twrRatio;
+        // ── Ombre portée orientée (niveau 2 éclairage, v2237) ──
+        _drawDecorLightShadow(ctx, _twrImg, _twrW, _twrH, _sinkAlpha);
         // ── Reflet (miroir plat sous le pied, estompé) — même système que rock_snow ──
         ctx.save();
         ctx.globalAlpha = _sinkAlpha * 0.18;
@@ -36367,6 +37875,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
     }
 
     case 'torch': {
+      // ── Ombre au sol orientée (éclairage niveau 2 — variante vectorielle, v2239) ──
+      _drawVectorGroundShadow(ctx, s * 0.20, s * 0.20 * SK * 0.50, _sinkAlpha);
       // ── Socle au sol ──
       ctx.fillStyle='#3a2510';
       ctx.save(); ctx.scale(1, SK*0.5);
@@ -36468,6 +37978,8 @@ function _drawDecor(d, ctx, splitY, splitPart){
     }
 
     case 'statue': {
+      // ── Ombre au sol orientée (éclairage niveau 2 — variante vectorielle, v2239) ──
+      _drawVectorGroundShadow(ctx, s * 0.34, s * 0.34 * SK * 0.45, _sinkAlpha);
       // Statue de champion (monde final)
       // Piédestal
       ctx.fillStyle='#c8b88a';
@@ -40678,6 +42190,10 @@ function drawMomiePNGPlayer(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.18 + (pl.id||0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -40731,6 +42247,10 @@ function drawFrankiPNGPlayer(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.18 + (pl.id||0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -40784,6 +42304,10 @@ function drawSkulliePNGPlayer(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.18 + (pl.id||0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -40837,6 +42361,10 @@ function drawZombieSmall2PNGPlayer(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.18 + (pl.id||0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -40890,6 +42418,10 @@ function drawZombieSmall3PNGPlayer(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.18 + (pl.id||0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -40943,6 +42475,10 @@ function drawSorcierePNGPlayer(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.18 + (pl.id||0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -40996,6 +42532,10 @@ function drawSorcierPNGPlayer(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.18 + (pl.id||0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -41095,6 +42635,10 @@ function drawGhostAIPNGPlayer(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     // Flottement : un fantôme plane, amplitude un peu plus marquée qu'un sumo qui marche
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.07 : 0.11));
     ctx.translate(0, Math.sin(gameFrame * 0.07 + (pl.id||0) * 1.7) * r * _bobAmp);
@@ -41804,6 +43348,10 @@ function _drawYetiPNGGeneric(ctx, pl, dict, fallbackFn, extraScale){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id||0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -41870,6 +43418,10 @@ function _drawMonkPNGGeneric(ctx, pl, dict, fallbackFn){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id||0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -42493,6 +44045,10 @@ function drawCyclopePNGPlayer(ctx, pl, f){
   ctx.save();
   try{
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id||0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -42571,6 +44127,10 @@ function drawDragonPNGPlayer(ctx, pl, f){
   ctx.save();
   try{
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id||0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -42699,6 +44259,10 @@ function drawRackiW4Player(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp  = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     const _bobFreq = isBerserk ? 0.42 : 0.28;
     ctx.translate(0, Math.sin(gameFrame * _bobFreq + (pl.id||0) * 1.7) * r * _bobAmp);
@@ -42763,6 +44327,10 @@ function drawMonstroPNGPlayer(ctx, pl, f){
   ctx.save();
   try{
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id||0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -45948,6 +47516,18 @@ function _drawOneCaisse(c){
     if(c.destroyed){
       const sc = 1 + c.destroyAnim * 0.012;
       CTX.scale(sc, sc);
+    }
+
+    // ── Ombre portée orientée (niveau 2 éclairage, v2238) ──
+    // La caisse est dessinée CENTRÉE (-sz/2, -sz/2, sz, sz), pas ancrée bas-centre comme les
+    // décors : son bas réel tombe à +sz/2, et son point de contact visuel (celui sur lequel le
+    // reflet est calé) à +sz*0.42 → d'où le offsetY. On annule aussi le bob : l'ombre reste
+    // plaquée au sol pendant que la caisse flotte, au lieu de monter/descendre avec elle.
+    if(imgOk && typeof _drawSpriteLightShadow === 'function'){
+      CTX.save();
+      CTX.translate(0, -bob);
+      _drawSpriteLightShadow(CTX, img, sz, sz, { alphaMul: globalA, offsetY: sz * 0.42, decor: true });
+      CTX.restore();
     }
 
     // Reflet sur la glace (à la place de l'ombre portée) — remonté, juste sous la caisse
@@ -50547,7 +52127,11 @@ if(pl.human && (ghostMode || ghostBreaking)) return;
     const _shadowJumpScale = 1 - _jShadowNorm * 0.55;
     const _shadowR = (_isW2UpperAI ? r * 0.45 : r * 0.9) * _shadowJumpScale;
     // Ombre atténuée pour les IA sur sols réfléchissants (lac gelé, spatial, japon, himalaya)
-    const _shadowBaseAlpha = ((!pl.human && (currentWorld===1||currentWorld===2||currentWorld===3||currentWorld===9||currentWorld===13)) ? 0.08 : 0.25) * (1 - _jShadowNorm * 0.65);
+    // v2233 : opacité de l'ellipse de contact divisée par 2 (0.25 → 0.125, 0.08 → 0.04). Elle ne
+    // porte plus seule l'ombre du personnage — la vraie ombre portée (silhouette du PNG) est
+    // dessinée par _drawCharLightShadow au moment du sprite, l'ellipse redevient un simple
+    // point de contact au sol.
+    const _shadowBaseAlpha = ((!pl.human && (currentWorld===1||currentWorld===2||currentWorld===3||currentWorld===9||currentWorld===13)) ? 0.04 : 0.125) * (1 - _jShadowNorm * 0.65);
     const _ghostPNGReady = pl.role==='ghost_ai' && _GHOSTAIPNG._sheet && _GHOSTAIPNG._sheet.complete && _GHOSTAIPNG._sheet.naturalWidth;
     const _momiePNGReady = pl.role==='zombie_med' && _MOMIEPNG._sheet && _MOMIEPNG._sheet.complete && _MOMIEPNG._sheet.naturalWidth;
     const _frankiPNGReady = pl.role==='franki_ai' && _FRANKIPNG._sheet && _FRANKIPNG._sheet.complete && _FRANKIPNG._sheet.naturalWidth;
@@ -50560,13 +52144,37 @@ if(pl.human && (ghostMode || ghostBreaking)) return;
     const _knightMPNGReady = pl.role==='knight_med' && _KNIGHTMEDPNG._sheet && _KNIGHTMEDPNG._sheet.complete && _KNIGHTMEDPNG._sheet.naturalWidth;
     const _knightBPNGReady = pl.role==='knight_big' && _KNIGHTBIGPNG._sheet && _KNIGHTBIGPNG._sheet.complete && _KNIGHTBIGPNG._sheet.naturalWidth;
     const _gargouillePNGReady = pl.role==='gargouille' && _GARGOUILLEPNG._sheet && _GARGOUILLEPNG._sheet.complete && _GARGOUILLEPNG._sheet.naturalWidth;
-    const _rackiW12PNGReady = pl.isBoss && !pl.bossRole && currentWorld===12 && _RACKICHATEAUPNG._sheet && _RACKICHATEAUPNG._sheet.complete && _RACKICHATEAUPNG._sheet.naturalWidth;
-    const _skipShadow = pl.role==='monk' || pl.role==='monk_med' || pl.role==='monk_big' || _ghostPNGReady || _momiePNGReady || _frankiPNGReady || _skulliePNGReady || _zombieS2PNGReady || _zombieS3PNGReady || _sorcierePNGReady || _sorcierPNGReady || _knightSPNGReady || _knightMPNGReady || _knightBPNGReady || _gargouillePNGReady || _rackiW12PNGReady;
+    const _isHumanPNGRole = pl.role==='eloan_player' || pl.role==='myloh_player' || pl.role==='eyleen_player' || pl.role==='romy_player';
+    // FIX doublon d'ombre : tous les Racki (NPC "pingouin" du lac gelé ET boss, dans les 9 mondes
+    // où ils apparaissent) gèrent désormais leur propre ombre niveau 2 via _drawCharLightShadow
+    // dans chacune de leurs fonctions de dessin (drawRackiAIPlayer + drawRackiW1..W13Player) — la
+    // vieille ellipse de contact ne doit donc plus se dessiner par-dessus, quel que soit le monde.
+    const _skipShadow = _isHumanPNGRole || pl.role==='racki_ai' || pl.role==='monk' || pl.role==='monk_med' || pl.role==='monk_big' || _ghostPNGReady || _momiePNGReady || _frankiPNGReady || _skulliePNGReady || _zombieS2PNGReady || _zombieS3PNGReady || _sorcierePNGReady || _sorcierPNGReady || _knightSPNGReady || _knightMPNGReady || _knightBPNGReady || _gargouillePNGReady;
     if(!_skipShadow){
     CTX.globalAlpha=_shadowBaseAlpha;
     CTX.fillStyle='#000';
     const _shadowOffY = (currentWorld === 10 && !pl.human) ? r * 0.75 : r * 0.4;
-    CTX.beginPath(); CTX.ellipse(0,_shadowOffY,_shadowR,_shadowR*0.31,0,0,Math.PI*2); CTX.fill();
+    // ── Éclairage niveau 1 appliqué aux personnages (v2233) ──
+    // Même LIGHT_DIR que les décors : l'ellipse de contact n'est plus centrée sous le joueur,
+    // elle est décalée + allongée dans la direction opposée à la lumière du monde. Coût nul
+    // (mêmes primitives, coordonnées différentes) mais c'est ce qui fait que joueurs et décors
+    // « appartiennent » à la même scène au lieu d'avoir chacun sa lumière.
+    let _pL = null;
+    try { _pL = (typeof _lightDirFor === 'function') ? _lightDirFor(currentWorld) : null; } catch(e){ _pL = null; }
+    if(_pL){
+      const _pOffX = Math.cos(_pL.angle) * _shadowR * _pL.len * 1.45;
+      const _pOffY = Math.sin(_pL.angle) * _shadowR * _pL.len * 0.42;
+      const _pRx   = _shadowR * (1 + _pL.len * 0.55);   // allongée dans l'axe de la lumière
+      const _pRy   = _shadowR * 0.31;
+      // Inclinaison exprimée en espace ÉCRAN (l'axe Y est déjà écrasé par la perspective iso) :
+      // sans ça, une ellipse très plate tournée de 135° ressemble à un disque penché, pas à une ombre.
+      const _pRot  = Math.atan2(Math.sin(_pL.angle) * 0.42, Math.cos(_pL.angle));
+      CTX.beginPath();
+      CTX.ellipse(_pOffX, _shadowOffY + _pOffY, _pRx, _pRy, _pRot, 0, Math.PI*2);
+      CTX.fill();
+    } else {
+      CTX.beginPath(); CTX.ellipse(0,_shadowOffY,_shadowR,_shadowR*0.31,0,0,Math.PI*2); CTX.fill();
+    }
     }
     CTX.restore();
   }
@@ -56586,6 +58194,8 @@ let _loopLastTime = 0;
 let _tickScale    = 1; // 1.0 = 60fps exact, 2.0 = 30fps (timers décrément x2 par tick)
 
 function loop(timestamp){
+  // ── DEBUG : mesure du temps JS/frame vs gap hors-JS (voir _scheduleLoop ci-dessus) ──
+  // instrumentation js:/gap: DESACTIVEE dans cette variante de test
   if(gamePausedByMenu) return;     // pause si confirm menu ouvert
 
   // Calcul du tickScale : combien de "ticks 60fps" se sont écoulés depuis la dernière frame
@@ -57476,6 +59086,40 @@ function _drawOneCoinAtScreen(sx, sy, bob, val, alpha){
   CTX.fillStyle = '#000';
   CTX.beginPath(); CTX.ellipse(0, 0, 20, 20, 0, 0, Math.PI*2); CTX.fill();
   CTX.restore();
+
+  // ── Skin RADAR/Seeker : jeton SKR animé (un seul asset pour coin.png ET coins.png) ──
+  // Le WEBP animé étant un <img> vivant dans le DOM, drawImage() en prend la frame courante :
+  // l'animation du jeton est donc « gratuite », sans spritesheet ni compteur de frame.
+  const _skReadyImg = _seekerCoinFrame();
+  const _skReady = _seekerSkinActive() && _skReadyImg && (_skReadyImg.width || _skReadyImg.naturalWidth);
+  if(_skReady){
+    const _sk = _skReadyImg;
+    const _skNatW = _sk.width || _sk.naturalWidth, _skNatH = _sk.height || _sk.naturalHeight;
+    const _skH = _isPile ? 82 : 68;                       // nettement plus gros que les pièces d'or
+    const _skW = _skH * (_skNatW / _skNatH);
+    CTX.save();
+    CTX.translate(sx, sy + bobY);
+    CTX.globalAlpha = alpha;
+    // Lueur cyan sous le jeton (il ne « flippe » pas comme une pièce : l'anim fait le travail)
+    CTX.globalCompositeOperation = 'lighter';
+    CTX.globalAlpha = alpha * (0.18 + 0.10*Math.sin(bob));
+    const _skG = safeRadialGradient(CTX, 0, 0, 2, 0, 0, _skH*0.62);
+    _skG.addColorStop(0, 'rgba(90,190,255,0.9)');
+    _skG.addColorStop(1, 'rgba(60,120,255,0)');
+    CTX.fillStyle = _skG;
+    CTX.beginPath(); CTX.arc(0, 0, _skH*0.62, 0, Math.PI*2); CTX.fill();
+    CTX.globalCompositeOperation = 'source-over';
+    CTX.globalAlpha = alpha;
+    CTX.drawImage(_sk, -_skW/2, -_skH/2, _skW, _skH);
+    // Pile (val > 4) : 2 jetons décalés pour garder la lecture « gros lot »
+    if(_isPile){
+      CTX.globalAlpha = alpha * 0.92;
+      CTX.drawImage(_sk, -_skW/2 - _skW*0.26, -_skH/2 + _skH*0.16, _skW*0.8, _skH*0.8);
+      CTX.drawImage(_sk, -_skW/2 + _skW*0.46, -_skH/2 + _skH*0.16, _skW*0.8, _skH*0.8);
+    }
+    CTX.restore();
+    return;
+  }
 
   // ── PNG path ──
   // val > 4 → coins.png (pile), sinon coin.png (pièce unique)
@@ -60969,7 +62613,7 @@ function _checkDevSeq(worldId){
       const dt = document.getElementById('dev-tools');
       const visible = dt.style.display === 'flex';
       dt.style.display = visible ? 'none' : 'flex';
-      _DEBUG_SHOW_FPS = !visible; // FPS suit l'état du panneau dev
+      _DEBUG_SHOW_FPS = !visible; if(_DEBUG_SHOW_FPS){ _dbgEnsureGapLoop(); _renderColdStartLog(); } else if(typeof document!=='undefined'){ const _c=document.getElementById('fps-cold'); if(_c) _c.style.display='none'; } // FPS suit l'état du panneau dev
       const toast = document.getElementById('locked-toast');
       if(toast){ toast.textContent = visible ? '🛠 DEV OFF' : '🛠 DEV ON'; toast.style.background='linear-gradient(135deg,rgba(0,0,80,.95),rgba(0,60,160,.95))'; toast.classList.add('show'); clearTimeout(onLockedWorld._t); onLockedWorld._t = setTimeout(()=>toast.classList.remove('show'),1800); }
       return;
@@ -63541,6 +65185,18 @@ function _skinCacheSuffix(s){
 // ctx doit être dans le repère monde (centre joueur). offsetY = r*0.4 (ancrage pieds).
 function _drawImgReflection(ctx, img, W, H, offsetY, alpha) {
   if(!_pngReady(img)) return;
+  // ── Éclairage niveau 2 sur les personnages (v2233) ──
+  // Ce helper est appelé juste avant le sprite par tous les personnages à PNG dédié (Eloan,
+  // Myloh, Eyleen, Romy et leurs skins) : c'est donc le point unique où greffer la vraie ombre
+  // portée, avec la silhouette du PNG lui-même plutôt qu'une ellipse. Dessinée AVANT le reflet
+  // pour passer dessous. Le fallback vectoriel (version 1) ne passe pas ici : pas de PNG, pas
+  // de silhouette, il garde l'ellipse directionnelle — exactement le comportement voulu.
+  if(typeof _drawCharLightShadow === 'function'){
+    ctx.save();
+    ctx.translate(0, offsetY || 0);
+    _drawCharLightShadow(ctx, img, W, H);
+    ctx.restore();
+  }
   if(!alpha || alpha < 0.01) return;
   ctx.save();
   ctx.translate(0, offsetY);   // même ancrage que _drawPNGWithLegs
@@ -65628,6 +67284,10 @@ function drawKristenGirlVioletPlayer(ctx, pl){
 
   ctx.save();
   ctx.translate(0, r * 0.4);
+  // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+  // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+  // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+  _drawCharLightShadow(ctx, sheet, W, H, frame);
   const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
   ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id||0) * 1.7) * r * _bobAmp);
   if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -65795,6 +67455,10 @@ function drawGreyLittlePNGPlayer(ctx, pl, f){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id || 0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -65895,6 +67559,10 @@ function drawGreyScientistPNGPlayer(ctx, pl, f){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id || 0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -65986,6 +67654,10 @@ function drawRefSpatialPNGPlayer(ctx, pl, f){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id || 0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -66080,6 +67752,10 @@ function drawGreyBigPNGPlayer(ctx, pl, f){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id || 0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -66183,6 +67859,10 @@ function drawGreyMedPNGPlayer(ctx, pl, f){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id || 0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -66304,6 +67984,10 @@ function drawSumoPNGPlayer(ctx, pl, f){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id || 0) * 1.7) * r * _bobAmp); // walk+dash bob
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -66390,6 +68074,10 @@ function drawNinjaPNGPlayer(ctx, pl, f){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id || 0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -66461,6 +68149,10 @@ function drawNinjaMedPNGPlayer(ctx, pl, f){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id || 0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -66747,6 +68439,10 @@ function drawSumoMedPNGPlayer(ctx, pl, f){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id || 0) * 1.7) * r * _bobAmp); // walk+dash bob
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -66873,6 +68569,10 @@ function drawSumoBigPNGPlayer(ctx, pl, f){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id || 0) * 1.7) * r * _bobAmp); // walk+dash bob
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -66980,6 +68680,10 @@ function drawNinjaBigPNGPlayer(ctx, pl, f){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     ctx.translate(0, Math.sin(gameFrame * 0.28 + (pl.id || 0) * 1.7) * r * _bobAmp);
     if(stunTilt !== 0) ctx.rotate(stunTilt);
@@ -67132,6 +68836,10 @@ function drawRackiW1Player(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp  = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     const _bobFreq = isBerserk ? 0.42 : 0.28;
     ctx.translate(0, Math.sin(gameFrame * _bobFreq + (pl.id||0) * 1.7) * r * _bobAmp);
@@ -67207,6 +68915,10 @@ function drawRackiW9Player(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp  = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     const _bobFreq = isBerserk ? 0.42 : 0.28;
     ctx.translate(0, Math.sin(gameFrame * _bobFreq + (pl.id||0) * 1.7) * r * _bobAmp);
@@ -67295,6 +69007,10 @@ function drawRackiW10Player(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp  = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     const _bobFreq = isBerserk ? 0.42 : 0.28;
     ctx.translate(0, Math.sin(gameFrame * _bobFreq + (pl.id||0) * 1.7) * r * _bobAmp);
@@ -67384,6 +69100,10 @@ function drawRackiW12Player(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp  = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     const _bobFreq = isBerserk ? 0.42 : 0.28;
     ctx.translate(0, Math.sin(gameFrame * _bobFreq + (pl.id||0) * 1.7) * r * _bobAmp);
@@ -67489,6 +69209,10 @@ function drawRackiW13BossPlayer(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp  = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     const _bobFreq = isBerserk ? 0.42 : 0.28;
     if(!isReviving) ctx.translate(0, Math.sin(gameFrame * _bobFreq + (pl.id||0) * 1.7) * r * _bobAmp);
@@ -67649,6 +69373,10 @@ function drawRackiW6Player(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp  = pl._bobAmp || (pl._bobAmp = (Math.random() < 0.5 ? 0.04 : 0.08));
     const _bobFreq = isBerserk ? 0.42 : 0.28;
     ctx.translate(0, Math.sin(gameFrame * _bobFreq + (pl.id||0) * 1.7) * r * _bobAmp);
@@ -67723,6 +69451,10 @@ function drawRackiW2Player(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
     const _bobAmp  = pl._bobAmp  || (pl._bobAmp  = (Math.random() < 0.5 ? 0.04 : 0.08));
     const _bobFreq = isBerserk ? 0.42 : 0.28;
     ctx.translate(0, Math.sin(gameFrame * _bobFreq + (pl.id||0) * 1.7) * r * _bobAmp);
@@ -67967,6 +69699,10 @@ function drawRackiW3Player(ctx, pl){
   ctx.save();
   try {
     ctx.translate(0, r * 0.4);
+    // ── Ombre portée niveau 2 (v2233) : silhouette réelle de la frame courante du
+    // spritesheet, posée AVANT le bob pour qu'elle reste au sol pendant que le
+    // personnage oscille. Cache partagé avec les décors : 1 seul rendu par sheet.
+    _drawCharLightShadow(ctx, sheet, W, H, frame);
 
     const _bobAmp  = pl._bobAmp  || (pl._bobAmp  = (Math.random() < 0.5 ? 0.04 : 0.08));
     const _bobFreq = isBerserk ? 0.42 : 0.28;
@@ -68146,6 +69882,8 @@ function drawRackiAIPlayer(ctx, pl){
       const W = H * (imgH.naturalWidth / imgH.naturalHeight);
       ctx.save();
       ctx.translate(0, r * 0.4);
+      // Ombre portée niveau 2 (posée avant la rotation/oscillation pour rester au sol)
+      _drawCharLightShadow(ctx, imgH, W, H);
       // Légère oscillation du corps sans tête
       const wobble = Math.sin(Date.now() * 0.008) * 0.06;
       ctx.rotate(wobble);
@@ -68176,6 +69914,8 @@ function drawRackiAIPlayer(ctx, pl){
       const tilt = Math.sin(Date.now() * 0.01) * 0.12 * stunRatio;
       ctx.save();
       ctx.translate(0, r * 0.4);
+      // Ombre portée niveau 2 (posée avant la rotation/oscillation pour rester au sol)
+      _drawCharLightShadow(ctx, imgS, W, H);
       ctx.rotate(tilt);
       // Reflet glace
       if(currentWorld === 1){
@@ -68212,7 +69952,7 @@ function drawRackiAIPlayer(ctx, pl){
     const fb = _RACKIPNG['img1'];
     if(!fb || !fb.complete || !fb.naturalWidth) return;
     const H0 = r * 3.7, W0 = H0 * (fb.naturalWidth / fb.naturalHeight);
-    ctx.save(); ctx.translate(0, r * 0.4); ctx.drawImage(fb, -W0/2, -H0, W0, H0); ctx.restore();
+    ctx.save(); ctx.translate(0, r * 0.4); _drawCharLightShadow(ctx, fb, W0, H0); ctx.drawImage(fb, -W0/2, -H0, W0, H0); ctx.restore();
     return;
   }
 
@@ -68221,6 +69961,8 @@ function drawRackiAIPlayer(ctx, pl){
 
   ctx.save();
   ctx.translate(0, r * 0.4);
+  // Ombre portée niveau 2 (posée avant le flip pour ne pas s'inverser avec le sprite)
+  _drawCharLightShadow(ctx, img, W, H);
   if(flipX){ ctx.scale(-1, 1); }
   // Reflet glace
   if(currentWorld === 1){
@@ -74331,6 +76073,15 @@ function _w12DrawBrickStack(){
     const _levW = _levH * _levRatio;
     const _levX = px - _levW * 0.5; // coin haut-gauche du sprite en écran
     const _levY = py - _levH;
+    // ── Ombre portée orientée (niveau 2 éclairage, v2239) ──
+    // Ce sprite est dessiné en coordonnées ÉCRAN absolues (_levX/_levY), pas dans un repère
+    // déjà translaté comme les décors : on se translate donc d'abord sur (px, py) = son pied.
+    if(typeof _drawSpriteLightShadow === 'function'){
+      CTX.save();
+      CTX.translate(px, py);
+      _drawSpriteLightShadow(CTX, _levImg, _levW, _levH, { alphaMul: _w12CatAlpha, decor: true });
+      CTX.restore();
+    }
     // ── Reflet classique (miroir plat), pivot remonté ──
     const _pivotY = _levY + _levH * 0.78;
     CTX.save();
