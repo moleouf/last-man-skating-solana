@@ -247,6 +247,83 @@ l'affichage du skin sans posséder le NFT réel. Sans conséquence sur le NFT
 lui-même (toujours honnête on-chain) ni sur les autres joueurs — même niveau
 de confiance que le reste du jeu.
 
+## Mint Proximité — validation complète en conditions réelles (20/09/2026)
+
+Session de test sur deux appareils physiques (tablette + téléphone Seeker),
+ayant révélé et corrigé **trois bugs indépendants**, chacun masquant le
+suivant (chaque bug empêchait d'atteindre le point d'exécution où le
+suivant se serait manifesté) :
+
+1. **Fix Kotlin jamais réellement appliqué** — le fallback
+   `reauthorize → authorize` documenté précédemment (voir
+   `capacitor-solana-mwa/README.md`) n'avait en réalité jamais été copié
+   dans le fichier source réel du plugin
+   (`capacitor-solana-mwa/android/src/main/java/.../SolanaWalletPlugin.kt`),
+   seulement discuté en conversation. Appliqué pour de vrai cette fois,
+   confirmé par relecture directe du fichier avant correction.
+2. **Constructeur d'instruction client désynchronisé du programme** —
+   `_lmsBuildMintMeetingNftIx` (dans `www/index.html`) encodait encore
+   l'ancien format à deux booléens (`is_premium_a`/`is_premium_b`) au lieu
+   du `is_premium` unique corrigé plus tôt dans `lib.rs`, et **omettait
+   entièrement les comptes `player_mint_record_a`/`_b`** (8 comptes
+   envoyés au lieu de 10). Comme ce chemin de code n'avait jamais été
+   testé en conditions réelles (seuls les scripts Playground, via l'IDL
+   Anchor, avaient été validés jusque-là), ce bug est resté invisible
+   jusqu'à cette session. Corrigé, avec un helper PDA
+   (`_lmsPlayerMintRecordPda`) ajouté au passage.
+3. **Blockhash expiré (`Transaction simulation failed: Blockhash not
+   found`)** — le flux à deux signataires humains (RTDB, wallet, retour
+   app) dépasse la fenêtre de validité d'un blockhash classique
+   (~60-90 s en théorie, mais observé insuffisant même sur des tentatives
+   à ~30-40 s — le devnet Solana a une production de blocs moins régulière
+   que le mainnet). Résolu via un **Durable Nonce** : compte nonce dédié,
+   créé une seule fois par wallet `builder` (réutilisé indéfiniment
+   ensuite), dont la valeur ne périme jamais tant qu'elle n'a pas été
+   explicitement avancée — élimine complètement la contrainte de temps.
+
+**Mint réel confirmé réussi de bout en bout** après ces trois correctifs,
+en conditions réelles (Nearby → double signature MWA → mint), pas
+seulement via script Playground.
+
+**Logique classic/premium auditée et confirmée saine** : chaque appareil
+détecte son propre Seed Vault (`isSeedVaultAvailable`), transmet ce
+statut à l'autre joueur via le payload Nearby, et le tier est calculé en
+`ET` logique des deux (`bothPremium = myIsPremium && peerIsPremium`) —
+jamais un tier différent par joueur, correctement câblé de bout en bout.
+Non testé avec deux vrais Seeker simultanément (un seul disponible pour
+les tests), mais le code est identique pour les deux tiers et a été relu
+intégralement.
+
+**Point d'équité identifié, pas encore corrigé** : `payer` est
+actuellement unique (un seul des deux joueurs règle tous les frais —
+rent des 2 NFT + des 2 `PlayerMintRecord` + frais de transaction). Un
+split 50/50 (chaque joueur paie son propre NFT) serait plus équitable et
+simplifierait même le code (suppression de la contrainte `InvalidPayer`)
+— non prioritaire, à faire si le temps le permet avant la deadline.
+
+## Pour tester l'application (juges / testeurs)
+
+L'app est 100 % installable et fonctionnelle, à une seule condition côté
+Solana : **avoir un wallet avec du SOL de test (devnet)**, comme pour
+toute dApp Solana en développement — les fonds réels ne sont jamais
+nécessaires.
+
+1. Installe un wallet compatible Mobile Wallet Adapter sur ton Android
+   (Phantom ou Solflare, gratuits sur le Play Store).
+2. Dans les paramètres du wallet, bascule le réseau sur **Devnet** (pas
+   Mainnet).
+3. Copie ton adresse publique, va sur **https://faucet.solana.com**,
+   colle l'adresse, vérifie que "Devnet" est sélectionné, clique pour
+   recevoir du SOL de test (gratuit, instantané).
+4. Installe l'APK de Last Man Skating, lance l'app, connecte ton wallet
+   depuis les réglages.
+5. Tu peux maintenant tester la cagnotte "Proof of Play" et le mode
+   Proximité "Proof of Meet" normalement.
+
+Sans cette étape, toute action on-chain (réclamation de cagnotte, mint de
+NFT) échouera avec une erreur de type "SOL insuffisant" — ce n'est pas un
+bug, juste l'absence de frais de transaction devnet.
+
 ## Licence / Auteur
 
 Développé en solo par Moleouf (Kristen Studios Games).
