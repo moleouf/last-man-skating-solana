@@ -154,6 +154,13 @@ jusqu'ici, mais aurait fait échouer tout financement en montant décimal
 (ex. `0.5` token). Corrigé via `BigInt(Math.round(amount * 10 **
 decimals))`.
 
+Statut au 22/09/2026 : session de debug complète sur la réclamation de
+`2026-W38` (bloquée sur les deux appareils de test) — plusieurs bugs en
+cascade trouvés et corrigés côté Worker et côté jeu, dont un bug client
+faisant croire à une réclamation réussie sans jamais vérifier la
+confirmation on-chain. Détail complet dans "Session de debug cagnotte —
+cron, timeouts, claim optimiste (22/09/2026)" plus bas.
+
 ### Réclamation multi-semaines (13/09/2026)
 
 Le bouton "RÉCLAMER" scanne désormais toutes les semaines en attente
@@ -182,6 +189,73 @@ pool d'une semaine a déjà été financée à la main (via l'endpoint
 l'auto-fund de cette semaine-là est automatiquement sauté (le montant
 manuel ne sera pas doublé) — seule l'init reste, elle, toujours
 idempotente et sans risque à laisser tourner.
+
+### Session de debug cagnotte — cron, timeouts, claim optimiste (22/09/2026)
+
+Session de debug déclenchée par un joueur (le dev lui-même) incapable de
+réclamer la cagnotte `2026-W38` sur deux appareils. Root cause en cascade,
+détaillée dans `lms-proof-of-play-worker/README.md` (points 13-16) — résumé
+côté jeu :
+
+- **Cron Cloudflare tournait le dimanche au lieu du lundi** (convention
+  jour-semaine différente d'Unix chez Cloudflare — `1 = dimanche` chez eux).
+  Le règlement partait ~24h avant la vraie fin de semaine ISO côté client,
+  sur des données incomplètes. Corrigé côté Worker (voir son README).
+- **Timeout de confirmation RPC traité comme un échec** sur 4 appels
+  critiques du Worker (`submitScore`, `finalizePool`, `initializeWeeklyPool`,
+  `fundPool`) — une transaction pouvait réussir on-chain malgré un timeout
+  côté client, et se retrouvait classée en échec (ou, pour `finalizePool`,
+  plantait carrément la requête). Corrigé côté Worker.
+- **Découverte (non corrigée) : un même wallet peut se fragmenter sur des
+  dizaines d'`uid` Firebase différents** — chaque reinstall/cache clear
+  génère un nouvel `uid` d'auth anonyme, alors que le wallet (Seed Vault)
+  reste stable. Le calcul du score hebdo étant fait par `uid` côté Worker,
+  l'historique de jeu d'un joueur qui réinstalle se fragmente en plusieurs
+  identités quasi-vierges. Sans conséquence pour l'instant (uniquement
+  constaté sur les wallets de dev, très souvent réinstallés en test), mais
+  correctif nécessaire côté Worker avant l'arrivée de vrais joueurs.
+- **Bug client corrigé : réclamation optimiste sans vérifier la
+  confirmation on-chain.** `_lmsExecuteClaimTransaction` (`www/index.html`)
+  traitait `signAndSendTransactions()` du plugin MWA comme une preuve de
+  succès dès qu'une signature était retournée — or cette méthode ne fait
+  que *soumettre* la transaction, pas confirmer qu'elle a réussi. Si le
+  programme la rejetait (ex. `PayoutTooSmall` sur une pool non financée),
+  l'app affichait quand même "✅ réclamé" et retirait la semaine de la file
+  d'attente locale, alors que `claimed` restait `false` on-chain — la même
+  semaine revenait donc en boucle à chaque nouvel appui sur RÉCLAMER, sans
+  jamais aboutir. Corrigé : la transaction est maintenant confirmée
+  explicitement (poll `getSignatureStatuses` jusqu'à confirmation, erreur
+  ou timeout — nouvelle fonction `_lmsConfirmClaimSignature`) avant
+  d'afficher un succès ; un vrai échec remonte désormais une alerte claire
+  au joueur au lieu d'un faux positif silencieux.
+- **Alertes/confirmations du flux de réclamation remplacées par des
+  popups au style de l'app** (`#lms-claim-alert-modal`, même gabarit que
+  la popup de grattage — fond ambre/or, `Barlow Condensed`) au lieu des
+  boîtes de dialogue système `alert()`/`confirm()` du navigateur. Nouveaux
+  helpers `_lmsClaimAlert()`/`_lmsClaimConfirm()` (tous deux async), tous
+  les messages du flux de claim (semaine en cours, pool non finalisée,
+  déjà réclamée, confirmation multi-semaines, échec de transaction, etc.)
+  passent maintenant par ces popups.
+- **Historique multi-semaines porté de 8 à 9** (`_lmsRecentWeekKeys`,
+  vérification systématique on-chain indépendante du tracking
+  local/Firebase — voir "Réclamation multi-semaines" ci-dessus) : la
+  vérification automatique couvre désormais la semaine courante + les
+  8 précédentes, pour matcher exactement les "8 semaines d'historique"
+  visées par `LMS_CLAIM_PENDING_WEEKS_MAX`, qui n'étaient auparavant
+  couvertes qu'à hauteur de 7 semaines passées par ce filet automatique
+  (la 8e ne l'était que via le tracking local/Firebase, plus fragile).
+- **Rebranding "SKR" → "LMS"** dans tous les textes visibles du joueur
+  (tutoriel Solana FR/EN, notice HOF, montant affiché sur la carte de
+  réclamation) — nom de jeton provisoire de dev remplacé par celui du jeu.
+- Nouvel endpoint de debug côté Worker, `/debug-submit-score`, pour
+  fabriquer des semaines de test réclamables sans passer par le calcul
+  Firebase réel — voir `lms-proof-of-play-worker/README.md`.
+- **`2026-W38` reste verrouillée à un score incorrect (36 au lieu de 116
+  réel)**, conséquence d'un des bugs de timeout ci-dessus survenu avant
+  correctif — la pool s'est finalisée avant qu'on puisse corriger la
+  valeur, et `submit_score` refuse toute modification post-finalisation.
+  Décision assumée : impact réel nul à ce stade (wallets de dev
+  uniquement), pas de correctif nécessaire côté programme.
 
 ## Mode Proximité — front (mint réel en jeu) (19/09/2026)
 

@@ -23,7 +23,12 @@ Distribue également des NFT trophées "Sanctuaire Seeker" (mode Proximité,
    est le score CUMULÉ de la semaine (pas un delta) : le compte
    `PlayerScore` est écrasé, pas incrémenté.
 4. **`finalize_pool(week_id)`** — l'autorité backend clôture la semaine :
-   plus aucun `submit_score` possible, `total_score` figé.
+   plus aucun `submit_score` possible, `total_score` figé. **Irréversible
+   en pratique** : cas réel du 22/09/2026 où un score erroné (36 au lieu
+   de 116, bug côté Worker — voir `lms-proof-of-play-worker/README.md`,
+   point 14) a été verrouillé après une finalisation automatique déclenchée
+   avant qu'on puisse le corriger. Aucune instruction d'annulation/correction
+   post-finalisation n'existe dans ce programme.
 5. **`claim_scratch(week_id)`** — le joueur (signataire) réclame sa part :
    `payout = 75% * pot * (son_score / total_score) + 25% * pot / nb_joueurs_éligibles`.
    Transfert SPL direct depuis le vault (signé par le PDA `weekly_pool`),

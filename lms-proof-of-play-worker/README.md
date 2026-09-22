@@ -110,18 +110,106 @@ Playground.
     décimal serait configuré. Corrigé :
     `BigInt(Math.round(amountUi * 10 ** mintInfo.decimals))`.
 
+✅ Fait (suite) :
+13. **Fix cron dimanche au lieu de lundi (22/09/2026)** — `"crons": ["1 0 * * 1"]`
+    dans `wrangler.jsonc` tournait en réalité le **dimanche** 00:01 UTC, pas
+    le lundi. Cloudflare interprète le jour-semaine différemment du cron Unix
+    standard : chez eux `1 = dimanche` (`0`/`7 = dimanche`, `1 = lundi`
+    ailleurs). Confirmé par le dashboard lui-même ("Runs At 12:01 AM on
+    **Sunday**"). Conséquence réelle : le règlement tournait ~24h avant la
+    vraie fin de semaine ISO côté client, sur un delta incomplet, et avançait
+    le snapshot KV prématurément. Corrigé avec la forme à 3 lettres
+    (`"1 0 * * MON"`), qui lève l'ambiguïté sans dépendre de la convention du
+    fournisseur.
+14. **Fix "timeout de confirmation ≠ échec"** sur les 4 appels `.rpc()`
+    critiques (`submitScore`, `finalizePool` dans `solanaSubmit.ts` ;
+    `initializeWeeklyPool`, `fundPool` dans `poolLifecycle.ts`). Cas réel
+    constaté sur `2026-W38` : un timeout de 60s classait la soumission en
+    "failed" alors que la transaction avait réellement été acceptée
+    on-chain (vérifié sur Solana Explorer) — ce qui faisait sauter
+    `finalizePool()` (jamais appelé si aucun succès détecté) et, une fois
+    `finalizePool` lui-même touché par le même problème, plantait carrément
+    la requête entière (exception non attrapée → 500 générique au lieu du
+    JSON de résultat). `resolveTimeoutSignature()` (exporté depuis
+    `solanaSubmit.ts`, réutilisé par `poolLifecycle.ts`) extrait la
+    signature du message d'erreur de timeout et vérifie l'état réel via
+    `getSignatureStatus` avant de conclure à un échec.
+    - **Effet de bord découvert sur `2026-W38`** : le score réel (116,
+      calculé correctement depuis le snapshot KV du 14/09) avait été
+      écrasé à **36** par un run de test antérieur au fix, puis la pool a
+      fini par se finaliser (via un des timeouts "faux positifs"
+      ci-dessus) avant qu'on ait pu corriger la valeur.
+      `submit_score` n'a aucune garde anti-régression on-chain (design
+      voulu — voir `programs/lms_proof_of_play/README.md` si son
+      `lib.rs` documente ce choix), donc rien n'a empêché l'écrasement,
+      mais **une fois finalisée, plus aucune correction n'est possible**
+      (`PoolAlreadyFinalized` sur toute nouvelle tentative). **Décision :
+      on laisse `2026-W38` à 36 tel quel** — impact réel nul (uniquement
+      les wallets de dev/test à ce stade), mais à garder en tête : une
+      resoumission de score doit être vérifiée (`_lmsGetClaimContext` côté
+      client, ou lecture directe du compte `PlayerScore`) **avant**
+      `finalize_pool`, pas après.
+15. **Découverte (non corrigée) : fragmentation d'un wallet sur plusieurs
+    `uid` Firebase.** `duelStats`/`ffaStats`/`wallets` sont indexés par
+    `uid` d'auth anonyme, qui change à **chaque reinstall/cache clear**
+    (constaté en prod de test : un seul wallet, `6pDn...ZoU2`, lié à
+    **24 `uid` différents**). Comme `weekSnapshot.ts`/`index.ts` calculent
+    le delta et l'éligibilité **par `uid`**, l'historique d'un joueur qui
+    réinstalle se fragmente en plusieurs identités quasi-vierges, et
+    surtout : si 2+ `uid` d'un même wallet ont un score>0 la même semaine,
+    la boucle de soumission fait un `submit_score` par `uid` sur le
+    **même** `PlayerScore` PDA — `submit_score` écrasant (pas cumulant),
+    seul le dernier appel de la boucle survit, les autres sont perdus
+    silencieusement. Pas encore corrigé : nécessite de regrouper les
+    deltas par **wallet** (somme des `uid` qui partagent la même adresse)
+    avant de calculer l'éligibilité, dans `weekSnapshot.ts`/`index.ts`.
+    Impact actuel nul (seuls les wallets de dev sont fragmentés à ce
+    stade — l'unique vrai testeur externe n'a qu'1 `uid`), mais à
+    corriger avant l'arrivée de vrais joueurs (qui réinstalleront/
+    changeront de téléphone).
+16. **Nouvel endpoint `/debug-submit-score`** (`index.ts`) — soumet un
+    score **fixe** (pas calculé depuis Firebase) pour un seul
+    wallet/`weekId` donné, via le même `submitWeeklyScoresOnChain` que le
+    vrai règlement (donc `finalizePool` suit aussi automatiquement en cas
+    de succès). Sert à fabriquer des semaines réclamables de test sans
+    toucher au snapshot KV ni au calcul de delta réel. Paramètres :
+    `?weekId=...&wallet=...&score=...`, même garde `X-Trigger-Secret` que
+    les autres endpoints manuels. **Toujours initialiser ET financer la
+    pool (`/init-pool?...&amount=...`) AVANT d'appeler cet endpoint** :
+    une fois la pool finalisée (ce qui arrive automatiquement dès le
+    premier `submit_score` réussi), `fund_pool` devient définitivement
+    impossible (`PoolAlreadyFinalized`) — cas réel sur `2026-W34`,
+    laissée telle quelle comme test de non-régression du point 14
+    (le client doit maintenant afficher un échec clair sur une
+    réclamation à 0, au lieu d'un faux succès — fix côté jeu, voir le
+    README/changelog du repo `last_man_skating`, pas celui-ci).
+
+
 ⏳ Reste à faire avant soumission finale :
 - Décision mint devnet (simulation) vs SKR mainnet réel pour la démo
 - Limitation anti-triche (collusion/self-play) toujours ouverte —
   documentée, correctif reporté après le hackathon
+- **Regroupement par wallet (pas par `uid`) pour le calcul du score** —
+  voir point 15 ci-dessus. Touche `weekSnapshot.ts` (`computeWeeklyDeltas`)
+  et `index.ts` (construction de la liste `eligible`).
 - ~~Limitation multi-semaines~~ : réglée côté client le 13/09/2026 — le
   bouton RÉCLAMER rattrape maintenant jusqu'à 8 semaines de gains non
   réclamés (voir README racine, section "Réclamation multi-semaines").
   Toujours pas de deadline on-chain au-delà de cet historique.
 - ~~Automatisation de l'initialisation de pool~~ : réglée le 15/09/2026
-  (voir point 11 ci-dessus). Le financement (`fund_pool`) reste manuel
-  par défaut, par choix.
+  (voir point 11 ci-dessus). Le financement (`fund_pool`) supportait déjà
+  l'auto-fund en option depuis cette date (secret `AUTO_FUND_AMOUNT`
+  absent = manuel par choix) — **`AUTO_FUND_AMOUNT` est configuré et actif
+  depuis le 22/09/2026** : le cycle complet (init + fund + submit +
+  finalize) tourne désormais seul chaque semaine, sans intervention
+  manuelle. L'endpoint `/init-pool?...&amount=...` reste disponible pour
+  un financement ponctuel additionnel (événement, promo) sans toucher au
+  secret ni désactiver l'auto-fund des semaines suivantes.
 - ~~Bug montant décimal~~ : réglé le 19/09/2026 (voir point 12 ci-dessus).
+- ~~Désync cron dimanche/lundi~~ : réglé le 22/09/2026 (voir point 13).
+- ~~Timeout de confirmation classé comme échec~~ : réglé le 22/09/2026
+  (voir point 14).
+
 
 ## `@coral-xyz/anchor` (SDK JS) — vérifié le 19/09/2026
 
@@ -203,6 +291,18 @@ npx wrangler secret put AUTO_FUND_AMOUNT
 # l'init est automatique.
 ```
 
+**État sur ce projet : configuré et actif depuis le 22/09/2026.** La valeur
+exacte n'est pas consultable a posteriori — les secrets Cloudflare sont
+écriture seule, `wrangler secret list` ne montre que les noms, jamais les
+valeurs. Pour la retrouver : lire `fundAmountUi` dans les logs du prochain
+passage du cron (`npx wrangler tail`), ou dans la réponse d'un
+`/init-pool?weekId=<semaine pas encore financée>` (sans `amount`, pour
+laisser `AUTO_FUND_AMOUNT` s'appliquer plutôt que de le remplacer — ça
+finance réellement cette semaine, pas une simple lecture), ou directement
+`totalPot` du compte `WeeklyPool` d'une semaine auto-financée sur Solana
+Explorer. Pour la changer, reposer le secret l'écrase sans besoin de
+connaître l'ancienne valeur.
+
 ## Développement local
 
 Le stockage KV local (Miniflare) peut échouer silencieusement si le chemin
@@ -225,6 +325,12 @@ curl -X POST "http://localhost:8787/run-settlement?weekId=2026-W37" \
 curl -X POST "http://localhost:8787/init-pool?weekId=2026-W39&amount=10" \
   -H "X-Trigger-Secret: <ta valeur de MANUAL_TRIGGER_SECRET>"
 # `amount` est optionnel : sans lui, seule l'init est faite (pas de fund_pool)
+
+# Fabriquer une semaine de test réclamable, score fixe indépendant du calcul
+# Firebase réel (22/09/2026) — TOUJOURS après un /init-pool avec `amount`
+# confirmé `funded: true`, sinon la pool se finalise à 0 sans retour possible :
+curl -X POST "http://localhost:8787/debug-submit-score?weekId=2026-W33&wallet=<pubkey>&score=42" \
+  -H "X-Trigger-Secret: <ta valeur de MANUAL_TRIGGER_SECRET>"
 ```
 
 ## Déploiement
