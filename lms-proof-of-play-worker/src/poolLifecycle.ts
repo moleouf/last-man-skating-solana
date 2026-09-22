@@ -8,7 +8,7 @@ import {
 // Même wallet minimal que solanaSubmit.ts — anchor.Wallet plante dans les
 // Workers, donc on réutilise EXACTEMENT la même implémentation maison
 // plutôt que d'en écrire une deuxième.
-import { walletFromSecretKey } from "./solanaSubmit";
+import { walletFromSecretKey, resolveTimeoutSignature } from "./solanaSubmit";
 import idl from "./idl/lms_proof_of_play.json";
 // "Env" n'est pas dans un fichier séparé chez toi : il est défini et
 // exporté directement dans index.ts (voir `export interface Env`). On
@@ -87,8 +87,19 @@ export async function ensureWeeklyPoolInitialized(
       if (msg.includes("already in use")) {
         result.alreadyExisted = true;
       } else {
-        result.error = `init failed: ${msg}`;
-        return result; // init a vraiment échoué -> inutile de tenter fund_pool
+        // v4 (22/09/2026) : même classe de bug que submitScore/finalizePool
+        // dans solanaSubmit.ts — un timeout de confirmation ici ne veut pas
+        // dire que initializeWeeklyPool a échoué (cas réel constaté sur
+        // 2026-W34 : "init failed" alors que rien ne prouve que la tx n'a
+        // pas atterri). On vérifie avant de vraiment classer en échec.
+        const confirmedSig = await resolveTimeoutSignature(connection, msg);
+        if (confirmedSig) {
+          result.initialized = true;
+          result.initSig = confirmedSig;
+        } else {
+          result.error = `init failed: ${msg}`;
+          return result; // init a vraiment échoué -> inutile de tenter fund_pool
+        }
       }
     }
 
@@ -127,16 +138,24 @@ export async function ensureWeeklyPoolInitialized(
     // Math.round : accepte les montants décimaux ("0.5"), contrairement à BigInt(amountUi).
     const amountRaw = BigInt(Math.round(amountUi * 10 ** mintInfo.decimals));
 
-    const fundSig = await program.methods
-      .fundPool(new anchor.BN(amountRaw.toString()))
-      .accounts({
-        funder: wallet.publicKey,
-        funderTokenAccount: funderTokenAccount.address,
-        weeklyPool: weeklyPoolPda,
-        vault: vaultPda,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .rpc({ commitment: "confirmed" });
+    let fundSig: string;
+    try {
+      fundSig = await program.methods
+        .fundPool(new anchor.BN(amountRaw.toString()))
+        .accounts({
+          funder: wallet.publicKey,
+          funderTokenAccount: funderTokenAccount.address,
+          weeklyPool: weeklyPoolPda,
+          vault: vaultPda,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc({ commitment: "confirmed" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const confirmedSig = await resolveTimeoutSignature(connection, msg);
+      if (!confirmedSig) throw err; // vrai échec -> capté par le catch englobant plus bas
+      fundSig = confirmedSig;
+    }
 
     result.funded = true;
     result.fundAmountUi = amountUi;

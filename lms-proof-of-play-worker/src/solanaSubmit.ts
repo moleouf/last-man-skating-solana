@@ -61,6 +61,27 @@ export interface SubmitResult {
  * ne doit pas bloquer les autres. La liste des erreurs est retournée pour
  * logging/alerte, à toi de décider si tu relances manuellement pour ceux en échec.
  */
+// v3 (22/09/2026) : sorti de submitWeeklyScoresOnChain pour être réutilisable
+// depuis poolLifecycle.ts (initializeWeeklyPool/fundPool ont exactement le
+// même problème de timeout mal classé que submitScore/finalizePool ici).
+// web3.js inclut la signature dans le message d'erreur de timeout
+// ("...Check signature <sig> using the Solana Explorer...") : on l'extrait
+// et on vérifie l'état réel avant de conclure à un échec.
+export async function resolveTimeoutSignature(connection: Connection, errMsg: string): Promise<string | null> {
+  const match = errMsg.match(/signature ([1-9A-HJ-NP-Za-km-z]{32,88})/);
+  if (!match) return null;
+  try {
+    const status = await connection.getSignatureStatus(match[1], { searchTransactionHistory: true });
+    const confirmed =
+      status.value &&
+      !status.value.err &&
+      (status.value.confirmationStatus === "confirmed" || status.value.confirmationStatus === "finalized");
+    return confirmed ? match[1] : null;
+  } catch {
+    return null; // vérification elle-même en échec -> on ne peut pas confirmer, reste classé "failed" plus bas
+  }
+}
+
 export async function submitWeeklyScoresOnChain(
   rpcUrl: string,
   programIdStr: string,
@@ -115,20 +136,40 @@ export async function submitWeeklyScoresOnChain(
 
       results.push({ walletAddress: p.walletAddress, score: p.score, signature: sig });
     } catch (err) {
-      results.push({
-        walletAddress: p.walletAddress,
-        score: p.score,
-        error: err instanceof Error ? err.message : String(err),
-      });
+      const msg = err instanceof Error ? err.message : String(err);
+      const confirmedSig = await resolveTimeoutSignature(connection, msg);
+      if (confirmedSig) {
+        results.push({ walletAddress: p.walletAddress, score: p.score, signature: confirmedSig });
+      } else {
+        results.push({ walletAddress: p.walletAddress, score: p.score, error: msg });
+      }
     }
   }
 
   // Finalise seulement si au moins un score a été soumis avec succès
   if (results.some((r) => r.signature)) {
-    await program.methods
-      .finalizePool(weekId)
-      .accounts({ authority: wallet.publicKey, weeklyPool: weeklyPoolPda })
-      .rpc({ commitment: "confirmed" });
+    try {
+      await program.methods
+        .finalizePool(weekId)
+        .accounts({ authority: wallet.publicKey, weeklyPool: weeklyPoolPda })
+        .rpc({ commitment: "confirmed" });
+    } catch (err) {
+      // v3 (22/09/2026) : même classe de bug que submitScore ci-dessus, sur
+      // finalizePool cette fois — un timeout de confirmation ici plantait
+      // toute la requête (throw non attrapé -> 500 générique côté worker au
+      // lieu du JSON de résultat), alors que la tx avait pu réussir quand
+      // même. Même vérification via la signature avant de vraiment logger
+      // un échec ; dans tous les cas on NE relance PAS l'exception, pour
+      // que runWeeklySettlement() puisse quand même renvoyer le détail
+      // des soumissions de score (qui, elles, ont réussi).
+      const msg = err instanceof Error ? err.message : String(err);
+      const confirmedSig = await resolveTimeoutSignature(connection, msg);
+      if (confirmedSig) {
+        console.log("[finalizePool] confirmé malgré le timeout, signature:", confirmedSig);
+      } else {
+        console.error("[finalizePool] échec réel:", msg);
+      }
+    }
   }
 
   return results;
