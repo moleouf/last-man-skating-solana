@@ -192,6 +192,43 @@ export default {
       });
     }
 
+    // DEBUG UNIQUEMENT — jamais appelé par le cron ni par l'app. Soumet un
+    // score FIXE (pas calculé depuis Firebase) pour UN SEUL wallet/weekId,
+    // via le même submitWeeklyScoresOnChain que le vrai règlement (donc
+    // finalize_pool est aussi appelé automatiquement en cas de succès).
+    // Sert à fabriquer de fausses semaines réclamables pour tester le
+    // comportement du bouton RÉCLAMER (ex. plusieurs semaines d'affilée),
+    // sans toucher au snapshot KV ni au calcul de delta réel — donc sans
+    // effet de bord sur le vrai règlement des autres joueurs.
+    // Requiert que la pool de ce weekId soit déjà initialisée (/init-pool)
+    // et idéalement financée (sinon claim_scratch échoue côté client avec
+    // PayoutTooSmall/EmptyPool).
+    if (url.pathname === "/debug-submit-score") {
+      const weekId = url.searchParams.get("weekId");
+      const walletAddress = url.searchParams.get("wallet");
+      const scoreRaw = url.searchParams.get("score");
+      if (!weekId || !walletAddress || !scoreRaw) {
+        return new Response(
+          "Paramètres requis : weekId, wallet, score (ex. ?weekId=2026-W37&wallet=6pDn...&score=42)",
+          { status: 400 }
+        );
+      }
+      const score = Number(scoreRaw);
+      if (!Number.isFinite(score) || score <= 0) {
+        return new Response(`score invalide: "${scoreRaw}"`, { status: 400 });
+      }
+      const results = await submitWeeklyScoresOnChain(
+        env.SOLANA_RPC_URL,
+        env.SOLANA_PROGRAM_ID,
+        env.SOLANA_AUTHORITY_SECRET_KEY,
+        weekId,
+        [{ walletAddress, score }]
+      );
+      return new Response(JSON.stringify(results, null, 2), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     return new Response("Not found", { status: 404 });
   },
 };
