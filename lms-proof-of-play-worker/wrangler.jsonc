@@ -16,8 +16,14 @@
   // plus la pool de la semaine qui vient de finir) alors que le worker
   // n'avait pas encore réglé cette semaine on-chain. 00:01 UTC laisse 1 min
   // de marge après le rollover ISO plutôt que de tourner pile à 00:00.
+  // v2 (22/09/2026) : "1 0 * * 1" tournait en réalité le DIMANCHE, pas le
+  // lundi — le champ jour-semaine de Cloudflare va de 1=dimanche à
+  // 7=samedi (convention différente du cron Unix standard où 0/7=dimanche,
+  // 1=lundi). Confirmé par le dashboard lui-même ("Next: Sun 27 Sep").
+  // Forme à 3 lettres utilisée ci-dessous pour lever l'ambiguïté une fois
+  // pour toutes (recommandation officielle Cloudflare).
   "triggers": {
-    "crons": ["1 0 * * 1"]
+    "crons": ["1 0 * * MON"]
   },
 
   "vars": {
