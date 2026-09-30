@@ -3903,6 +3903,7 @@ const I18N = {
     claimAlreadyClaimed: 'Tu as déjà réclamé ta part cette semaine.',
     claimZeroReward: 'Aucune récompense à réclamer cette semaine.',
     claimSkipConfirm: (week) => `Ignorer la cagnotte de la semaine ${week} ? Elle ne sera plus proposée par la suite.`,
+    claimAllSkipped: 'Plus rien à réclamer pour l\'instant — la ou les semaines restantes ont été ignorées.',
     claimSuccess: 'Récompense réclamée avec succès !',
     claimFailed: (msg) => 'Échec de la réclamation : ' + msg,
     claimPendingWeekConfirm: (week) => `Tu as une cagnotte en attente de la semaine ${week} (pas celle-ci). La réclamer maintenant ?`,
@@ -3910,12 +3911,18 @@ const I18N = {
     claimScratchSub: (week) => `Cagnotte de la semaine ${week}`,
     claimScratchRevealHint: 'Gratte la carte ou réclame directement',
     claimScratchNowBtn: 'RÉCLAMER MAINTENANT',
+    claimConfirming: '⛓️ Confirmation on-chain…',
+    claimUpToDate: (last, cur) => `✅ Tout est réclamé. Dernière cagnotte : ${last}.\nLa semaine ${cur} est en cours — ton score sera comptabilisé après le règlement hebdomadaire.`,
+    claimOnlyEmpty: (weeks, cur) => `Aucune cagnotte réclamable : ${weeks.length > 1 ? 'les semaines ' + weeks.join(', ') + ' n\'avaient' : 'la semaine ' + weeks[0] + ' n\'avait'} pas de fonds (0 LMS).\nLa semaine ${cur} est en cours — ton score sera comptabilisé après le règlement hebdomadaire.`,
+    claimAllDone: (n) => n > 1 ? `✅ ${n} cagnottes réclamées ! Plus rien à réclamer pour l'instant.` : `✅ Cagnotte réclamée ! Plus rien à réclamer pour l'instant.`,
     proximityMintWaiting: 'En attente de la signature de l\'autre joueur…',
     proximityMintSigning: '✍️ Signature du trophée en cours…',
     proximityMintSubmitting: '⛓️ Envoi sur la blockchain…',
     proximityMintSuccess: '✅ NFT Sanctuaire Seeker minté !',
     proximityMintNoWallet: 'Les deux joueurs doivent avoir un wallet Solana connecté pour ce trophée.',
     proximityMintAlreadyOwned: '🏆 Tu as déjà ton trophée Sanctuaire Seeker !',
+    proximityMintCooldown: (h) => `⏳ Prochain trophée possible dans ~${h} h.`,
+    proximityMintPeerCooldown: (h) => `⏳ Ton partenaire pourra minter dans ~${h} h.`,
     proximityMintPeerAlreadyOwned: '🏆 Ton partenaire a déjà son trophée — il faut rencontrer un joueur qui n\'en a pas encore pour minter le tien.',
     proximityMintFailed: (msg) => `⚠️ Échec du mint : ${msg}`,
     proximityMintTimeout: '⚠️ L\'autre joueur a quitté avant la fin — pas de NFT cette fois.',
@@ -4597,6 +4604,7 @@ const I18N = {
     claimAlreadyClaimed: 'You already claimed your share this week.',
     claimZeroReward: 'No reward to claim this week.',
     claimSkipConfirm: (week) => `Skip the ${week} pool? It won't be offered again after this.`,
+    claimAllSkipped: 'Nothing left to claim right now — the remaining week(s) were skipped.',
     claimSuccess: 'Reward claimed successfully!',
     claimFailed: (msg) => 'Claim failed: ' + msg,
     claimPendingWeekConfirm: (week) => `You have a pending pool reward from week ${week} (not this one). Claim it now?`,
@@ -4604,12 +4612,18 @@ const I18N = {
     claimScratchSub: (week) => `Week ${week} pool reward`,
     claimScratchRevealHint: 'Scratch the card or claim it right away',
     claimScratchNowBtn: 'CLAIM NOW',
+    claimConfirming: '⛓️ Confirming on-chain…',
+    claimUpToDate: (last, cur) => `✅ All claimed. Latest pool: ${last}.\nWeek ${cur} is in progress — your score will be counted after the weekly settlement.`,
+    claimOnlyEmpty: (weeks, cur) => `No claimable pool: ${weeks.length > 1 ? 'weeks ' + weeks.join(', ') + ' had' : 'week ' + weeks[0] + ' had'} no funds (0 LMS).\nWeek ${cur} is in progress — your score will be counted after the weekly settlement.`,
+    claimAllDone: (n) => n > 1 ? `✅ ${n} pool rewards claimed! Nothing left to claim for now.` : `✅ Pool reward claimed! Nothing left to claim for now.`,
     proximityMintWaiting: 'Waiting for the other player\'s signature…',
     proximityMintSigning: '✍️ Signing the trophy…',
     proximityMintSubmitting: '⛓️ Sending to the blockchain…',
     proximityMintSuccess: '✅ Sanctuaire Seeker NFT minted!',
     proximityMintNoWallet: 'Both players need a connected Solana wallet for this trophy.',
     proximityMintAlreadyOwned: '🏆 You already have your Sanctuaire Seeker trophy!',
+    proximityMintCooldown: (h) => `⏳ Next trophy available in ~${h} h.`,
+    proximityMintPeerCooldown: (h) => `⏳ Your partner can mint again in ~${h} h.`,
     proximityMintPeerAlreadyOwned: '🏆 Your partner already has their trophy — you need to meet a player who doesn\'t have one yet to mint yours.',
     proximityMintFailed: (msg) => `⚠️ Mint failed: ${msg}`,
     proximityMintTimeout: '⚠️ The other player left before it finished — no NFT this time.',
@@ -12648,6 +12662,11 @@ async function _lmsInviteSend(targetId, targetName, kind){
     fromName: getPlayerName(),
     kind: isFFA ? 'ffa' : 'duel',
     roomCode: roomCode,
+    // v2292 : le skin RADAR voyage aussi dans l'invite. Il n'était armé chez l'invité QUE par son
+    // propre payloadReceived Nearby ; si ce payload arrivait tard/jamais (l'hôte fait _lmsNearbyStop()
+    // dès réception du sien et coupe la connexion), l'invité jouait le lac gelé sans skin Seeker.
+    radar: (!isFFA && _lmsRadarWorldSkin === true && !!_lmsRadarRoomCode) ? true : null,
+    radarPremium: (!isFFA && _lmsRadarWorldSkin === true && !!_lmsRadarRoomCode) ? (_lmsSeedVaultAvailable === true) : null,
     ts: firebase.database.ServerValue.TIMESTAMP
   }).then(() => {
     // Best-effort miroir de l'expiration ~20s côté destinataire — si personne n'a répondu, on
@@ -12798,6 +12817,17 @@ function _lmsInviteAccept(){
   // v2271 : seule l'invite de duel du pair RADAR (dans la fenêtre) garde le skin ; l'invite d'un tiers
   // (ou une FFA) le désarme AVANT _lmsOnlineDuelEndSync() ci-dessous, qui préserverait sinon le flag
   // via sa fenêtre _fromNearby de 90 s.
+  // v2292 : handshake Nearby non abouti chez moi (payload perdu/en retard) mais l'invité RADAR de
+  // l'inviteur est marqué radar:true -> j'arme le skin depuis l'invite (même effet que payloadReceived).
+  if(_lmsRadarWorldSkin !== true && !isFFA && roomCode && data.radar === true && data.fromId){
+    _lmsRadarWorldSkin = true;
+    _lmsRadarSkinArmedAt = Date.now();
+    _lmsRadarPeerUid = String(data.fromId);
+    _lmsRadarRoomCode = '';
+    _lmsRadarPeerIsPremium = data.radarPremium === true;
+    if(typeof _loadSeekerSkinAssets === 'function') _loadSeekerSkinAssets();
+    if(typeof _loadLacAssets === 'function') _loadLacAssets();
+  }
   if(_lmsRadarWorldSkin === true){
     if(!isFFA && roomCode && _lmsRadarSkinValidFor(String(data.fromId || ''))) _lmsRadarRoomCode = roomCode;
     else _lmsRadarSkinDisarm();
@@ -18595,8 +18625,11 @@ function _lmsNearbyBindListeners(plugin){
     // Remis à false en fin de duel dans _lmsOnlineDuelEndSync.
     _lmsRadarWorldSkin = true;
     _lmsRadarSkinArmedAt = Date.now();
+    // v2292 : si l'invite RADAR a déjà armé ce skin et lié la salle (payload Nearby arrivé APRÈS
+    // l'acceptation), on ne remet pas le code de salle à '' -> _lmsOnlineDuelBeginSync le désarmerait.
+    const _lmsRadarAlreadyBound = (_lmsRadarPeerUid === String(peer.uid || '') && !!_lmsRadarRoomCode);
     _lmsRadarPeerUid = String(peer.uid || ''); // v2271 — voir _lmsRadarSkinDisarm()
-    _lmsRadarRoomCode = '';
+    if(!_lmsRadarAlreadyBound) _lmsRadarRoomCode = '';
     _lmsRadarPeerIsPremium = peer.premium === true; // v2250 — voir _lmsNearbyPayload
     // v2231 : on déclenche ici le préchargement des 3 assets du skin (fond, téléphone, jeton
     // SKR animé) — l'invite/room prend quelques secondes, donc ils sont prêts au premier frame.
@@ -18921,7 +18954,7 @@ function _lmsSyncWalletButton(){
 
 // ── Claim de la cagnotte Solana (claim_scratch) ──────────────────────────
 const LMS_SOLANA_PROGRAM_ID = 'GQeKyxHQGFv46z8hM5KocYa5hrUSea1hYJrDXyH41caH';
-const LMS_SOLANA_MINT = '64TQTAykeYQmRmeqMDKB2kWJGGSp8FuGLpEkcJfdwSY6'; // mint de test devnet — à remplacer par SKR en prod
+const LMS_SOLANA_MINT = '64TQTAykeYQmRmeqMDKB2kWJGGSp8FuGLpEkcJfdwSY6'; // mint de test devnet — à remplacer par le mint LMS de prod
 const LMS_SOLANA_RPC = 'https://devnet.helius-rpc.com/?api-key=e8d38867-6879-4d69-bd5b-1cc6b8f61a8f';
 // OLD const LMS_SOLANA_RPC = https://smart-wispy-shape.solana-devnet.quiknode.pro/85f42701189289f958c8e8303412f0ec0c687d6a
 const TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
@@ -19136,7 +19169,7 @@ function _lmsComputeClaimPayout(totalPotBI, totalScoreBI, eligibleCountBI, score
   return proportionalShare + equalShare;
 }
 
-// Décimales du mint SKR — ne changent jamais pour un mint donné, donc mise en cache
+// Décimales du mint LMS — ne changent jamais pour un mint donné, donc mise en cache
 // session (un seul appel RPC au total, jamais répété). Layout SPL Token Mint :
 // COption<Pubkey> mintAuthority (4+32) + u64 supply (8) + u8 decimals (1) + ... —
 // décimales toujours à l'offset fixe 44 pour ce layout de compte.
@@ -19250,8 +19283,11 @@ async function _lmsFindClaimableContext(){
 // toutes les cartes en retard d'une même session de réclamation (voir _lmsClaimShowRound)
 // au lieu de s'arrêter à la 1ère semaine trouvée. Même ordre "plus récent d'abord" que
 // l'original ; mêmes critères d'éligibilité (finalized, non réclamé, score > 0).
+let _lmsClaimScanSummary = { claimed: [], empty: [] }; // v2295 : rempli par le dernier scan (voir _lmsFindAllClaimableContexts), lu pour le message « rien à réclamer »
 async function _lmsFindAllClaimableContexts(){
   const currentWeek = _lmsWeekKey();
+  const summary = { claimed: [], empty: [] };
+  _lmsClaimScanSummary = summary;
   const skipped = _lmsGetSkippedClaimWeeks();
   const pendingWeeks = (await _lmsGetMergedPendingClaimWeeks()).filter(w => w !== currentWeek && !skipped.includes(w)).reverse();
   // v2280 : même filet que _lmsFindClaimableContext — voir _lmsRecentWeekKeys.
@@ -19261,7 +19297,11 @@ async function _lmsFindAllClaimableContexts(){
   for(const weekId of weekIds){
     try{
       const ctx = await _lmsGetClaimContext(weekId);
-      if(ctx.status === 'ok' && ctx.finalized && !ctx.claimed && ctx.score > 0) out.push(ctx);
+      if(ctx.status === 'ok' && ctx.score > 0 && weekId !== currentWeek){
+        if(ctx.claimed) summary.claimed.push(weekId);
+        else if(ctx.finalized && ctx.payout === 0n) summary.empty.push(weekId); // strictement 0 unité de base (0.5 LMS = 500000 unités -> reste proposé)
+      }
+      if(ctx.status === 'ok' && ctx.finalized && !ctx.claimed && ctx.score > 0 && ctx.payout > 0n) out.push(ctx); // v2294 : payout 0 = PayoutTooSmall garanti (pool non financée), inutile de la proposer
     }catch(e){
       console.warn('[claim] vérification semaine en attente échouée:', weekId, e);
     }
@@ -19305,6 +19345,7 @@ let _lmsClaimScratchCtx = null;        // contexte de claim déjà validé, en a
 let _lmsClaimScratchTxStarted = false; // garde-fou anti double-déclenchement (grattage + bouton)
 let _lmsClaimQueue = [];               // contextes restants à réclamer dans CETTE session (semaines en retard incluses)
 let _lmsClaimQueueTotal = 0;           // taille de la file au démarrage, pour l'affichage "CARTE i / n"
+let _lmsClaimSessionClaimed = 0;       // v2294 : nb de cartes réellement réclamées dans cette session (message de fin)
 // Durée d'affichage de la transition "manche" avant d'enchaîner sur la carte à gratter. Testé à
 // 1150ms au départ (repris de l'écran d'attente duel) : pas assez pour lire "CARTE i/n" + la
 // semaine avant l'enchaînement automatique — +1000ms pour laisser le temps de lire.
@@ -19353,6 +19394,16 @@ async function _lmsClaimPoolReward(){
     if(!web3) throw new Error('solanaWeb3 non chargé');
     const contexts = await _lmsFindAllClaimableContexts();
     if(!contexts.length){
+      // v2295 : état explicite (semaine nommée) au lieu de « cette semaine » ambigu.
+      const _sum = _lmsClaimScanSummary || { claimed: [], empty: [] };
+      if(_sum.claimed.length){
+        await _lmsClaimAlert(t('claimUpToDate', _sum.claimed.slice().sort().pop(), _lmsWeekKey()));
+        return;
+      }
+      if(_sum.empty.length){
+        await _lmsClaimAlert(t('claimOnlyEmpty', _sum.empty.slice().sort().reverse(), _lmsWeekKey()));
+        return;
+      }
       // Rien d'éligible sur AUCUNE semaine -> on retombe sur l'ancienne détection (1 seule
       // semaine) juste pour garder les messages d'erreur existants (no_pool/no_score/etc.)
       // corrects et inchangés, sans les dupliquer ici.
@@ -19364,6 +19415,12 @@ async function _lmsClaimPoolReward(){
       }
       if(!ctx.finalized){ await _lmsClaimAlert(t('claimNotFinalized')); return; }
       if(ctx.claimed){ await _lmsClaimAlert(t('claimAlreadyClaimed')); return; }
+      // v2283 : distingue "vraiment 0 récompense" de "ignorée volontairement" — sinon
+      // ignorer la semaine COURANTE (cas marginal, mais possible) affichait "aucune
+      // récompense" même quand ctx portait un vrai score>0, juste parce que le fallback
+      // ci-dessus (_lmsFindClaimableContext) ignore le filtre "skipped" sur son tout
+      // dernier retour par défaut (voir son commentaire).
+      if(_lmsGetSkippedClaimWeeks().includes(ctx.weekId)){ await _lmsClaimAlert(t('claimAllSkipped')); return; }
       await _lmsClaimAlert(t('claimZeroReward'));
       return;
     }
@@ -19376,6 +19433,7 @@ async function _lmsClaimPoolReward(){
 
     _lmsClaimQueue = contexts;
     _lmsClaimQueueTotal = contexts.length;
+    _lmsClaimSessionClaimed = 0;
     _lmsClaimShowRound();
   } catch(err){
     console.error('[claim] échec vérification éligibilité:', err);
@@ -19465,7 +19523,11 @@ function _lmsClaimShowRound(){
 function _lmsClaimAdvanceQueue(){
   closeClaimScratchPopup();
   _lmsClaimQueue.shift();
-  if(_lmsClaimQueue.length) _lmsClaimShowRound();
+  if(_lmsClaimQueue.length){ _lmsClaimShowRound(); return; }
+  // v2294 : fin de file -> message explicite au lieu d'une popup qui se ferme sans rien dire.
+  const n = _lmsClaimSessionClaimed;
+  _lmsClaimSessionClaimed = 0;
+  if(n > 0) _lmsClaimAlert(t('claimAllDone', n));
 }
 
 function _lmsOpenClaimScratchPopup(ctx){
@@ -19481,6 +19543,13 @@ function _lmsOpenClaimScratchPopup(ctx){
   const nowLabel = document.getElementById('claim-scratch-now-label');
   if(nowBtn) nowBtn.disabled = false;
   if(nowLabel) nowLabel.textContent = t('claimScratchNowBtn'); // sinon reste collé sur "..." après un échec précédent
+  // v2283 : "Ignorer" ajouté pour sortir d'une cagnotte structurellement bloquée
+  // (payout=0, PayoutTooSmall garanti — voir plus haut) ; jamais montré si un vrai
+  // montant est en jeu, pour ne pas donner d'échappatoire facile à une vraie récompense
+  // qui, elle, DOIT toujours pouvoir aboutir (un échec réel doit rester visible/réessayable,
+  // pas escamotable en un tap).
+  const skipLink = document.getElementById('claim-scratch-skip-link');
+  if(skipLink) skipLink.style.display = (ctx.payout > 0n) ? 'none' : 'block';
   popup.style.display = 'flex';
   const canvas = document.getElementById('claim-scratch-canvas');
   if(canvas) _setupClaimScratchCanvas(canvas);
@@ -19578,6 +19647,42 @@ async function _lmsClaimSkipCurrentWeek(){
   _lmsClaimAdvanceQueue();
 }
 
+// v2291 : signAndSendTransactions avec re-autorisation automatique. Le wallet renvoie
+// "-1/authorization request failed" quand l'authToken stocké est mort (expiré, wallet
+// réinstallé/purgé, changement de cluster). Le chemin de réclamation ne rafraîchissait
+// jamais le token -> échec permanent. Ici : sur ce type d'erreur, on jette le token,
+// on refait un authorize() frais (même cluster que la connexion), on vérifie que c'est
+// bien le même compte, on persiste le nouveau token et on retente UNE fois.
+async function _lmsSignAndSendWithReauth(params){
+  const plugin = _lmsSolanaWalletPlugin();
+  const ident = {
+    identityName: 'Last Man Skating',
+    identityUri: 'https://kristen.fr/KristenStudiosGames/lms.html',
+    iconUri: 'apple-touch-icon.png'
+  };
+  const persist = r => { if(r && r.authToken){ try{ localStorage.setItem('lms_wallet_auth_token', r.authToken); }catch(e){} } };
+  try{
+    const r = await plugin.signAndSendTransactions(Object.assign({}, ident, { authToken: params.authToken, transactions: params.transactions }));
+    persist(r);
+    return r;
+  }catch(err){
+    const msg = String(err && err.message || err).toLowerCase();
+    if(msg.indexOf('authorization request failed') === -1 && msg.indexOf('authorization_failed') === -1) throw err;
+    console.warn('[claim] authToken rejeté par le wallet — authorize() frais puis nouvel essai');
+    try{ localStorage.removeItem('lms_wallet_auth_token'); }catch(e){}
+    await new Promise(resolve => _lmsAwaitBridgeSettled(resolve));
+    const auth = await plugin.authorize(Object.assign({}, ident, { cluster: 'devnet' })); // idem authorize() de connexion
+    const pk = auth && auth.publicKey ? _lmsBase64ToBase58(auth.publicKey) : null;
+    if(!pk || !auth.authToken) throw new Error('Ré-autorisation du wallet impossible');
+    if(_lmsWalletAddress && pk !== _lmsWalletAddress) throw new Error('Le wallet autorisé (' + pk.slice(0,4) + '…' + pk.slice(-4) + ') ne correspond pas au wallet connecté');
+    try{ localStorage.setItem('lms_wallet_auth_token', auth.authToken); }catch(e){}
+    await new Promise(resolve => _lmsAwaitBridgeSettled(resolve));
+    const r2 = await plugin.signAndSendTransactions(Object.assign({}, ident, { authToken: auth.authToken, transactions: params.transactions }));
+    persist(r2);
+    return r2;
+  }
+}
+
 // Envoi effectif de la transaction claim_scratch — reprend telle quelle la logique de
 // construction/signature/nettoyage qui vivait auparavant directement dans _lmsClaimPoolReward()
 // avant l'ajout de la popup de grattage. Protégée par _lmsClaimScratchTxStarted pour n'être
@@ -19630,16 +19735,25 @@ async function _lmsExecuteClaimTransaction(ctx){
     // d'appel (bouton "réclamer") en était totalement dépourvu, adapté ici en style async/await
     // via une Promise plutôt que le callback direct utilisé ailleurs dans le fichier.
     await new Promise(resolve => _lmsAwaitBridgeSettled(resolve));
-    const result = await plugin.signAndSendTransactions({
-      authToken, transactions: [txBase64],
-      identityName: 'Last Man Skating', identityUri: 'https://kristen.fr/KristenStudiosGames/lms.html', iconUri: 'apple-touch-icon.png', // relatif — voir authorize() plus haut pour l'explication
-    });
+    const result = await _lmsSignAndSendWithReauth({ authToken, transactions: [txBase64] });
     console.log('[claim] signatures:', result.signatures);
     const claimSig = result.signatures && result.signatures[0];
     if(!claimSig) throw new Error('Aucune signature retournée par le wallet');
 
-    if(nowLabel) nowLabel.textContent = t('settingsWalletConnecting');
-    const confirmation = await _lmsConfirmClaimSignature(claimSig, 45000);
+    if(nowLabel) nowLabel.textContent = t('claimConfirming');
+    // v2294 : le plugin Kotlin renvoie les signatures en BASE64, alors que getSignatureStatuses attend du
+    // BASE58 -> la RPC ne trouvait jamais la signature et on tombait TOUJOURS en "timeout de confirmation",
+    // même quand la tx avait réussi on-chain (W39 : 10 LMS bien reçus). Conversion avant l'appel.
+    let claimSigB58 = claimSig;
+    try{ if(/[+/=]/.test(claimSig) || claimSig.length !== 88 && claimSig.length !== 87) claimSigB58 = _lmsBase64ToBase58(claimSig); }catch(e){}
+    let confirmation = await _lmsConfirmClaimSignature(claimSigB58, 45000);
+    if(!confirmation.confirmed && confirmation.timeout){
+      // Filet ultime : RPC lente ou signature introuvable -> on relit l'état RÉEL du compte PlayerScore.
+      try{
+        const fresh = await _lmsGetClaimContext(ctx.weekId);
+        if(fresh && fresh.status === 'ok' && fresh.claimed) confirmation = { confirmed: true };
+      }catch(e){ console.warn('[claim] relecture on-chain après timeout échouée:', e); }
+    }
     if(!confirmation.confirmed){
       const detail = confirmation.err ? JSON.stringify(confirmation.err) : 'timeout de confirmation';
       throw new Error('Réclamation non confirmée on-chain (' + detail + ') — signature ' + claimSig);
@@ -19647,6 +19761,7 @@ async function _lmsExecuteClaimTransaction(ctx){
 
     const revealEl = document.getElementById('claim-scratch-reveal');
     if(revealEl) _lmsRenderClaimScratchReveal(ctx, { success: true });
+    _lmsClaimSessionClaimed++;
 
     // Cette semaine n'est plus "en attente" une fois réclamée — local + Firebase.
     _lmsSavePendingClaimWeeks(_lmsGetPendingClaimWeeks().filter(w => w !== weekId));
@@ -19842,6 +19957,23 @@ function _lmsMintCounterPda(web3, programId){
 }
 
 // Seeds = ["player_mint", pubkey_joueur] — voir PlayerMintRecord dans lib.rs.
+// Secondes restantes avant qu'un wallet puisse re-mint (0 = libre, Infinity = record ancien
+// format sans last_mint_at, inutilisable avec le programme actuel). Layout PlayerMintRecord :
+// 8 (discriminator) + 32 (player) + 32 (asset) + 8 (last_mint_at i64 LE) + 1 (bump).
+// Estimation côté client (horloge locale) : la vraie vérification reste on-chain
+// (MINT_COOLDOWN_SECONDS dans lib.rs), ceci évite juste de lancer un flux voué à l'échec.
+const LMS_MINT_COOLDOWN_SECONDS = 86400;
+function _lmsMintRecordCooldownRemaining(info){
+  if(!info || !info.value) return 0;
+  const raw = info.value.data && info.value.data[0];
+  if(!raw) return 0;
+  const buf = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+  if(buf.length < 81) return Infinity;
+  const last = Number(new DataView(buf.buffer).getBigInt64(72, true));
+  if(last === 0) return 0;
+  return Math.max(0, (last + LMS_MINT_COOLDOWN_SECONDS) - Math.floor(Date.now() / 1000));
+}
+
 function _lmsPlayerMintRecordPda(web3, programId, playerPubkey){
   const [pda] = web3.PublicKey.findProgramAddressSync(
     [new TextEncoder().encode('player_mint'), playerPubkey.toBuffer()], programId);
@@ -19887,10 +20019,7 @@ async function _lmsGetOrCreateNonceAccount(web3, plugin, myPubkey, authToken){
   const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
   const txBase64 = btoa(String.fromCharCode(...serialized));
 
-  await plugin.signAndSendTransactions({
-    authToken, transactions: [txBase64],
-    identityName: 'Last Man Skating', identityUri: 'https://kristen.fr/KristenStudiosGames/lms.html', iconUri: 'apple-touch-icon.png',
-  });
+  await _lmsSignAndSendWithReauth({ authToken, transactions: [txBase64] });
 
   // Poll plutôt que de décoder la signature retournée (le plugin Kotlin la renvoie en
   // base64, alors que les RPC Solana attendent du base58 pour getSignatureStatuses —
@@ -19919,7 +20048,7 @@ async function _lmsFetchNonceValue(web3, nonceAccountPubkey){
 // Construit l'instruction mint_meeting_nft (mêmes conventions d'encodage que
 // _lmsBorshString/CLAIM_SCRATCH_DISCRIMINATOR déjà utilisées pour claim_scratch).
 function _lmsBuildMintMeetingNftIx(web3, programId, opts){
-  const { playerA, playerB, payer, assetA, assetB, isPremium, nameA, uriA, nameB, uriB } = opts;
+  const { playerA, playerB, assetA, assetB, isPremiumA, isPremiumB, nameA, uriA, nameB, uriB } = opts;
   const mintCounterPda = _lmsMintCounterPda(web3, programId);
   const playerMintRecordA = _lmsPlayerMintRecordPda(web3, programId, playerA);
   const playerMintRecordB = _lmsPlayerMintRecordPda(web3, programId, playerB);
@@ -19928,12 +20057,14 @@ function _lmsBuildMintMeetingNftIx(web3, programId, opts){
   const uriABytes = _lmsBorshString(uriA);
   const nameBBytes = _lmsBorshString(nameB);
   const uriBBytes = _lmsBorshString(uriB);
-  // 8 (discriminant) + 1 (is_premium, UN SEUL octet — voir lib.rs, tier commun aux
-  // deux joueurs, pas is_premium_a/is_premium_b séparés) + les 4 chaînes Borsh.
-  const data = new Uint8Array(8 + 1 + nameABytes.length + uriABytes.length + nameBBytes.length + uriBBytes.length);
+  // 8 (discriminant) + 1+1 (is_premium_a, is_premium_b — 20/09/2026, chaque joueur a
+  // désormais SON PROPRE tier indépendant, plus un is_premium unique partagé) + les 4
+  // chaînes Borsh.
+  const data = new Uint8Array(8 + 1 + 1 + nameABytes.length + uriABytes.length + nameBBytes.length + uriBBytes.length);
   let off = 0;
   data.set(MINT_MEETING_NFT_DISCRIMINATOR, off); off += 8;
-  data[off] = isPremium ? 1 : 0; off += 1;
+  data[off] = isPremiumA ? 1 : 0; off += 1;
+  data[off] = isPremiumB ? 1 : 0; off += 1;
   data.set(nameABytes, off); off += nameABytes.length;
   data.set(uriABytes, off); off += uriABytes.length;
   data.set(nameBBytes, off); off += nameBBytes.length;
@@ -19943,15 +20074,13 @@ function _lmsBuildMintMeetingNftIx(web3, programId, opts){
     programId,
     // Ordre EXACT du struct MintMeetingNft dans lib.rs — Anchor résout les comptes
     // par position, pas par nom, un ordre différent pointerait vers le mauvais compte.
-    // NOTE (20/09/2026) : un split payer 50/50 existe déjà prêt côté lib.rs (voir README)
-    // mais PAS ENCORE DÉPLOYÉ — ce JS reste donc volontairement sur l'ancien format à
-    // `payer` unique, pour rester compatible avec le programme actuellement en ligne.
-    // Le jour du déploiement du split, réappliquer aussi ce changement ici (retirer
-    // `payer` des keys, passer playerA/playerB en isWritable:true).
+    // Split payer 50/50 déployé le 20/09/2026 : plus de compte `payer` séparé, chaque
+    // joueur paie son propre NFT + son propre PlayerMintRecord — d'où playerA/B en
+    // isWritable:true. `player_mint_record_a`/`_b` restent `isWritable:true` même quand
+    // le compte existe déjà (init_if_needed les modifie toujours, cooldown oblige).
     keys: [
-      { pubkey: playerA, isSigner: true, isWritable: false },
-      { pubkey: playerB, isSigner: true, isWritable: false },
-      { pubkey: payer, isSigner: true, isWritable: true },
+      { pubkey: playerA, isSigner: true, isWritable: true },
+      { pubkey: playerB, isSigner: true, isWritable: true },
       { pubkey: assetA, isSigner: true, isWritable: true },
       { pubkey: assetB, isSigner: true, isWritable: true },
       { pubkey: mintCounterPda, isSigner: false, isWritable: true },
@@ -20056,13 +20185,17 @@ async function _lmsProximityMintFlow(){
       _lmsRpcCall('getAccountInfo', [myMintRecordPda.toBase58(), { encoding: 'base64' }]),
       _lmsRpcCall('getAccountInfo', [peerMintRecordPda.toBase58(), { encoding: 'base64' }]),
     ]);
-    if(myMintRecordInfo && myMintRecordInfo.value){
-      _lmsProximityMintSetStatus(t('proximityMintAlreadyOwned'));
-      setTimeout(_lmsProximityMintClose, 2500);
+    // 20/09/2026 : plus de verrou à vie — seulement un cooldown (voir lib.rs). On bloque
+    // uniquement si le cooldown de l'un des deux wallets n'est pas écoulé.
+    const myCooldown = _lmsMintRecordCooldownRemaining(myMintRecordInfo);
+    const peerCooldown = _lmsMintRecordCooldownRemaining(peerMintRecordInfo);
+    if(myCooldown > 0){
+      _lmsProximityMintSetStatus(myCooldown === Infinity ? t('proximityMintAlreadyOwned') : t('proximityMintCooldown', Math.ceil(myCooldown / 3600)));
+      setTimeout(_lmsProximityMintClose, 3500);
       return;
     }
-    if(peerMintRecordInfo && peerMintRecordInfo.value){
-      _lmsProximityMintSetStatus(t('proximityMintPeerAlreadyOwned'));
+    if(peerCooldown > 0){
+      _lmsProximityMintSetStatus(peerCooldown === Infinity ? t('proximityMintPeerAlreadyOwned') : t('proximityMintPeerCooldown', Math.ceil(peerCooldown / 3600)));
       setTimeout(_lmsProximityMintClose, 3500);
       return;
     }
@@ -20075,13 +20208,14 @@ async function _lmsProximityMintFlow(){
 
     const myIsPremium = _lmsSeedVaultAvailable === true;
     const peerIsPremium = (_lmsRadarPeerIsPremiumEnded === true) || (_lmsRadarPeerIsPremium === true); // v2272 : snapshot de fin de duel (voir _lmsRadarPeerIsPremiumEnded)
-    // Tier PAR RENCONTRE, pas par joueur : premium seulement si les DEUX ont un vrai
-    // Seeker, sinon les deux NFT sont classic — jamais un joueur premium et l'autre pas.
-    const bothPremium = myIsPremium && peerIsPremium;
+    // Tier INDÉPENDANT par joueur (20/09/2026, remplace un ancien ET logique partagé) :
+    // chacun reçoit SON PROPRE tier selon SON PROPRE matériel — un joueur avec Seeker
+    // peut recevoir premium même si son partenaire de rencontre reçoit classic. Avantage
+    // direct et visible pour qui possède un vrai Seeker.
 
     if(iAmBuilder){
       await _lmsProximityMintBuildAndSignAsBuilder(web3, programId, ref, {
-        myPubkey, peerPubkey, bothPremium,
+        myPubkey, peerPubkey, myIsPremium, peerIsPremium,
       });
     } else {
       _lmsProximityMintSetStatus(t('proximityMintWaiting'));
@@ -20101,7 +20235,7 @@ async function _lmsProximityMintFlow(){
 // Le "builder" (plus petit uid) construit la tx à 2 mints, signe ses assets
 // jetables + sa propre part wallet, et publie le résultat.
 async function _lmsProximityMintBuildAndSignAsBuilder(web3, programId, ref, ctx){
-  const { myPubkey, peerPubkey, bothPremium } = ctx;
+  const { myPubkey, peerPubkey, myIsPremium, peerIsPremium } = ctx;
   _lmsProximityMintSetStatus(t('proximityMintSigning'));
 
   const plugin = _lmsSolanaWalletPlugin();
@@ -20115,14 +20249,16 @@ async function _lmsProximityMintBuildAndSignAsBuilder(web3, programId, ref, ctx)
 
   const assetA = web3.Keypair.generate(); // NFT du builder (moi)
   const assetB = web3.Keypair.generate(); // NFT du peer
-  const tierUri = LMS_MEETING_NFT_URI[bothPremium ? 'premium' : 'classic'];
+  // Chaque NFT a son propre tier indépendant — plus un tierUri partagé unique.
+  const tierUriA = LMS_MEETING_NFT_URI[myIsPremium ? 'premium' : 'classic'];
+  const tierUriB = LMS_MEETING_NFT_URI[peerIsPremium ? 'premium' : 'classic'];
 
   const ix = _lmsBuildMintMeetingNftIx(web3, programId, {
-    playerA: myPubkey, playerB: peerPubkey, payer: myPubkey,
+    playerA: myPubkey, playerB: peerPubkey,
     assetA: assetA.publicKey, assetB: assetB.publicKey,
-    isPremium: bothPremium,
-    nameA: 'Sanctuaire Seeker', uriA: tierUri,
-    nameB: 'Sanctuaire Seeker', uriB: tierUri,
+    isPremiumA: myIsPremium, isPremiumB: peerIsPremium,
+    nameA: myIsPremium ? 'Sanctuaire Seeker (Premium)' : 'Sanctuaire Seeker', uriA: tierUriA,
+    nameB: peerIsPremium ? 'Sanctuaire Seeker (Premium)' : 'Sanctuaire Seeker', uriB: tierUriB,
   });
 
   const tx = new web3.Transaction();
@@ -81978,7 +82114,7 @@ if(typeof window !== 'undefined'){
       <div id="claim-scratch-reveal" class="card-reveal"></div>
     </div>
     <button id="claim-scratch-now-btn" onclick="_lmsClaimScratchNow()" ontouchstart="_lmsClaimScratchNow();event.stopPropagation();" style="width:100%;margin-top:12px;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#ffb800,#ff7a00);color:#1a1000;font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1.5px;font-size:15px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;"><span id="claim-scratch-now-label">RÉCLAMER MAINTENANT</span></button>
-    <div onclick="_lmsClaimSkipCurrentWeek()" ontouchstart="_lmsClaimSkipCurrentWeek();event.stopPropagation();" style="margin-top:10px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:12px;color:rgba(255,255,255,.4);text-decoration:underline;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">Ignorer cette semaine</div>
+    <div id="claim-scratch-skip-link" onclick="_lmsClaimSkipCurrentWeek()" ontouchstart="_lmsClaimSkipCurrentWeek();event.stopPropagation();" style="display:none;margin-top:10px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:12px;color:rgba(255,255,255,.4);text-decoration:underline;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">Ignorer cette semaine</div>
   </div>
 </div>
 
@@ -81992,7 +82128,7 @@ if(typeof window !== 'undefined'){
 <div id="lms-claim-alert-modal" style="display:none;position:fixed;inset:0;z-index:10000;pointer-events:all;touch-action:manipulation;background:rgba(0,0,20,0.95);align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);">
   <div style="background:linear-gradient(160deg,rgba(35,25,0,0.98),rgba(50,35,0,0.98));border:1.5px solid rgba(255,200,0,0.4);border-radius:16px;padding:20px;width:min(360px,90vw);box-sizing:border-box;box-shadow:0 10px 40px rgba(0,0,0,0.6);text-align:center;">
     <div style="font-size:28px;margin-bottom:8px;">💰</div>
-    <div id="lms-claim-alert-message" style="font-family:'Barlow Condensed',sans-serif;font-size:15px;line-height:1.4;color:rgba(255,255,255,.9);margin-bottom:18px;"></div>
+    <div id="lms-claim-alert-message" style="font-family:'Barlow Condensed',sans-serif;font-size:15px;line-height:1.4;color:rgba(255,255,255,.9);margin-bottom:18px;white-space:pre-line;"></div>
     <div style="display:flex;gap:10px;">
       <button id="lms-claim-alert-cancel-btn" style="flex:1;display:none;padding:11px;border-radius:10px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:rgba(255,255,255,.8);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;font-size:14px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">ANNULER</button>
       <button id="lms-claim-alert-ok-btn" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#ffb800,#ff7a00);color:#1a1000;font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1px;font-size:14px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">OK</button>

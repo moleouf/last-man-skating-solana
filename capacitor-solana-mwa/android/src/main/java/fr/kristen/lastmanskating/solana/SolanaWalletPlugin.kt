@@ -182,15 +182,28 @@ class SolanaWalletPlugin : Plugin() {
         }
 
         val adapter = buildAdapter(call)
+        var refreshedAuthToken: String? = null
 
         pluginScope.launch {
             val result = adapter.transact(sender) {
-                reauthorize(
-                    identityUri = Uri.parse(call.getString("identityUri") ?: defaultIdentityUri),
-                    iconUri = Uri.parse(call.getString("iconUri") ?: defaultIconUri),
-                    identityName = call.getString("identityName") ?: "Last Man Skating",
-                    authToken = token
-                )
+                try {
+                    reauthorize(
+                        identityUri = Uri.parse(call.getString("identityUri") ?: defaultIdentityUri),
+                        iconUri = Uri.parse(call.getString("iconUri") ?: defaultIconUri),
+                        identityName = call.getString("identityName") ?: "Last Man Skating",
+                        authToken = token
+                    )
+                } catch (e: Exception) {
+                    // v2291 : même filet que signTransactions (v2259). authToken mort côté
+                    // wallet ("authorization request failed", JsonRpc20RemoteException -1)
+                    // -> authorize() frais dans la même session, nouveau token renvoyé au JS.
+                    authorize(
+                        identityUri = Uri.parse(call.getString("identityUri") ?: defaultIdentityUri),
+                        iconUri = Uri.parse(call.getString("iconUri") ?: defaultIconUri),
+                        identityName = call.getString("identityName") ?: "Last Man Skating",
+                        rpcCluster = clusterFromString(call.getString("cluster"))
+                    ).also { refreshedAuthToken = it.authToken }
+                }
                 signAndSendTransactions(
                     transactions = transactionsBytes,
                     params = TransactionParams(
@@ -212,6 +225,10 @@ class SolanaWalletPlugin : Plugin() {
                     }
                     val ret = JSObject()
                     ret.put("signatures", jsArray)
+                    refreshedAuthToken?.let {
+                        authToken = it
+                        ret.put("authToken", it)
+                    }
                     call.resolve(ret)
                 }
                 is TransactionResult.NoWalletFound -> call.reject("NO_WALLET_FOUND")
@@ -242,15 +259,29 @@ class SolanaWalletPlugin : Plugin() {
         }
 
         val adapter = buildAdapter(call)
+        var refreshedAuthToken: String? = null
 
         pluginScope.launch {
             val result = adapter.transact(sender) {
-                reauthorize(
-                    identityUri = Uri.parse(call.getString("identityUri") ?: defaultIdentityUri),
-                    iconUri = Uri.parse(call.getString("iconUri") ?: defaultIconUri),
-                    identityName = call.getString("identityName") ?: "Last Man Skating",
-                    authToken = token
-                )
+                try {
+                    reauthorize(
+                        identityUri = Uri.parse(call.getString("identityUri") ?: defaultIdentityUri),
+                        iconUri = Uri.parse(call.getString("iconUri") ?: defaultIconUri),
+                        identityName = call.getString("identityName") ?: "Last Man Skating",
+                        authToken = token
+                    )
+                } catch (e: Exception) {
+                    // v2259 : le authToken stocké peut avoir expiré ou avoir été invalidé côté
+                    // wallet ("authorization request failed", JsonRpc20RemoteException -1) —
+                    // observé en test réel sur le mint co-signé Proximité. Plutôt que de faire
+                    // échouer tout le flux, on retente une autorisation fraîche avant de signer.
+                    authorize(
+                        identityUri = Uri.parse(call.getString("identityUri") ?: defaultIdentityUri),
+                        iconUri = Uri.parse(call.getString("iconUri") ?: defaultIconUri),
+                        identityName = call.getString("identityName") ?: "Last Man Skating",
+                        rpcCluster = clusterFromString(call.getString("cluster"))
+                    ).also { refreshedAuthToken = it.authToken }
+                }
                 signTransactions(transactions = transactionsBytes)
             }
 
@@ -263,6 +294,12 @@ class SolanaWalletPlugin : Plugin() {
                     }
                     val ret = JSObject()
                     ret.put("signedTransactions", jsArray)
+                    // v2259 : si un authorize() de secours a eu lieu ci-dessus, le JS doit
+                    // re-stocker ce nouveau token (l'ancien ne fonctionnera plus).
+                    refreshedAuthToken?.let {
+                        authToken = it
+                        ret.put("authToken", it)
+                    }
                     call.resolve(ret)
                 }
                 is TransactionResult.NoWalletFound -> call.reject("NO_WALLET_FOUND")
