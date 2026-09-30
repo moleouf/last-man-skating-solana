@@ -161,6 +161,12 @@ faisant croire à une réclamation réussie sans jamais vérifier la
 confirmation on-chain. Détail complet dans "Session de debug cagnotte —
 cron, timeouts, claim optimiste (22/09/2026)" plus bas.
 
+Statut au 30/09/2026 : réclamation multi-semaines validée en conditions
+réelles sur device (Phantom, devnet) après trois correctifs supplémentaires
+(authToken MWA mort sur `signAndSendTransactions`, confirmation on-chain
+cassée par un format de signature, UX de fin de file) — détail dans
+"Session de debug réclamation & RADAR (30/09/2026)" plus bas.
+
 ### Réclamation multi-semaines (13/09/2026)
 
 Le bouton "RÉCLAMER" scanne désormais toutes les semaines en attente
@@ -257,6 +263,59 @@ côté jeu :
   Décision assumée : impact réel nul à ce stade (wallets de dev
   uniquement), pas de correctif nécessaire côté programme.
 
+### Session de debug réclamation & RADAR (30/09/2026)
+
+Nouvelle session de test sur device réel (Phantom, devnet), trois problèmes
+indépendants trouvés et corrigés :
+
+1. **`-1/authorization request failed` sur la réclamation** —
+   `SIGN_AND_SEND_FAILED: ...JsonRpc20RemoteException -1/authorization
+   request failed`. Le `authToken` MWA stocké n'était plus reconnu par le
+   wallet. Le filet `reauthorize → authorize` ajouté le 20/09 n'existait que
+   dans `signTransactions` (mint Proximité) ; `signAndSendTransactions`
+   (réclamation, création du nonce durable) n'en avait pas. Corrigé des deux
+   côtés : plugin Kotlin (`SolanaWalletPlugin.kt`, même `try/catch` +
+   `authorize()` frais dans la même session wallet, nouveau token renvoyé
+   dans la réponse) **et** helper JS `_lmsSignAndSendWithReauth()` qui
+   persiste le token rafraîchi et, en dernier recours, rejoue un
+   `authorize()` complet en vérifiant que la pubkey correspond au wallet
+   connecté.
+2. **Faux "timeout de confirmation" à chaque réclamation** — le plugin
+   Kotlin renvoie les signatures en **base64**, alors que
+   `getSignatureStatuses` attend du **base58** : la RPC ne retrouvait jamais
+   la transaction, et `_lmsConfirmClaimSignature` (ajoutée le 22/09) tombait
+   systématiquement en timeout de 45 s, même si la transaction avait réussi
+   on-chain (la pool `2026-W39` a bien versé ses 10 LMS pendant que l'app
+   affichait "réclamation non confirmée"), en avortant en plus le reste de la
+   file multi-semaines. Corrigé : conversion base64 → base58 avant la
+   vérification, plus un **filet ultime** — en cas de vrai timeout, relecture
+   du compte `PlayerScore` on-chain : si `claimed = true`, la réclamation est
+   considérée comme réussie.
+3. **UX de la file de réclamation** :
+   - libellé "⛓️ Confirmation on-chain…" à la place des trois points muets
+     pendant l'attente de confirmation ;
+   - message de fin de file explicite ("✅ N cagnottes réclamées ! Plus rien
+     à réclamer pour l'instant.") au lieu d'une popup qui se ferme sans rien
+     dire ;
+   - les semaines dont le `payout` calculé vaut 0 (pool non financée →
+     `PayoutTooSmall` garanti) ne sont plus proposées dans la file : elles
+     provoquaient une erreur de transaction inévitable. Le lien "Ignorer
+     cette semaine" reste disponible en filet de sécurité.
+
+**Correctif RADAR — skin Seeker asymétrique.** Constat (une occurrence sur
+device) : en duel RADAR, le monde "Solana/Seeker" n'apparaissait que chez un
+des deux joueurs, l'autre jouant le lac gelé standard. Cause identifiée par
+analyse du code : le skin était armé sur chaque appareil uniquement par son
+propre événement Nearby `payloadReceived` ; or l'hôte coupe la connexion
+Nearby dès qu'il a reçu le sien, et l'invité peut accepter l'invitation
+Firebase avant que son propre payload soit arrivé. Corrigé : l'invitation
+Firebase embarque désormais le drapeau `radar` (+ statut Seed Vault du pair),
+l'invité arme lui-même le skin à l'acceptation si son handshake Nearby n'a
+pas abouti, et un payload tardif ne remet plus à zéro le code de salle déjà
+lié. Aucune modification des règles RTDB nécessaire (`invites` n'interdit
+pas les champs supplémentaires). Non reproduit en local : à confirmer sur
+deux appareils.
+
 ## Mode Proximité — front (mint réel en jeu) (19/09/2026)
 
 Écran de fin de match dédié au mode Proximité, dans `www/index.html` :
@@ -293,9 +352,16 @@ côté jeu :
   restreinte aux deux participants via `auth != null` (pas de contrainte sur
   `uid` — cohérent avec le niveau de confiance déjà appliqué ailleurs dans le
   jeu, ex. `submit_score`).
-- Animation flip 3D (CSS `rotateY` + `perspective`) prévue pour l'onglet
-  "cartes à s'offrir" (Proof of Meet, Nearby en tête-à-tête uniquement) —
-  reste à faire : template de carte réutilisable, logique de transmission.
+- **Cartes de skins à s'offrir (Proof of Meet, v2268–v2274)** : onglet
+  dédié accessible depuis l'Armurerie, une carte par skin (56 entrées de
+  `AI_SKIN_REGISTRY`) rendue par un template canvas réutilisable par rareté,
+  avec animation flip 3D (CSS `rotateY` + `perspective`). Transmission
+  **Nearby en tête-à-tête uniquement** (pas de version à distance, pas de
+  NFT) : le donneur initie (sens unique, une carte par rencontre),
+  confirmation avant envoi, Accepter/Refuser côté receveur, déblocage local
+  du skin chez le receveur sans retrait chez le donneur, plafond de 3 cartes
+  reçues par jour et par appareil. Jamais de skin Seeker (lié au NFT) ni de
+  skin `premium` (achat in-app). À valider sur deux appareils Android.
 
 ### Déblocage du skin Seeker (vérification de possession, 19/09/2026)
 
