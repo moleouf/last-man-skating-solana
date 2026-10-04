@@ -122,7 +122,7 @@ export async function ensureWeeklyPoolInitialized(
     // manuel fait juste avant que le cron tourne, via /init-pool ou un
     // script Playground), on NE fund PAS une deuxième fois automatiquement
     // -> le pot ne serait sinon doublé sans que ce soit voulu.
-    const existingPool = await program.account.weeklyPool.fetchNullable(weeklyPoolPda, "confirmed");
+    const existingPool = await (program.account as any).weeklyPool.fetchNullable(weeklyPoolPda, "confirmed");
     if (existingPool?.totalPot && BigInt(existingPool.totalPot.toString()) > 0n) {
       result.fundSkippedReason = "pool déjà financée manuellement (totalPot > 0), auto-fund sauté";
       return result;

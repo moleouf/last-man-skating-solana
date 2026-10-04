@@ -1,6 +1,6 @@
 import { getRtdbAccessToken } from "./firebaseAuth";
 import { fetchCurrentTotals, fetchWallets } from "./rtdbQuery";
-import { loadPreviousSnapshot, saveSnapshot, computeWeeklyDeltas } from "./weekSnapshot";
+import { loadPreviousSnapshot, saveSnapshot, computeWeeklyDeltas, groupDeltasByWallet } from "./weekSnapshot";
 import { computeWeeklyScore } from "./scoring";
 import { submitWeeklyScoresOnChain } from "./solanaSubmit";
 import { ensureWeeklyPoolInitialized } from "./poolLifecycle";
@@ -70,12 +70,19 @@ async function runWeeklySettlement(env: Env, weekId: string): Promise<Response> 
 
   const deltas = computeWeeklyDeltas(currentTotals, previousSnapshot);
 
-  const eligible = deltas
-    .map((d) => ({ ...d, walletAddress: wallets[d.uid], score: computeWeeklyScore(d.stats) }))
-    .filter((d) => d.score > 0); // pas de partie jouée cette semaine -> rien à soumettre
+  // Regroupement par wallet : plusieurs uid pour un même wallet voient leurs deltas additionnés (sinon
+  // submit_score, qui écrase, ne conservait que le dernier uid traité — voir groupDeltasByWallet).
+  const { groups, noWallet } = groupDeltasByWallet(deltas, wallets);
 
-  const withWallet = eligible.filter((d) => !!d.walletAddress);
-  const missingWallet = eligible.filter((d) => !d.walletAddress);
+  const withWallet = groups
+    .map((g) => ({ ...g, score: computeWeeklyScore(g.stats) }))
+    .filter((g) => g.score > 0); // pas de partie jouée cette semaine -> rien à soumettre
+  const missingWallet = noWallet
+    .map((d) => ({ ...d, score: computeWeeklyScore(d.stats) }))
+    .filter((d) => d.score > 0);
+  const mergedWallets = withWallet
+    .filter((g) => g.uids.length > 1)
+    .map((g) => ({ walletAddress: g.walletAddress, uids: g.uids, score: g.score }));
 
   // NOTE (mise à jour 15/09/2026) : initialize_weekly_pool + fund_pool pour
   // ce weekId sont maintenant déclenchés automatiquement par ce même
@@ -122,7 +129,8 @@ async function runWeeklySettlement(env: Env, weekId: string): Promise<Response> 
     JSON.stringify(
       {
         weekId,
-        eligiblePlayers: eligible.length,
+        eligiblePlayers: withWallet.length + missingWallet.length,
+        mergedWallets, // wallets dont plusieurs uid ont été additionnés (vide dans le cas normal)
         submitted: succeeded.length,
         failed: failed.length,
         failedDetails: failed,

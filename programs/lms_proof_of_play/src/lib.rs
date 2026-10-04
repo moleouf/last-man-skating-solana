@@ -128,6 +128,15 @@ pub const EQUAL_SHARE_MIN_SCORE: u64 = 9;
 pub const CLASSIC_TIER_CAP: u64 = 10_000;
 pub const PREMIUM_TIER_CAP: u64 = 1_000;
 
+// Cooldown entre deux mints pour un MÊME wallet (20/09/2026) — remplace l'ancien verrou
+// à vie (PlayerMintRecord en `init`, un seul mint possible POUR TOUJOURS). Un joueur qui
+// rencontre d'abord un partenaire sans Seeker (classic) n'est plus bloqué à vie s'il
+// croise plus tard un vrai Seeker (premium) — juste obligé d'attendre ce délai entre deux
+// mints. Frein léger contre le farming, pas une vraie protection (deux comptes complices
+// peuvent quand même minter à ce rythme indéfiniment) — compromis assumé pour le
+// hackathon, ajustable ici si besoin.
+pub const MINT_COOLDOWN_SECONDS: i64 = 86_400; // 24h
+
 #[program]
 pub mod lms_proof_of_play {
     use super::*;
@@ -343,36 +352,34 @@ pub mod lms_proof_of_play {
     // joueur : soit les deux CPI réussissent, soit toute la transaction
     // échoue (aucun état intermédiaire possible sur Solana).
     //
-    // `is_premium` est fourni par le client (ET logique des
-    // isSeedVaultAvailable() locaux des deux joueurs) : le programme ne
-    // peut pas vérifier du matériel Seeker lui-même, il fait confiance à
-    // cette valeur déclarée du même titre que `submit_score` fait confiance
-    // à `authority` — même classe de compromis que celui déjà documenté dans
-    // le README pour duelStats/ffaStats, assumé pour la deadline du
-    // hackathon. L'event `MeetingNftMinted` ci-dessous laisse une trace
-    // on-chain auditable (pubkeys + tiers déclarés) pour compenser
-    // partiellement l'absence de preuve hardware vérifiable.
+    // `is_premium_a`/`is_premium_b` sont fournis par le client (isSeedVaultAvailable()
+    // local de CHAQUE joueur, indépendamment) : le programme ne peut pas vérifier du
+    // matériel Seeker lui-même, il fait confiance à ces valeurs déclarées du même titre
+    // que `submit_score` fait confiance à `authority` — même classe de compromis que
+    // celui déjà documenté dans le README pour duelStats/ffaStats, assumé pour la
+    // deadline du hackathon. L'event `MeetingNftMinted` ci-dessous laisse une trace
+    // on-chain auditable (pubkeys + tiers déclarés) pour compenser partiellement
+    // l'absence de preuve hardware vérifiable.
     //
     // Pas de vérification on-chain que les NFT d'un joueur viennent de
     // devices DIFFÉRENTS (condition du skin cosmétique "Seeker Squad") —
     // volontairement laissé au client/off-chain (comparaison des `owner`
     // successifs), pour ne pas complexifier ce programme avant la deadline.
     //
-    // Anti double-mint : `player_mint_record_a`/`_b` sont des PDA créés en
-    // `init` (voir Contexts ci-dessous) — si un des deux joueurs a déjà
-    // minté son Sanctuaire Seeker, `init` échoue tout seul ("already in
-    // use") avant même d'atteindre le corps de la fonction. Un joueur ne
-    // peut donc jamais recevoir ce NFT deux fois, quel que soit le nombre
-    // de rencontres qu'il enchaîne.
+    // Anti-farming : `player_mint_record_a`/`_b` sont des PDA `init_if_needed`
+    // (20/09/2026, remplace un ancien verrou `init` à vie) — un même wallet peut
+    // re-mint après MINT_COOLDOWN_SECONDS, vérifié manuellement ci-dessous (voir doc
+    // de PlayerMintRecord). Frein léger, pas une vraie protection anti-abus — assumé.
     //
-    // `is_premium` est UNIQUE pour la rencontre (pas un bool par joueur) :
-    // le tier est déterminé par l'état de la PAIRE, pas de chaque joueur
-    // individuellement — PREMIUM seulement si les DEUX ont Seed Vault,
-    // sinon les deux reçoivent le tier classic. Un tier différent par
-    // joueur pour une même rencontre n'a pas de sens ici.
+    // `is_premium_a`/`is_premium_b` sont INDÉPENDANTS l'un de l'autre (20/09/2026,
+    // remplace un ancien `is_premium` unique partagé) : chaque joueur reçoit SON PROPRE
+    // tier selon SON PROPRE matériel — un joueur avec Seeker peut recevoir premium même
+    // si son partenaire de rencontre reçoit classic. Choix assumé pour donner un
+    // avantage direct et visible au possesseur d'un vrai Seeker.
     pub fn mint_meeting_nft(
         ctx: Context<MintMeetingNft>,
-        is_premium: bool,
+        is_premium_a: bool,
+        is_premium_b: bool,
         name_a: String,
         uri_a: String,
         name_b: String,
@@ -384,19 +391,38 @@ pub mod lms_proof_of_play {
             PoolError::SamePlayerMeetingItself
         );
 
-        // Le tier (commun aux deux joueurs) est validé et incrémenté deux
-        // fois AVANT tout CPI de mint : si le tier est épuisé (même pour un
-        // seul des deux "slots"), la transaction échoue avant même que le
+        let now = Clock::get()?.unix_timestamp;
+
+        // Cooldown : `last_mint_at == 0` = jamais minté (sentinel, voir doc de
+        // PlayerMintRecord) = toujours autorisé. Sinon, il faut que
+        // MINT_COOLDOWN_SECONDS se soient écoulés depuis le dernier mint de CE joueur.
+        let record_a = &ctx.accounts.player_mint_record_a;
+        if record_a.last_mint_at != 0 {
+            require!(
+                now - record_a.last_mint_at >= MINT_COOLDOWN_SECONDS,
+                PoolError::MintCooldownActive
+            );
+        }
+        let record_b = &ctx.accounts.player_mint_record_b;
+        if record_b.last_mint_at != 0 {
+            require!(
+                now - record_b.last_mint_at >= MINT_COOLDOWN_SECONDS,
+                PoolError::MintCooldownActive
+            );
+        }
+
+        // Chaque tier est validé et incrémenté indépendamment AVANT tout CPI de mint :
+        // si l'un des deux tiers est épuisé, la transaction échoue avant même que le
         // premier NFT ne soit créé — pas de mint à moitié.
         {
             let counter = &mut ctx.accounts.mint_counter;
-            increment_tier_count(counter, is_premium)?;
-            increment_tier_count(counter, is_premium)?;
+            increment_tier_count(counter, is_premium_a)?;
+            increment_tier_count(counter, is_premium_b)?;
         }
 
         let ix_a = build_create_v1_instruction(
             &ctx.accounts.asset_a.key(),
-            &ctx.accounts.payer.key(),
+            &ctx.accounts.player_a.key(),
             &ctx.accounts.player_a.key(),
             name_a,
             uri_a,
@@ -406,7 +432,6 @@ pub mod lms_proof_of_play {
             &[
                 ctx.accounts.asset_a.to_account_info(),
                 ctx.accounts.mpl_core_program.to_account_info(), // couvre aussi les 3 placeholders (même pubkey)
-                ctx.accounts.payer.to_account_info(),
                 ctx.accounts.player_a.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
             ],
@@ -414,7 +439,7 @@ pub mod lms_proof_of_play {
 
         let ix_b = build_create_v1_instruction(
             &ctx.accounts.asset_b.key(),
-            &ctx.accounts.payer.key(),
+            &ctx.accounts.player_b.key(),
             &ctx.accounts.player_b.key(),
             name_b,
             uri_b,
@@ -424,22 +449,22 @@ pub mod lms_proof_of_play {
             &[
                 ctx.accounts.asset_b.to_account_info(),
                 ctx.accounts.mpl_core_program.to_account_info(),
-                ctx.accounts.payer.to_account_info(),
                 ctx.accounts.player_b.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
             ],
         )?;
 
-        // Renseigne les deux "receipts" one-shot. Leur simple création (via
-        // `init` dans le Context) a déjà bloqué toute deuxième tentative de
-        // mint pour l'un ou l'autre joueur ; ceci ne fait qu'y stocker
-        // l'adresse du NFT obtenu, pour audit/lookup côté client.
+        // Met à jour les deux records (créés à l'instant par `init_if_needed` s'ils
+        // n'existaient pas encore, sinon réutilisés/écrasés ici) — `last_mint_at` est ce
+        // qui fait démarrer le prochain cooldown pour ce joueur.
         ctx.accounts.player_mint_record_a.player = ctx.accounts.player_a.key();
         ctx.accounts.player_mint_record_a.asset = ctx.accounts.asset_a.key();
+        ctx.accounts.player_mint_record_a.last_mint_at = now;
         ctx.accounts.player_mint_record_a.bump = ctx.bumps.player_mint_record_a;
 
         ctx.accounts.player_mint_record_b.player = ctx.accounts.player_b.key();
         ctx.accounts.player_mint_record_b.asset = ctx.accounts.asset_b.key();
+        ctx.accounts.player_mint_record_b.last_mint_at = now;
         ctx.accounts.player_mint_record_b.bump = ctx.bumps.player_mint_record_b;
 
         emit!(MeetingNftMinted {
@@ -447,7 +472,8 @@ pub mod lms_proof_of_play {
             player_b: ctx.accounts.player_b.key(),
             asset_a: ctx.accounts.asset_a.key(),
             asset_b: ctx.accounts.asset_b.key(),
-            is_premium,
+            is_premium_a,
+            is_premium_b,
         });
 
         Ok(())
@@ -489,7 +515,8 @@ pub struct MeetingNftMinted {
     pub player_b: Pubkey,
     pub asset_a: Pubkey,
     pub asset_b: Pubkey,
-    pub is_premium: bool,
+    pub is_premium_a: bool,
+    pub is_premium_b: bool,
 }
 
 // ---------------------------------------------------------------------
@@ -543,24 +570,26 @@ impl MintCounter {
     pub const MAX_SIZE: usize = 8 + 8 + 8 + 1;
 }
 
-// Sanctuaire Seeker — PDA one-shot par joueur, seeds=["player_mint", player].
-// Aucun champ métier nécessaire : le simple FAIT que ce compte existe déjà
-// est la preuve que le joueur a déjà minté. La contrainte `init` (pas
-// `init_if_needed`) dans MintMeetingNft se charge du rejet automatique en
-// cas de deuxième tentative — même principe qu'un compte "receipt"
-// one-time-use classique sur Solana, plus simple ici qu'un champ `claimed`
-// puisqu'il n'y a pas de notion de semaine/réinitialisation comme pour
-// PlayerScore.
+// Sanctuaire Seeker — PDA par joueur, seeds=["player_mint", player]. Créé en
+// `init_if_needed` (20/09/2026, remplace un ancien verrou `init` à vie) : un même
+// wallet peut re-mint après MINT_COOLDOWN_SECONDS, plutôt que d'être bloqué pour
+// toujours dès son premier mint (cas concret visé : un joueur mint d'abord classic
+// avec un partenaire sans Seeker, puis croise plus tard un vrai Seeker — il doit
+// pouvoir mint premium cette fois, pas rester coincé sur son tout premier tier).
+// `last_mint_at == 0` est le sentinel "jamais minté" (un vrai timestamp Unix légitime
+// n'est jamais 0) — vérifié/mis à jour manuellement dans mint_meeting_nft, puisque
+// `init_if_needed` ne fait rien tout seul quand le compte existe déjà.
 #[account]
 pub struct PlayerMintRecord {
     pub player: Pubkey,
-    pub asset: Pubkey, // adresse du NFT Core mint, pour audit/lookup facile
+    pub asset: Pubkey, // adresse du DERNIER NFT Core minté par ce joueur
+    pub last_mint_at: i64,
     pub bump: u8,
 }
 
 impl PlayerMintRecord {
-    // discriminator(8) + pubkey*2(64) + bump(1)
-    pub const MAX_SIZE: usize = 8 + 32 + 32 + 1;
+    // discriminator(8) + pubkey*2(64) + i64(8) + bump(1)
+    pub const MAX_SIZE: usize = 8 + 32 + 32 + 8 + 1;
 }
 
 // ---------------------------------------------------------------------
@@ -700,17 +729,16 @@ pub struct MintMeetingNft<'info> {
     // ici). Aucun des deux ne peut mint seul en se faisant passer pour l'autre.
     // Chacun est aussi directement `owner` de son propre NFT dans le CPI —
     // plus besoin d'un compte `owner` séparé à valider.
+    //
+    // Split 50/50 : chaque joueur paie le rent de SON PROPRE NFT (asset_a/b)
+    // et de SON PROPRE PlayerMintRecord — donc `mut` ici (le solde diminue).
+    // Remplace un ancien design à `payer` unique (un seul des deux réglait
+    // toute la note) : plus équitable, et supprime au passage la contrainte
+    // `InvalidPayer` qui n'a plus lieu d'être.
+    #[account(mut)]
     pub player_a: Signer<'info>,
+    #[account(mut)]
     pub player_b: Signer<'info>,
-
-    // Doit être player_a OU player_b — vérifié explicitement ici plutôt que
-    // laissé à une convention côté client non contrôlée.
-    #[account(
-        mut,
-        constraint = payer.key() == player_a.key() || payer.key() == player_b.key()
-            @ PoolError::InvalidPayer
-    )]
-    pub payer: Signer<'info>,
 
     // Deux comptes Core distincts (keypairs frais générés côté client), un
     // par joueur. La contrainte ci-dessous rejette la transaction si le
@@ -726,14 +754,16 @@ pub struct MintMeetingNft<'info> {
     #[account(mut, seeds = [b"mint_counter"], bump = mint_counter.bump)]
     pub mint_counter: Account<'info, MintCounter>,
 
-    // Anti-double-mint : `init` échoue automatiquement si ce joueur a déjà
-    // un record existant (voir doc de `PlayerMintRecord` ci-dessus). Chaque
-    // joueur peut payer pour son propre record si besoin, mais dans notre
-    // flux c'est toujours `payer` (l'un des deux) qui règle les deux frais
-    // d'init — plus simple pour l'UX (un seul wallet paie tout).
+    // Anti-farming par cooldown (pas anti-double-mint à vie, voir doc de
+    // PlayerMintRecord) : `init_if_needed` crée le compte au premier mint de ce joueur,
+    // le réutilise (sans le recréer) à chaque mint suivant — le cooldown lui-même est
+    // vérifié à la main dans le corps de mint_meeting_nft, PAS par cette contrainte.
+    // Chacun paie pour la création de son propre record la première fois seulement
+    // (`payer = player_a`/`player_b`, cohérent avec le split 50/50 ci-dessus) ; les
+    // mints suivants ne repaient pas ce rent, le compte existe déjà.
     #[account(
-        init,
-        payer = payer,
+        init_if_needed,
+        payer = player_a,
         space = PlayerMintRecord::MAX_SIZE,
         seeds = [b"player_mint", player_a.key().as_ref()],
         bump
@@ -741,8 +771,8 @@ pub struct MintMeetingNft<'info> {
     pub player_mint_record_a: Account<'info, PlayerMintRecord>,
 
     #[account(
-        init,
-        payer = payer,
+        init_if_needed,
+        payer = player_b,
         space = PlayerMintRecord::MAX_SIZE,
         seeds = [b"player_mint", player_b.key().as_ref()],
         bump
@@ -784,8 +814,8 @@ pub enum PoolError {
     SamePlayerMeetingItself,
     #[msg("Ce tier de NFT Sanctuaire Seeker est épuisé")]
     TierSoldOut,
-    #[msg("Le payer doit être l'un des deux joueurs de la rencontre")]
-    InvalidPayer,
     #[msg("asset_a et asset_b doivent être deux comptes distincts")]
     DuplicateAssetKeypair,
+    #[msg("Ce wallet doit attendre avant de pouvoir minter un nouveau Sanctuaire Seeker")]
+    MintCooldownActive,
 }

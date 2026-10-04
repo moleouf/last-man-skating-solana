@@ -2403,7 +2403,6 @@ canvas{display:block;}
       <button id="btn-daily-missions" onclick="openMissionsPopup()" ontouchstart="openMissionsPopup();event.stopPropagation();"><span id="btn-daily-missions-label">MISSIONS</span></button>
     </div>
     <div id="dev-tools" style="display:none;gap:6px;margin-top:6px;pointer-events:all;flex-wrap:wrap;justify-content:center;">
-      <button onclick="devAddTokens()" style="background:rgba(0,80,0,0.75);border:1.5px solid rgba(0,255,80,.55);color:#7fff7f;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(11px,2.8vw,14px);letter-spacing:2px;padding:6px 14px;border-radius:50px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;">+500 🪙</button>
       <button onclick="devReset()" style="background:rgba(80,0,0,0.75);border:1.5px solid rgba(255,60,60,.55);color:#ff9999;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(11px,2.8vw,14px);letter-spacing:2px;padding:6px 14px;border-radius:50px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;">🔄 RESET</button>
       <button onclick="devUnlockWorld13()" style="background:rgba(60,40,0,0.85);border:1.5px solid rgba(255,215,0,.75);color:#ffd700;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(11px,2.8vw,14px);letter-spacing:2px;padding:6px 14px;border-radius:50px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;">👑 W13</button>
     </div>
@@ -3810,7 +3809,7 @@ const I18N = {
     onlineDuelConnError: '⚠️ Erreur de connexion — réessaie.',
     onlineDuelUnavailable: 'Firebase indisponible — vérifie ta connexion internet.',
     onlineDuelWaitingOpponent: '🕐 En attente de l\'adversaire…',
-    onlineDuelWaitRound: (n, total) => 'MANCHE ' + n + ' / ' + total,
+    onlineDuelWaitRound: (n) => 'MANCHE ' + n,
     onlineDuelWaitMe: 'Toi',
     onlineDuelWaitOpp: 'Adversaire',
     onlineDuelWaitOppPending: 'Choix en cours…',
@@ -3831,6 +3830,7 @@ const I18N = {
     onlineHubNearbyConnecting: (name) => `Connexion à ${name}…`,
     onlineHubNearbyConnected: (name) => `Connecté à ${name} — lancement du duel…`,
     onlineHubNearbyUnavailable: 'Détection de proximité indisponible sur cet appareil.',
+    onlineHubNearbyNeedWallet: 'Connecte ton wallet Solana (Réglages) pour jouer en mode RADAR.',
     onlineHubNearbyPermissionDenied: 'Bluetooth/localisation refusés — impossible de détecter les joueurs à proximité.',
     // v2193 : le mode Proximité est symétrique (les 2 devices scannent), mais UN SEUL des deux
     // initie la connexion (tie-break par uid) — ce texte explique l'attente côté non-initiateur.
@@ -3890,6 +3890,19 @@ const I18N = {
     settingsWalletCopied: 'COPIÉ !',
     settingsWalletTitleConnect: 'Toucher pour connecter',
     settingsWalletTitleCopy: 'Toucher pour copier l\'adresse',
+    settingsNftLabel: '🖼️ MES NFT',
+    settingsNftBtn: 'VOIR',
+    nftTitle: '🖼️ MES NFT',
+    nftBalanceLabel: 'SOLDE LMS',
+    nftFilterAll: 'TOUS',
+    nftFilterMusic: '🎵 MUSICAUX',
+    nftEmpty: 'Aucun NFT dans ce wallet.',
+    nftEmptyMusic: 'Aucun NFT musical dans ce wallet.',
+    nftNeedWallet: 'Aucun wallet connecté. Connecte ton wallet dans Réglages pour voir tes NFT.',
+    nftLoading: 'Chargement…',
+    nftError: 'Impossible de charger les NFT. Réessaie.',
+    nftBack: '← RETOUR',
+    nftNoName: '(sans nom)',
     walletUnavailable: 'Wallet Solana indisponible dans cette version de l\'app.',
     walletNoAppFound: 'Aucune app wallet compatible détectée sur ce téléphone (Phantom, Solflare...). Installe-en une pour connecter ton wallet.',
     walletConnectFailed: 'Connexion au wallet impossible pour le moment.',
@@ -3919,6 +3932,12 @@ const I18N = {
     proximityMintSigning: '✍️ Signature du trophée en cours…',
     proximityMintSubmitting: '⛓️ Envoi sur la blockchain…',
     proximityMintSuccess: '✅ NFT Sanctuaire Seeker minté !',
+    proximityMintViewNft: '🖼️ VOIR MON NFT',
+    onlineHubNearbyPreparing: '🔐 Préparation du wallet (1 signature, une seule fois)…',
+    proximityMintOk: 'OK',
+    proximityMintTitle: '🤝 RENCONTRE CONFIRMÉE',
+    proximityMintPreOk: '🏆 Vous pouvez tous les deux gagner un trophée à la fin du match.',
+    proximityMintPreWarn: 'Le match compte quand même, mais aucun NFT ne sera minté.',
     proximityMintNoWallet: 'Les deux joueurs doivent avoir un wallet Solana connecté pour ce trophée.',
     proximityMintAlreadyOwned: '🏆 Tu as déjà ton trophée Sanctuaire Seeker !',
     proximityMintCooldown: (h) => `⏳ Prochain trophée possible dans ~${h} h.`,
@@ -4518,7 +4537,7 @@ const I18N = {
     onlineDuelConnError: '⚠️ Connection error — try again.',
     onlineDuelUnavailable: 'Firebase unavailable — check your internet connection.',
     onlineDuelWaitingOpponent: '🕐 Waiting for opponent…',
-    onlineDuelWaitRound: (n, total) => 'ROUND ' + n + ' / ' + total,
+    onlineDuelWaitRound: (n) => 'ROUND ' + n,
     onlineDuelWaitMe: 'You',
     onlineDuelWaitOpp: 'Opponent',
     onlineDuelWaitOppPending: 'Picking…',
@@ -4539,6 +4558,7 @@ const I18N = {
     onlineHubNearbyConnecting: (name) => `Connecting to ${name}…`,
     onlineHubNearbyConnected: (name) => `Connected to ${name} — starting duel…`,
     onlineHubNearbyUnavailable: 'Proximity detection unavailable on this device.',
+    onlineHubNearbyNeedWallet: 'Connect your Solana wallet (Settings) to play RADAR mode.',
     onlineHubNearbyPermissionDenied: 'Bluetooth/location denied — can\'t detect nearby players.',
     onlineHubNearbyWaitingPeer: (name) => `${name} found — connecting…`,
     nearbyPassiveToast: (name) => `🔮 ${name} (Seeker) is nearby — challenge them?`,
@@ -4591,6 +4611,19 @@ const I18N = {
     settingsWalletCopied: 'COPIED!',
     settingsWalletTitleConnect: 'Tap to connect',
     settingsWalletTitleCopy: 'Tap to copy address',
+    settingsNftLabel: '🖼️ MY NFTs',
+    settingsNftBtn: 'VIEW',
+    nftTitle: '🖼️ MY NFTs',
+    nftBalanceLabel: 'LMS BALANCE',
+    nftFilterAll: 'ALL',
+    nftFilterMusic: '🎵 MUSIC',
+    nftEmpty: 'No NFTs in this wallet.',
+    nftEmptyMusic: 'No music NFTs in this wallet.',
+    nftNeedWallet: 'No wallet connected. Connect your wallet in Settings to see your NFTs.',
+    nftLoading: 'Loading…',
+    nftError: 'Could not load NFTs. Try again.',
+    nftBack: '← BACK',
+    nftNoName: '(unnamed)',
     walletUnavailable: 'Solana wallet unavailable in this version of the app.',
     walletNoAppFound: 'No compatible wallet app detected on this phone (Phantom, Solflare...). Install one to connect your wallet.',
     walletConnectFailed: 'Unable to connect to the wallet right now.',
@@ -4620,6 +4653,12 @@ const I18N = {
     proximityMintSigning: '✍️ Signing the trophy…',
     proximityMintSubmitting: '⛓️ Sending to the blockchain…',
     proximityMintSuccess: '✅ Sanctuaire Seeker NFT minted!',
+    proximityMintViewNft: '🖼️ VIEW MY NFT',
+    onlineHubNearbyPreparing: '🔐 Preparing your wallet (1 signature, one time only)…',
+    proximityMintOk: 'OK',
+    proximityMintTitle: '🤝 MEETING CONFIRMED',
+    proximityMintPreOk: '🏆 You can both earn a trophy at the end of the match.',
+    proximityMintPreWarn: 'The match still counts, but no NFT will be minted.',
     proximityMintNoWallet: 'Both players need a connected Solana wallet for this trophy.',
     proximityMintAlreadyOwned: '🏆 You already have your Sanctuaire Seeker trophy!',
     proximityMintCooldown: (h) => `⏳ Next trophy available in ~${h} h.`,
@@ -12195,6 +12234,19 @@ function _duelRoundTransition(loserWasHuman){
 
 // ── Duel — écran de sélection des 3 skins (ordre = ordre d'utilisation, manche par manche) ──
 let _duelPickState = [];
+// v2303 : skins possédés pour les sélecteurs de duel/FFA = boutique (getOwnedItems) + skins Seeker
+// (NFT) si le wallet connecté les possède. Les Seeker ne sont JAMAIS dans own_skins (possession
+// vérifiée on-chain via _lmsSeekerNftCache), d'où leur absence du picker avant ce correctif.
+function _lmsOwnedSkinsWithSeeker(){
+  const base = getOwnedItems('skins').slice();
+  try{
+    if(typeof _lmsWalletAddress !== 'undefined' && _lmsWalletAddress && typeof _lmsSeekerNftCache !== 'undefined'){
+      if(_lmsSeekerNftCache.classic && !base.includes('seeker')) base.push('seeker');
+      if(_lmsSeekerNftCache.premium && !base.includes('seeker_premium')) base.push('seeker_premium');
+    }
+  }catch(e){}
+  return base;
+}
 let _duelPickRequired = 3; // nombre de picks exigés — ajusté si le joueur possède moins de 3 skins distincts
 function _openDuelSkinSelect(){
   _duelPickState = [];
@@ -12213,7 +12265,7 @@ function _openDuelSkinSelect(){
   if(cancelBtnTop) cancelBtnTop.textContent = t('duelSkinSelectCancel');
   if(!grid) return;
   grid.innerHTML = '';
-  const owned = getOwnedItems('skins');
+  const owned = _lmsOwnedSkinsWithSeeker();
   // Les 4 personnages humains jouables (Kristen vectorielle volontairement exclue pour l'instant)
   // sont proposés individuellement — id préfixé '__kid_' pour ne jamais être confondu avec un
   // vrai id de skin IA (AI_SKIN_REGISTRY). Toujours disponibles (pas de verrou comme Kristen).
@@ -12667,6 +12719,7 @@ async function _lmsInviteSend(targetId, targetName, kind){
     // dès réception du sien et coupe la connexion), l'invité jouait le lac gelé sans skin Seeker.
     radar: (!isFFA && _lmsRadarWorldSkin === true && !!_lmsRadarRoomCode) ? true : null,
     radarPremium: (!isFFA && _lmsRadarWorldSkin === true && !!_lmsRadarRoomCode) ? (_lmsSeedVaultAvailable === true) : null,
+    radarKey: (!isFFA && _lmsRadarWorldSkin === true && !!_lmsRadarRoomCode) ? (_lmsNearbyMyKey || null) : null, // v2308 : clé Nearby de l'inviteur (preuve de contact côté invité)
     ts: firebase.database.ServerValue.TIMESTAMP
   }).then(() => {
     // Best-effort miroir de l'expiration ~20s côté destinataire — si personne n'a répondu, on
@@ -12825,6 +12878,7 @@ function _lmsInviteAccept(){
     _lmsRadarPeerUid = String(data.fromId);
     _lmsRadarRoomCode = '';
     _lmsRadarPeerIsPremium = data.radarPremium === true;
+    _lmsRadarProximityVerified = _lmsNearbyKeyRecentlySeen(String(data.radarKey || '')); // v2308 : armé par invite seule -> vérifié uniquement si l'inviteur a été vu en Nearby
     if(typeof _loadSeekerSkinAssets === 'function') _loadSeekerSkinAssets();
     if(typeof _loadLacAssets === 'function') _loadLacAssets();
   }
@@ -13446,7 +13500,7 @@ function _lmsFFAOpenKidSelect(onConfirm, onCancel){
   if(!grid) { onConfirm(); return; } // filet de sécurité si le markup manque, pas bloquant
   grid.innerHTML = '';
   const kidIds = ['__kid_blond', '__kid_brun', '__kid_eyleen', '__kid_romy'];
-  const owned = (typeof getOwnedItems === 'function') ? getOwnedItems('skins') : [];
+  const owned = (typeof getOwnedItems === 'function') ? _lmsOwnedSkinsWithSeeker() : [];
   const skinPool = Array.from(new Set(owned.filter(id => id !== 'normal')));
   const pool = [...kidIds, ...skinPool];
   pool.forEach(id => {
@@ -14987,11 +15041,19 @@ function _lmsOnlineDuelBeginSync(roomRef, myRole){
   // pour le verdict Firebase match/gameOver plus haut — comportement de fin identique, source
   // différente.
   if(_lmsOnlineDuelForfeitWatchdog) clearInterval(_lmsOnlineDuelForfeitWatchdog);
+  // T-01 (audit v2314) : la fraîcheur se mesure à partir du 1er tick en état 'playing' (et non plus
+  // depuis la connexion à la salle). Un appareil gelé >8 s AVANT le début de la partie (démarrage à
+  // froid lent, boîte de permission Nearby/Bluetooth…) était sinon déclaré forfait au tout 1er tick.
+  // Remis à 0 hors 'playing' → la même protection vaut pour chaque manche.
+  let _wdPlayingSince = 0;
   _lmsOnlineDuelForfeitWatchdog = setInterval(() => {
-    if(!_lmsOnlineDuelActive || typeof STATE === 'undefined' || STATE !== 'playing') return;
+    if(!_lmsOnlineDuelActive || typeof STATE === 'undefined' || STATE !== 'playing'){ _wdPlayingSince = 0; return; }
     if(_lmsOnlineDuelLastOpponentStateAt === null) return;
-    if(Date.now() - _lmsOnlineDuelLastOpponentStateAt < _LMS_DUEL_FORFEIT_TIMEOUT_MS) return;
-    _lmsDuelLog('[Watchdog forfait] aucun state adverse reçu depuis', { ms: Date.now() - _lmsOnlineDuelLastOpponentStateAt });
+    if(!_wdPlayingSince) _wdPlayingSince = Date.now();
+    const _wdLastAt = Math.max(_lmsOnlineDuelLastOpponentStateAt, _wdPlayingSince);
+    if(Date.now() - _wdLastAt < _LMS_DUEL_FORFEIT_TIMEOUT_MS) return;
+    _lmsDuelLog('[Watchdog forfait] aucun state adverse reçu depuis', { ms: Date.now() - _wdLastAt });
+    console.warn('[FORFAIT-WD] aucun state adverse depuis ' + (Date.now() - _wdLastAt) + ' ms (seuil ' + _LMS_DUEL_FORFEIT_TIMEOUT_MS + ', playingSince ' + (Date.now() - _wdPlayingSince) + ' ms)');
     if(typeof players === 'undefined' || !players[0]) return;
     // v2176 FIX (anti-triche "je pause pour épuiser l'adversaire puis je gagne par forfait quand
     // il quitte") : si j'étais MOI-MÊME en pause il y a moins de _LMS_DUEL_FORFEIT_DRAW_TOLERANCE_MS
@@ -15436,9 +15498,9 @@ function _lmsDuelWaitResolveIcon(kid, skin){
 function _lmsOnlineDuelUpdateWaitVS(){
   const roundEl = document.getElementById('online-duel-wait-round');
   if(roundEl && typeof duelRoundIndex !== 'undefined'){
-    const totalRounds = (typeof duelSkinQueue !== 'undefined' && duelSkinQueue.human && duelSkinQueue.human.length) ? duelSkinQueue.human.length : 3;
-    const roundNum = Math.min(duelRoundIndex.human + duelRoundIndex.ai + 1, totalRounds);
-    roundEl.textContent = t('onlineDuelWaitRound', roundNum, totalRounds);
+    // v2297 : 3 vies chacun => 3 à 5 manches ; le total n'est pas connu d'avance, on n'affiche que le n° de manche.
+    const roundNum = duelRoundIndex.human + duelRoundIndex.ai + 1;
+    roundEl.textContent = t('onlineDuelWaitRound', roundNum);
   }
   const meCv = document.getElementById('online-duel-wait-me-icon');
   const meLabel = document.getElementById('online-duel-wait-me-label');
@@ -15632,7 +15694,9 @@ function _lmsOnlineDuelEndSync(){
   // Fenêtre de 90 s : au-delà, ce n'est plus le nettoyage qui suit immédiatement un handshake,
   // donc rien à préserver — le flag est coupé comme avant.
   let _fromNearby = false;
-  try { _fromNearby = (_lmsNearbyHandshakeDone === true) && (Date.now() - (_lmsRadarSkinArmedAt||0) < 90000); } catch(e){ _fromNearby = false; }
+  // v2297 : _lmsNearbyHandshakeDone reste false chez l'invité armé via l'invite (payload Nearby perdu/en retard) ;
+  // _lmsOnlineDuelEndSync() appelé par _lmsInviteAccept le désarmait aussitôt -> lac gelé nu. On honore aussi _lmsRadarPeerUid.
+  try { _fromNearby = (_lmsNearbyHandshakeDone === true || !!_lmsRadarPeerUid) && (Date.now() - (_lmsRadarSkinArmedAt||0) < 90000); } catch(e){ _fromNearby = false; }
   if(_wasActive || !_fromNearby){
     _lmsRadarWorldSkin = false; // fin du duel RADAR — le skin (fond/caca/pièces) ne doit pas fuiter sur le duel suivant
     _lmsRadarPeerUid = ''; _lmsRadarRoomCode = ''; // v2271
@@ -16167,7 +16231,7 @@ function onPlayPress(){
     // alors que le choix entre Éloan/Myloh/Eyleen/Romy reste toujours pertinent (4 options,
     // jamais "rien à choisir"). On recalcule maintenant le MÊME pool que _openDuelSkinSelect
     // (kidIds + skins possédés) pour décider s'il y a vraiment un choix à proposer.
-    const owned = getOwnedItems('skins');
+    const owned = _lmsOwnedSkinsWithSeeker();
     const kidIds = ['__kid_blond', '__kid_brun', '__kid_eyleen', '__kid_romy'];
     const skinPool = Array.from(new Set(owned.filter(id => id !== 'normal')));
     const pool = [...kidIds, ...skinPool];
@@ -16433,7 +16497,7 @@ function startGame(){
     } else {
       // Pas de sélection manuelle (aucun skin possédé) : équipé actuel en premier, complété
       // par 'normal'.
-      const _ownedSkins = getOwnedItems('skins');
+      const _ownedSkins = _lmsOwnedSkinsWithSeeker();
       const _curEq = getEquipped('skins');
       const _pool = [_curEq, ..._ownedSkins.filter(s => s !== _curEq)];
       while(_pool.length < 3) _pool.push('normal');
@@ -18120,6 +18184,18 @@ let _lmsRadarSkinArmedAt = 0;
 let _lmsRadarPeerUid = '';
 let _lmsRadarRoomCode = '';
 const _LMS_RADAR_ARM_WINDOW_MS = 90000; // même fenêtre que le test _fromNearby de _lmsOnlineDuelEndSync
+// v2308 : preuve de contact Nearby pour le MINT de rencontre uniquement (le skin RADAR et le gameplay
+// ne changent pas). true = RADAR armé par un vrai échange Nearby (payloadReceived), ou par une invite
+// dont l'inviteur a bien été vu en Nearby (clé radarKey). Réécrit à CHAQUE armement ; volontairement
+// pas remis à false par _lmsRadarSkinDisarm (l'écran de fin lit cette valeur après le désarmement).
+let _lmsRadarProximityVerified = false;
+const _lmsNearbyKeysSeen = {};            // clé Nearby d'un pair vu -> horodatage (jamais purgé par la péremption 8 s)
+const _LMS_NEARBY_KEYSEEN_TTL_MS = 300000; // 5 min
+function _lmsNearbyNoteKeySeen(key){ if(key) _lmsNearbyKeysSeen[key] = Date.now(); }
+function _lmsNearbyKeyRecentlySeen(key){
+  const t0 = key ? _lmsNearbyKeysSeen[key] : 0;
+  return !!t0 && (Date.now() - t0) < _LMS_NEARBY_KEYSEEN_TTL_MS;
+}
 function _lmsRadarSkinDisarm(){
   _lmsRadarWorldSkin = false;
   _lmsRadarSkinArmedAt = 0;
@@ -18525,6 +18601,7 @@ function _lmsNearbyBindListeners(plugin){
     if(_lmsGiftOnEndpointFound(data)) return; // v2274 : pairs "G!" / session cadeau — jamais vus par RADAR
     const peer = _lmsNearbyParseTag(data.displayName);
     peer.lastSeen = Date.now();
+    _lmsNearbyNoteKeySeen(peer.key); // v2308
     if(peer.key){
       const already = Object.keys(_lmsNearbyPeers).find(id => _lmsNearbyPeers[id].key === peer.key);
       if(already && already !== data.endpointId) return; // même pair, medium différent : ignoré
@@ -18559,6 +18636,7 @@ function _lmsNearbyBindListeners(plugin){
   plugin.addListener('connectionInitiated', (data) => {
     if(_lmsGift.active){ _lmsGiftOnConnectionInitiated(data); return; } // v2274
     const peer = _lmsNearbyParseTag(data.displayName);
+    _lmsNearbyNoteKeySeen(peer.key); // v2308
     if(!_lmsNearbyPeers[data.endpointId]) _lmsNearbyPeers[data.endpointId] = peer;
     _lmsNearbyConnectingTo = data.endpointId;
     _lmsNearbyRenderStatus('🤝 ' + peer.name + '…' + _lmsNearbyDbg(peer));
@@ -18625,6 +18703,7 @@ function _lmsNearbyBindListeners(plugin){
     // Remis à false en fin de duel dans _lmsOnlineDuelEndSync.
     _lmsRadarWorldSkin = true;
     _lmsRadarSkinArmedAt = Date.now();
+    _lmsRadarProximityVerified = true; // v2308 : échange Nearby direct réel
     // v2292 : si l'invite RADAR a déjà armé ce skin et lié la salle (payload Nearby arrivé APRÈS
     // l'acceptation), on ne remet pas le code de salle à '' -> _lmsOnlineDuelBeginSync le désarmerait.
     const _lmsRadarAlreadyBound = (_lmsRadarPeerUid === String(peer.uid || '') && !!_lmsRadarRoomCode);
@@ -18636,6 +18715,7 @@ function _lmsNearbyBindListeners(plugin){
     if(typeof _loadSeekerSkinAssets === 'function') _loadSeekerSkinAssets();
     if(typeof _loadLacAssets === 'function') _loadLacAssets(); // terrain du duel RADAR = monde 1
     _lmsNearbyRenderStatus(t('onlineHubNearbyConnected', peer.name || '???'));
+    if(typeof _lmsProximityMintPreCheck === 'function') _lmsProximityMintPreCheck(String(peer.uid || '')); // v2316 : statut mint des 2 joueurs, avant le match
     // Même départage que pour l'initiation de la connexion (clé si dispo, uid sinon) :
     // un seul des deux envoie l'invite Duel, l'autre reçoit la popup d'invite normale
     // (déjà posée ailleurs dans ce fichier, s'affiche par-dessus le hub si besoin).
@@ -18724,8 +18804,20 @@ function _lmsNearbyToggleScan(){
   if(_lmsGift.active) _lmsGiftClose(); // v2274 : une session cadeau active cède la place au scan RADAR
   if(_lmsNearbyBusy) return; // un start/stop natif est déjà en vol (anti double-tap)
   if(_lmsNearbyScanning){ _lmsNearbyStop(); return; }
+  // v2301 : le duel RADAR (mint de rencontre, skin Seeker, enchaînement des manches) suppose un wallet connecté ;
+  // sans lui le mode se comportait de façon incohérente (une seule manche…). On le réserve donc aux joueurs connectés.
+  if(!_lmsWalletAddress){ alert(t('onlineHubNearbyNeedWallet')); return; }
 
-  _lmsNearbyDoStart().then(() => {
+  // v2312 : au premier RADAR d'un wallet, on crée d'abord son compte nonce (1 signature), puis on démarre le scan.
+  // Jamais bloquant : échec ou lenteur (> LMS_NONCE_PREWARM_MAX_WAIT_MS) -> le scan démarre quand même.
+  _lmsNearbyBusy = true; // anti double-tap pendant la préparation
+  Promise.race([
+    _lmsNoncePrewarm({ onCreating: () => _lmsNearbyRenderStatus(t('onlineHubNearbyPreparing')) }),
+    new Promise(r => setTimeout(r, LMS_NONCE_PREWARM_MAX_WAIT_MS))
+  ]).catch(() => {}).then(() => {
+    _lmsNearbyBusy = false;
+    return _lmsNearbyDoStart();
+  }).then(() => {
     // v2277 : le joueur vient d'ouvrir RADAR manuellement au moins une fois — condition
     // pour que _lmsNearbyPassiveMaybeStart() se permette ensuite un scan silencieux
     // (menu/resume) sans qu'aucune permission n'ait jamais été demandée à l'improviste.
@@ -18752,6 +18844,7 @@ function _lmsNearbyPassiveMaybeStart(){
   if(typeof _lmsIsForeground !== 'undefined' && !_lmsIsForeground) return; // jamais en arrière-plan (v2154)
   if(_lmsNearbySupported === false) return; // TV / pas de BLE / Android <12 / plugin absent
   if(!_lmsAuthUid) return; // besoin de l'uid pour le handshake (voir _lmsNearbyPayload)
+  if(!_lmsWalletAddress) return; // v2301 : pas de scan passif sans wallet connecté
   let optedIn = false;
   try{ optedIn = localStorage.getItem(_LMS_NEARBY_OPTIN_LSKEY) === '1'; }catch(e){}
   if(!optedIn) return; // le joueur n'a jamais ouvert RADAR lui-même — pas de scan ni de demande
@@ -18956,7 +19049,6 @@ function _lmsSyncWalletButton(){
 const LMS_SOLANA_PROGRAM_ID = 'GQeKyxHQGFv46z8hM5KocYa5hrUSea1hYJrDXyH41caH';
 const LMS_SOLANA_MINT = '64TQTAykeYQmRmeqMDKB2kWJGGSp8FuGLpEkcJfdwSY6'; // mint de test devnet — à remplacer par le mint LMS de prod
 const LMS_SOLANA_RPC = 'https://devnet.helius-rpc.com/?api-key=e8d38867-6879-4d69-bd5b-1cc6b8f61a8f';
-// OLD const LMS_SOLANA_RPC = https://smart-wispy-shape.solana-devnet.quiknode.pro/85f42701189289f958c8e8303412f0ec0c687d6a
 const TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 const ASSOCIATED_TOKEN_PROGRAM_ID = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
 const CLAIM_SCRATCH_DISCRIMINATOR = [73, 72, 174, 116, 49, 218, 108, 8]; // depuis lms_proof_of_play.json
@@ -19211,8 +19303,17 @@ async function _lmsGetMergedPendingClaimWeeks(){
     const snap = await _lmsFbDb.ref('claimPendingWeeks/' + _lmsWalletAddress).once('value');
     const remote = [];
     snap.forEach(child => { remote.push(child.key); });
-    const merged = Array.from(new Set([...local, ...remote]));
-    _lmsSavePendingClaimWeeks(merged.slice(-LMS_CLAIM_PENDING_WEEKS_MAX));
+    // F-01 (audit v2314) : on ne garde que des clés de semaine valides (AAAA-Wss), pas dans le
+    // futur, triées (l'ordre lexicographique = chronologique), puis plafonnées aux N plus RÉCENTES
+    // AVANT toute boucle de scan on-chain (sinon un tiers pouvait écrire N semaines sous cette
+    // adresse dans Firebase et provoquer N scans RPC séquentiels).
+    const _wkRe = /^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$/;
+    const _wkCur = _lmsWeekKey();
+    const merged = Array.from(new Set([...local, ...remote]))
+      .filter(w => typeof w === 'string' && _wkRe.test(w) && w <= _wkCur)
+      .sort()
+      .slice(-LMS_CLAIM_PENDING_WEEKS_MAX);
+    _lmsSavePendingClaimWeeks(merged);
     return merged;
   }catch(e){
     console.warn('[claim] lecture historique Firebase échouée, fallback local:', e);
@@ -19943,7 +20044,9 @@ let _lmsProximityMintTimeout = null; // watchdog — évite un blocage indéfini
 // même que le flux de cette partie n'ait commencé. On mémorise l'instant de démarrage LOCAL
 // de cette tentative pour ignorer tout ce qui est antérieur (voir _lmsProximityMintOnUpdate).
 let _lmsProximityMintSessionStartedAt = 0;
-const _LMS_PROXIMITY_MINT_TIMEOUT_MS = 90000; // v2258 : 25s ne laissait pas assez de marge pour 2 approbations wallet successives (builder puis signer) — voir bug timeout observé en test réel
+const _LMS_PROXIMITY_MINT_FIRST_TIMEOUT_MS = 180000; // v2298 : attente initiale (le builder peut enchaîner création du nonce + signature, 2 approbations wallet)
+let _lmsProximityMintSignerBusy = false; // v2298 : vrai garde anti double-signature côté signer (l'ancien val._signerHandled était posé sur un snapshot jetable)
+const _LMS_PROXIMITY_MINT_TIMEOUT_MS = 120000; // v2258 : 25s ne laissait pas assez de marge pour 2 approbations wallet successives (builder puis signer) — voir bug timeout observé en test réel
 
 // Clé canonique indépendante de qui l'appelle — les deux joueurs calculent la même.
 function _lmsMeetingMintKey(uidA, uidB){
@@ -19980,6 +20083,44 @@ function _lmsPlayerMintRecordPda(web3, programId, playerPubkey){
   return pda;
 }
 
+// v2316 : pré-contrôle du mint de rencontre dès le handshake RADAR, AVANT l'invite/le match.
+// L'uid du partenaire n'est connu qu'ici (payload Nearby reçu après connexion) : on lit les deux
+// PlayerMintRecord (même logique que _lmsProximityMintFlow) et on prévient les DEUX joueurs par toast.
+// Purement informatif : ne bloque jamais le match ni le mint (le flux de fin de match refait son propre contrôle).
+async function _lmsProximityMintPreCheck(peerUid){
+  try{
+    if(!peerUid || !_lmsWalletAddress || !_lmsFbDb || !window.solanaWeb3) return;
+    const web3 = window.solanaWeb3;
+    const programId = new web3.PublicKey(LMS_SOLANA_PROGRAM_ID);
+    const peerSnap = await _lmsFbDb.ref('wallets/' + peerUid).once('value');
+    const peerWallet = peerSnap.val();
+    let msg, ok = false;
+    if(!peerWallet || !peerWallet.address){
+      msg = t('proximityMintNoWallet');
+    } else {
+      const myPda = _lmsPlayerMintRecordPda(web3, programId, new web3.PublicKey(_lmsWalletAddress));
+      const peerPda = _lmsPlayerMintRecordPda(web3, programId, new web3.PublicKey(peerWallet.address));
+      const [myInfo, peerInfo] = await Promise.all([
+        _lmsRpcCall('getAccountInfo', [myPda.toBase58(), { encoding: 'base64' }]),
+        _lmsRpcCall('getAccountInfo', [peerPda.toBase58(), { encoding: 'base64' }]),
+      ]);
+      const myCd = _lmsMintRecordCooldownRemaining(myInfo);
+      const peerCd = _lmsMintRecordCooldownRemaining(peerInfo);
+      if(myCd > 0) msg = (myCd === Infinity) ? t('proximityMintAlreadyOwned') : t('proximityMintCooldown', Math.ceil(myCd / 3600));
+      else if(peerCd > 0) msg = (peerCd === Infinity) ? t('proximityMintPeerAlreadyOwned') : t('proximityMintPeerCooldown', Math.ceil(peerCd / 3600));
+      else { msg = t('proximityMintPreOk'); ok = true; }
+    }
+    if(!ok) msg += '<br>' + t('proximityMintPreWarn');
+    _lmsShowUnlockToastHTML(
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">' + msg + '</div>',
+      { background: ok ? 'rgba(5,40,30,0.95)' : 'rgba(40,25,5,0.95)',
+        border: '2px solid ' + (ok ? '#33ddaa' : '#ffaa33'),
+        color: ok ? '#ccffee' : '#ffe2b0',
+        duration: ok ? 4000 : 7000, zIndex: '400' } // v2317 : 400 > invite popup (300) > hub RADAR (200), sinon le toast restait caché dessous
+    );
+  }catch(e){ console.warn('[proximity-mint] pré-contrôle ignoré:', e); try{ _lmsNearbyRenderStatus('⚠️ pré-contrôle mint : ' + ((e && (e.message || e)) || '?')); }catch(_){} } // v2317 : visible à l'écran pour diagnostic sur device
+}
+
 // ── Durable Nonce (mint Proximité) ──────────────────────────────────────
 // Remplace getLatestBlockhash() par la valeur d'un compte nonce dédié, qui ne périme
 // JAMAIS tant qu'elle n'a pas été explicitement "avancée" — contrairement à un blockhash
@@ -19988,6 +20129,49 @@ function _lmsPlayerMintRecordPda(web3, programId, playerPubkey){
 // avec deux joueurs humains). Testé/ajouté le 20/09/2026 après plusieurs échecs réels
 // "Transaction simulation failed: Blockhash not found" malgré un flux rapide (~30-40s).
 const LMS_NONCE_ACCOUNT_SIZE = 80; // taille fixe d'un compte nonce (NONCE_ACCOUNT_LENGTH)
+
+// v2311 : une seule création de nonce à la fois par wallet (pré-création à la connexion ET flux de mint partagent
+// la même promesse -> jamais deux comptes nonce créés en parallèle).
+let _lmsNonceInFlight = null;
+function _lmsEnsureNonceAccount(web3, plugin, myPubkey, authToken){
+  const key = myPubkey.toBase58();
+  if(_lmsNonceInFlight && _lmsNonceInFlight.key === key) return _lmsNonceInFlight.promise;
+  const p = _lmsGetOrCreateNonceAccount(web3, plugin, myPubkey, authToken)
+    .finally(() => { if(_lmsNonceInFlight && _lmsNonceInFlight.promise === p) _lmsNonceInFlight = null; });
+  _lmsNonceInFlight = { key, promise: p };
+  return p;
+}
+// Pré-création du compte nonce à la PREMIÈRE ouverture du mode RADAR (v2312) — DÉSACTIVÉE par défaut depuis v2313.
+// Seul le builder (uid le plus petit) a besoin d'un nonce, mais on ne sait pas qui sera builder avant la rencontre :
+// l'activer ferait créer un compte (~0,0015 SOL) à chaque wallet qui ouvre RADAR, y compris ceux qui ne le seront
+// jamais. Par défaut, le nonce est donc créé comme avant, à la fin du premier match, par le seul builder.
+// Mettre à true pour le créer à l'ouverture de RADAR (jamais bloquant : en cas d'échec ou de lenteur, le scan démarre
+// quand même et le flux de mint recrée le nonce à la demande).
+const LMS_NONCE_PREWARM_ENABLED = false;
+const LMS_NONCE_PREWARM_MAX_WAIT_MS = 60000; // au-delà, RADAR démarre sans attendre (la création continue en tâche de fond)
+async function _lmsNoncePrewarm(opts){
+  if(!LMS_NONCE_PREWARM_ENABLED) return;
+  if(_lmsProximityMintActive) return; // un mint est en cours : il gère déjà son nonce
+  const addr = _lmsWalletAddress || localStorage.getItem('lms_wallet_address');
+  const authToken = localStorage.getItem('lms_wallet_auth_token') || '';
+  if(!addr || !authToken || !window.solanaWeb3) return;
+  try{
+    const web3 = window.solanaWeb3, plugin = _lmsSolanaWalletPlugin();
+    const myPubkey = new web3.PublicKey(addr);
+    // Déjà créé et présent on-chain ? Rien à faire, rien à afficher.
+    const cached = localStorage.getItem('lms_nonce_account_' + addr);
+    if(cached){
+      const info = await _lmsRpcCall('getAccountInfo', [cached, { encoding: 'base64' }]);
+      if(info && info.value) return;
+    }
+    if(opts && typeof opts.onCreating === 'function') opts.onCreating();
+    console.log('[nonce] pré-création à l\'ouverture de RADAR');
+    await _lmsEnsureNonceAccount(web3, plugin, myPubkey, authToken);
+    console.log('[nonce] pré-création OK');
+  }catch(e){
+    console.warn('[nonce] pré-création ignorée (le mint la refera au besoin):', String(e && e.message || e));
+  }
+}
 
 // Récupère le compte nonce du wallet (créé une seule fois, réutilisé indéfiniment
 // ensuite) ou le crée s'il n'existe pas encore. Vérifié on-chain à chaque appel (pas
@@ -20002,36 +20186,65 @@ async function _lmsGetOrCreateNonceAccount(web3, plugin, myPubkey, authToken){
     localStorage.removeItem(cacheKey); // orphelin (jamais créé/fermé) — on recrée
   }
 
-  const nonceKeypair = web3.Keypair.generate();
   const rentExempt = await _lmsRpcCall('getMinimumBalanceForRentExemption', [LMS_NONCE_ACCOUNT_SIZE]);
+
+  // v2300 : compte nonce dérivé (createAccountWithSeed) au lieu d'un Keypair aléatoire. La transaction n'a alors
+  // QU'UNE signature (celle du wallet) : plus de pré-signature d'un 2e signataire que Phantom devrait préserver.
+  // Seed aléatoire à chaque tentative -> pas de collision avec un essai précédent.
+  const nonceSeed = 'lms' + Math.random().toString(36).slice(2, 12);
+  const nonceKeypair = { publicKey: await web3.PublicKey.createWithSeed(myPubkey, nonceSeed, web3.SystemProgram.programId) };
 
   const tx = web3.SystemProgram.createNonceAccount({
     fromPubkey: myPubkey,
     noncePubkey: nonceKeypair.publicKey,
     authorizedPubkey: myPubkey, // seul CE wallet pourra avancer/utiliser ce nonce
     lamports: rentExempt,
+    basePubkey: myPubkey,
+    seed: nonceSeed,
   });
   const latestBlockhash = await _lmsRpcCall('getLatestBlockhash', [{ commitment: 'confirmed' }]);
   tx.recentBlockhash = latestBlockhash.value.blockhash;
   tx.feePayer = myPubkey;
-  tx.partialSign(nonceKeypair);
 
   const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
   const txBase64 = btoa(String.fromCharCode(...serialized));
 
-  await _lmsSignAndSendWithReauth({ authToken, transactions: [txBase64] });
-
-  // Poll plutôt que de décoder la signature retournée (le plugin Kotlin la renvoie en
-  // base64, alors que les RPC Solana attendent du base58 pour getSignatureStatuses —
-  // simple à contourner en vérifiant juste que le compte existe bien on-chain).
+  // v2299 : signAndSendTransactions faisait expirer Phantom (« Timed out waiting for response with id=3 ») APRÈS la
+  // validation de l'utilisateur : c'est Phantom qui diffuse la transaction et ne répond jamais. On passe par
+  // signTransactions (le même appel que celui du mint, qui répond bien) puis on diffuse nous-mêmes via notre RPC.
+  await new Promise(resolve => _lmsAwaitBridgeSettled(resolve));
+  console.log('[nonce] demande de signature au wallet…');
+  let nonceSign;
+  try{
+    nonceSign = await plugin.signTransactions({
+      authToken: localStorage.getItem('lms_wallet_auth_token') || authToken, transactions: [txBase64],
+      identityName: 'Last Man Skating', identityUri: 'https://kristen.fr/KristenStudiosGames/lms.html', iconUri: 'apple-touch-icon.png',
+    });
+  }catch(e){ throw new Error('[signature nonce] ' + String(e && e.message || e)); }
+  if(nonceSign && nonceSign.authToken){ try{ localStorage.setItem('lms_wallet_auth_token', nonceSign.authToken); }catch(e){} }
+  const nonceSignedTx = nonceSign && nonceSign.signedTransactions && nonceSign.signedTransactions[0];
+  if(!nonceSignedTx) throw new Error('le wallet n\'a renvoyé aucune transaction signée');
+  console.log('[nonce] signée, diffusion via RPC…');
+  let nonceSigB58;
+  try{
+    nonceSigB58 = await _lmsRpcCall('sendTransaction', [nonceSignedTx, { encoding: 'base64', preflightCommitment: 'confirmed' }]);
+  }catch(e){ throw new Error('[diffusion nonce] ' + String(e && e.message || e)); }
+  console.log('[nonce] diffusée:', nonceSigB58);
+  const conf = await _lmsConfirmClaimSignature(nonceSigB58, 30000);
+  if(conf.err) throw new Error('création du nonce rejetée on-chain : ' + JSON.stringify(conf.err));
+  let found = false;
   const start = Date.now();
-  while(Date.now() - start < 30000){
+  while(Date.now() - start < 20000){
     const info = await _lmsRpcCall('getAccountInfo', [nonceKeypair.publicKey.toBase58(), { encoding: 'base64' }]);
-    if(info && info.value) break;
+    if(info && info.value){ found = true; break; }
     await new Promise(r => setTimeout(r, 1500));
   }
+  if(!found) throw new Error('compte nonce introuvable on-chain après envoi (transaction non confirmée)');
 
   localStorage.setItem(cacheKey, nonceKeypair.publicKey.toBase58());
+  // v2298 : laisse Phantom refermer proprement sa session MWA avant d'en ouvrir une 2e (signature du mint) —
+  // l'enchaînement à ~1 s provoquait des « Timed out waiting for response » côté client MWA.
+  await new Promise(r => setTimeout(r, 2500));
   return nonceKeypair.publicKey;
 }
 
@@ -20101,27 +20314,69 @@ function _lmsProximityMintSetStatus(text){
 function _lmsProximityMintOpen(){
   const overlay = document.getElementById('proximity-mint-overlay');
   if(overlay) overlay.style.display = 'flex';
+  const _ttl = document.getElementById('proximity-mint-title'); if(_ttl) _ttl.textContent = t('proximityMintTitle');
+  const _act0 = document.getElementById('proximity-mint-actions');
+  if(_act0) _act0.style.display = 'none';
   _lmsProximityMintSetStatus(t('proximityMintWaiting'));
   // Watchdog : si rien n'a abouti (ni succès ni erreur) dans le délai, on considère que
   // l'autre joueur a quitté l'app ou perdu la connexion avant la fin du flux — on ferme
   // proprement plutôt que de laisser ce joueur bloqué indéfiniment sur "en attente".
+  _lmsProximityMintArmTimeout(_LMS_PROXIMITY_MINT_FIRST_TIMEOUT_MS);
+}
+// v2298 : le watchdog est RE-ARMÉ à chaque étape franchie (nonce créé, signature builder, mise à jour RTDB reçue)
+// au lieu d'un unique compte à rebours de 90 s depuis la fin du match, qui avalait à lui seul création du nonce +
+// 2 approbations wallet + soumission et déclenchait un faux « l'autre joueur a quitté ».
+function _lmsProximityMintArmTimeout(ms){
   if(_lmsProximityMintTimeout) clearTimeout(_lmsProximityMintTimeout);
   _lmsProximityMintTimeout = setTimeout(() => {
     if(!_lmsProximityMintActive) return;
-    console.warn('[proximity-mint] timeout — l\'autre joueur a probablement quitté avant la fin du flux.');
+    console.warn('[proximity-mint] timeout — plus aucune étape franchie depuis', ms, 'ms.');
     _lmsProximityMintSetStatus(t('proximityMintTimeout'));
     // Best-effort : prévient l'autre côté (s'il est encore là) plutôt que de le laisser
     // lui aussi en attente indéfiniment — sans garantie de délivrance si personne n'écoute.
-    if(_lmsProximityMintRef) _lmsProximityMintRef.update({ status: 'error', errorMessage: 'timeout' }).catch(()=>{});
+    if(_lmsProximityMintRef) _lmsProximityMintRef.update({ status: 'error', errorMessage: 'timeout', createdAt: firebase.database.ServerValue.TIMESTAMP }).catch(()=>{});
     setTimeout(_lmsProximityMintClose, 2000);
-  }, _LMS_PROXIMITY_MINT_TIMEOUT_MS);
+  }, ms || _LMS_PROXIMITY_MINT_TIMEOUT_MS);
+}
+function _lmsProximityMintBumpTimeout(){
+  if(_lmsProximityMintActive) _lmsProximityMintArmTimeout(_LMS_PROXIMITY_MINT_TIMEOUT_MS);
+}
+// Confirmation visible du mint pour les DEUX joueurs : l'overlay reste ouvert (au lieu de se fermer seul après
+// 2,5 s) avec « VOIR MON NFT » -> ouvre MES NFT et recharge jusqu'à voir apparaître le nouvel asset.
+function _lmsProximityMintShowSuccess(){
+  const act = document.getElementById('proximity-mint-actions');
+  if(act && act.style.display === 'flex') return; // idempotent (plusieurs événements 'value')
+  if(_lmsProximityMintTimeout){ clearTimeout(_lmsProximityMintTimeout); _lmsProximityMintTimeout = null; } // sinon le watchdog écraserait le succès
+  if(_lmsProximityMintRef){ try{ _lmsProximityMintRef.off('value'); }catch(e){} }
+  _lmsProximityMintSetStatus(t('proximityMintSuccess'));
+  const vb = document.getElementById('proximity-mint-view-btn'), ob = document.getElementById('proximity-mint-ok-btn');
+  if(vb) vb.textContent = t('proximityMintViewNft');
+  if(ob) ob.textContent = t('proximityMintOk');
+  if(act) act.style.display = 'flex';
+  const started = _lmsProximityMintSessionStartedAt;
+  setTimeout(() => { if(_lmsProximityMintActive && _lmsProximityMintSessionStartedAt === started) _lmsProximityMintClose(); }, 60000); // filet : joueur parti
+}
+async function _lmsProximityMintViewNft(){
+  _lmsProximityMintClose();
+  const before = (_lmsNftState.items || []).length;
+  _lmsNftOpenPopup();
+  for(let i = 0; i < 5; i++){ // l'indexeur DAS peut retarder l'apparition de quelques secondes
+    await new Promise(r => setTimeout(r, i === 0 ? 1500 : 3500));
+    const pop = document.getElementById('nft-popup');
+    if(!pop || pop.style.display === 'none' || _lmsNftState.selectedId) return; // fermé, ou joueur en train de regarder un NFT
+    try{ await _lmsNftFetch(true); }catch(e){}
+    if((_lmsNftState.items || []).length > before) return;
+  }
 }
 function _lmsProximityMintClose(){
   const overlay = document.getElementById('proximity-mint-overlay');
   if(overlay) overlay.style.display = 'none';
+  const _act = document.getElementById('proximity-mint-actions');
+  if(_act) _act.style.display = 'none';
   if(_lmsProximityMintRef){ _lmsProximityMintRef.off('value'); _lmsProximityMintRef = null; }
   if(_lmsProximityMintTimeout){ clearTimeout(_lmsProximityMintTimeout); _lmsProximityMintTimeout = null; }
   _lmsProximityMintActive = false;
+  _lmsProximityMintSignerBusy = false; // v2298
 }
 
 // ── Point d'entrée : à appeler depuis showEndScreen(), juste après le
@@ -20133,6 +20388,11 @@ async function _lmsProximityMintFlow(){
   if(_lmsProximityMintActive) return; // déjà en cours (showEndScreen peut être ré-entrant)
   if(!_lmsWalletAddress){
     console.warn('[proximity-mint] wallet non connecté — mint impossible, match compté normalement.');
+    return;
+  }
+  if(_lmsRadarProximityVerified !== true){
+    // v2308 : RADAR armé uniquement par le contenu d'une invite Firebase, sans contact Nearby constaté -> pas de mint.
+    console.warn('[proximity-mint] contact Nearby non vérifié — mint ignoré, match compté normalement.');
     return;
   }
   const myUid = _lmsAuthUid;
@@ -20228,6 +20488,8 @@ async function _lmsProximityMintFlow(){
   } catch(err){
     console.error('[proximity-mint] échec:', err);
     _lmsProximityMintSetStatus(t('proximityMintFailed', String(err && err.message || err)));
+    // v2298 : prévient l'autre joueur tout de suite (avant, il attendait son propre timeout sans rien savoir).
+    if(_lmsProximityMintRef) _lmsProximityMintRef.update({ status: 'error', errorMessage: String(err && err.message || err), createdAt: firebase.database.ServerValue.TIMESTAMP }).catch(()=>{});
     setTimeout(_lmsProximityMintClose, 3000);
   }
 }
@@ -20241,11 +20503,21 @@ async function _lmsProximityMintBuildAndSignAsBuilder(web3, programId, ref, ctx)
   const plugin = _lmsSolanaWalletPlugin();
   const authToken = localStorage.getItem('lms_wallet_auth_token') || '';
 
+  // v2298 : heartbeat — le signer a déjà son listener actif, il voit que le builder travaille et re-arme son watchdog.
+  ref.set({ builderUid: _lmsAuthUid, status: 'builder_working', phase: 'nonce', createdAt: firebase.database.ServerValue.TIMESTAMP }).catch(()=>{});
+
   // Durable Nonce : compte créé une seule fois par wallet builder (persistant en
   // localStorage + vérifié on-chain), réutilisé à toutes les tentatives futures — voir
   // la doc complète au-dessus de _lmsGetOrCreateNonceAccount.
-  const nonceAccountPubkey = await _lmsGetOrCreateNonceAccount(web3, plugin, myPubkey, authToken);
-  const nonceValue = await _lmsFetchNonceValue(web3, nonceAccountPubkey);
+  let nonceAccountPubkey, nonceValue;
+  try{
+    console.log('[proximity-mint] builder : étape nonce');
+    nonceAccountPubkey = await _lmsEnsureNonceAccount(web3, plugin, myPubkey, authToken); // v2311 : partage la promesse avec la pré-création
+    _lmsProximityMintBumpTimeout();
+    nonceValue = await _lmsFetchNonceValue(web3, nonceAccountPubkey);
+  }catch(e){ throw new Error('[étape nonce] ' + String(e && e.message || e)); }
+  ref.update({ phase: 'sign' }).catch(()=>{});
+  console.log('[proximity-mint] builder : nonce OK, étape signature');
 
   const assetA = web3.Keypair.generate(); // NFT du builder (moi)
   const assetB = web3.Keypair.generate(); // NFT du peer
@@ -20277,10 +20549,13 @@ async function _lmsProximityMintBuildAndSignAsBuilder(web3, programId, ref, ctx)
   const txBase64 = btoa(String.fromCharCode(...serialized));
 
   await new Promise(resolve => _lmsAwaitBridgeSettled(resolve));
-  const signResult = await plugin.signTransactions({
-    authToken, transactions: [txBase64],
-    identityName: 'Last Man Skating', identityUri: 'https://kristen.fr/KristenStudiosGames/lms.html', iconUri: 'apple-touch-icon.png',
-  });
+  let signResult;
+  try{
+    signResult = await plugin.signTransactions({
+      authToken: localStorage.getItem('lms_wallet_auth_token') || authToken, transactions: [txBase64],
+      identityName: 'Last Man Skating', identityUri: 'https://kristen.fr/KristenStudiosGames/lms.html', iconUri: 'apple-touch-icon.png',
+    });
+  }catch(e){ throw new Error('[étape signature builder] ' + String(e && e.message || e)); }
   // v2260 : si l'ancien authToken était mort côté wallet, le plugin Kotlin retente un
   // authorize() frais en interne (voir SolanaWalletPlugin.kt v2259) et renvoie le NOUVEAU
   // token dans la réponse — sans cette ligne, on continuerait à réutiliser l'ancien token
@@ -20288,6 +20563,7 @@ async function _lmsProximityMintBuildAndSignAsBuilder(web3, programId, ref, ctx)
   // au lieu d'une seule fois.
   if(signResult.authToken){ try{ localStorage.setItem('lms_wallet_auth_token', signResult.authToken); }catch(e){} }
   const builderSignedTx = signResult.signedTransactions[0];
+  _lmsProximityMintBumpTimeout();
 
   await ref.set({
     builderUid: _lmsAuthUid,
@@ -20300,6 +20576,39 @@ async function _lmsProximityMintBuildAndSignAsBuilder(web3, programId, ref, ctx)
 }
 
 // Écoute unique pour les deux côtés : réagit à chaque étape du flux.
+// v2308 : le signataire ne doit JAMAIS transmettre au wallet une transaction qu'il n'a pas vérifiée.
+// Reconstruit ce que _lmsProximityMintBuildAndSignAsBuilder produit (nonceAdvance + mint_meeting_nft,
+// payeur = builder) et refuse tout écart. Lève une Error -> le flux existant affiche l'échec et notifie l'autre côté.
+function _lmsProximityMintValidateBuilderTx(web3, programId, tx, ctx){
+  const { myPubkey, peerPubkey } = ctx; // peerPubkey = wallet du builder (wallets/<peerUid>)
+  const bad = (why) => { throw new Error('[transaction inattendue] ' + why); };
+  if(!myPubkey || !peerPubkey) bad('wallets inconnus');
+  if(!tx || !tx.feePayer || !tx.feePayer.equals(peerPubkey)) bad('payeur');
+  const ixs = tx.instructions || [];
+  if(ixs.length !== 2) bad('nombre d\'instructions');
+  // 1) nonceAdvance (System, type 4), autorisé par le builder
+  const n = ixs[0];
+  if(!n.programId.equals(web3.SystemProgram.programId)) bad('instruction 1 (programme)');
+  if(!n.data || n.data.length !== 4 || n.data[0] !== 4 || n.data[1] !== 0 || n.data[2] !== 0 || n.data[3] !== 0) bad('instruction 1 (type)');
+  if(!n.keys || n.keys.length !== 3 || !n.keys[2].pubkey.equals(peerPubkey) || !n.keys[2].isSigner) bad('instruction 1 (autorité)');
+  // 2) mint_meeting_nft : programme, discriminator, 9 comptes dans l'ordre exact
+  const m = ixs[1];
+  if(!m.programId.equals(programId)) bad('instruction 2 (programme)');
+  if(!m.data || m.data.length < 10) bad('instruction 2 (données)');
+  for(let i = 0; i < 8; i++){ if(m.data[i] !== MINT_MEETING_NFT_DISCRIMINATOR[i]) bad('instruction 2 (discriminator)'); }
+  const k = m.keys || [];
+  if(k.length !== 9) bad('instruction 2 (comptes)');
+  const is = (i, pk) => k[i].pubkey.equals(pk);
+  if(!is(0, peerPubkey) || !is(1, myPubkey)) bad('joueurs A/B');
+  if(!k[0].isSigner || !k[1].isSigner || !k[2].isSigner || !k[3].isSigner) bad('signataires');
+  if(is(2, myPubkey) || is(2, peerPubkey) || is(3, myPubkey) || is(3, peerPubkey) || k[2].pubkey.equals(k[3].pubkey)) bad('assets');
+  if(!is(4, _lmsMintCounterPda(web3, programId))) bad('compteur');
+  if(!is(5, _lmsPlayerMintRecordPda(web3, programId, peerPubkey))) bad('record A');
+  if(!is(6, _lmsPlayerMintRecordPda(web3, programId, myPubkey))) bad('record B');
+  if(!is(7, web3.SystemProgram.programId)) bad('System');
+  if(!is(8, new web3.PublicKey(MPL_CORE_PROGRAM_ID))) bad('MPL Core');
+}
+
 async function _lmsProximityMintOnUpdate(web3, programId, ref, val, ctx){
   if(!val || !_lmsProximityMintActive) return;
   // v2259 : ignore un statut résiduel d'une tentative précédente avec la même paire de
@@ -20307,26 +20616,33 @@ async function _lmsProximityMintOnUpdate(web3, programId, ref, val, ctx){
   // device/serveur, largement suffisant vu le temps que prend le reste du flux.
   if(typeof val.createdAt === 'number' && val.createdAt < _lmsProximityMintSessionStartedAt - 5000) return;
   const { myUid, myPubkey, iAmBuilder } = ctx;
+  // v2298 : toute progression de l'autre joueur re-arme le watchdog (voir _lmsProximityMintArmTimeout).
+  if(val.status !== 'error' && val.status !== 'submitted') _lmsProximityMintBumpTimeout();
 
   try{
-    if(val.status === 'awaiting_signer' && !iAmBuilder && !val._signerHandled){
+    if(val.status === 'awaiting_signer' && !iAmBuilder && !_lmsProximityMintSignerBusy){
       // Marque immédiatement pour éviter un double-traitement si 'value' refire avant
-      // que notre propre écriture n'ait été digérée par le serveur.
-      val._signerHandled = true;
+      // que notre propre écriture n'ait été digérée par le serveur. v2298 : drapeau de module
+      // (l'ancien val._signerHandled vivait sur le snapshot de CET événement, jamais relu au suivant).
+      _lmsProximityMintSignerBusy = true;
       _lmsProximityMintSetStatus(t('proximityMintSigning'));
 
       const txBytes = _lmsBase64ToBytes(val.builderSignedTx);
       const tx = web3.Transaction.from(txBytes);
+      _lmsProximityMintValidateBuilderTx(web3, programId, tx, ctx); // v2308 (N1)
       const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
       const txBase64 = btoa(String.fromCharCode(...serialized));
 
       const plugin = _lmsSolanaWalletPlugin();
       const authToken = localStorage.getItem('lms_wallet_auth_token') || '';
       await new Promise(resolve => _lmsAwaitBridgeSettled(resolve));
-      const signResult = await plugin.signTransactions({
-        authToken, transactions: [txBase64],
-        identityName: 'Last Man Skating', identityUri: 'https://kristen.fr/KristenStudiosGames/lms.html', iconUri: 'apple-touch-icon.png',
-      });
+      let signResult;
+      try{
+        signResult = await plugin.signTransactions({
+          authToken, transactions: [txBase64],
+          identityName: 'Last Man Skating', identityUri: 'https://kristen.fr/KristenStudiosGames/lms.html', iconUri: 'apple-touch-icon.png',
+        });
+      }catch(e){ throw new Error('[étape signature signer] ' + String(e && e.message || e)); }
       // v2260 : même besoin que côté builder (voir son commentaire) — persister le token
       // rafraîchi si le plugin a dû retenter un authorize() frais en interne.
       if(signResult.authToken){ try{ localStorage.setItem('lms_wallet_auth_token', signResult.authToken); }catch(e){} }
@@ -20348,8 +20664,7 @@ async function _lmsProximityMintOnUpdate(web3, programId, ref, val, ctx){
       if(!_lmsProximityMintActive) return;
       await ref.update({ status: 'submitted', signature: sig });
     } else if(val.status === 'submitted'){
-      _lmsProximityMintSetStatus(t('proximityMintSuccess'));
-      setTimeout(_lmsProximityMintClose, 2500);
+      _lmsProximityMintShowSuccess(); // carte de confirmation avec accès direct à MES NFT
     } else if(val.status === 'error'){
       _lmsProximityMintSetStatus(t('proximityMintFailed', val.errorMessage || '?'));
       setTimeout(_lmsProximityMintClose, 3000);
@@ -20548,6 +20863,192 @@ function _manualRequestReview(){
     }
   });
 }
+// ═══ v2305 : ESPACE WALLET — MES NFT ═══════════════════════════════════════════════
+// Lecture seule (Helius DAS via _lmsRpcCall) : aucune clé, aucune signature. Affiche le solde LMS,
+// la grille des NFT du wallet connecté, un filtre « musicaux » et un détail avec lecteur audio.
+// Réservé au wallet connecté (même condition de visibilité que la ligne Wallet : app native, hors TV).
+// Les métadonnées on-chain sont écrites par n'importe qui : TOUT est échappé (_lmsEsc) et seules
+// les URL https:// sont acceptées pour image/audio.
+const _LMS_NFT_COOLDOWN_MS = 30000;
+let _lmsNftState = { wallet:null, items:[], loadedAt:0, loading:false, error:false, filter:'all', balance:null, selectedId:null };
+
+function _lmsEsc(v){
+  return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function _lmsSafeUrl(u){
+  if(!u || typeof u !== 'string') return '';
+  if(u.indexOf('ipfs://') === 0) u = 'https://ipfs.io/ipfs/' + u.slice(7);
+  return /^https:\/\//i.test(u) ? u : '';
+}
+function _lmsNftActiveWallet(){ return _lmsWalletAddress || null; }
+function _lmsNftImage(a){
+  const c = a.content || {}, links = c.links || {};
+  return _lmsSafeUrl(links.image) || _lmsSafeUrl(c.metadata && c.metadata.image) || '';
+}
+function _lmsNftAudioUrl(a){
+  const c = a.content || {}, links = c.links || {}, files = c.files || [];
+  const anim = _lmsSafeUrl(links.animation_url || (c.metadata && c.metadata.animation_url));
+  if(!anim){
+    const f = files.find(x => x && /^audio\//i.test(x.mime || '') && _lmsSafeUrl(x.uri));
+    return f ? _lmsSafeUrl(f.uri) : '';
+  }
+  const f = files.find(x => x && (x.uri === anim || x.cdn_uri === anim));
+  if(f && /^(video|text|image)\//i.test(f.mime || '')) return '';
+  return anim;
+}
+function _lmsNftName(a){
+  const n = a.content && a.content.metadata && a.content.metadata.name;
+  return n || t('nftNoName');
+}
+function _lmsNftStopAudio(){
+  document.querySelectorAll('#nft-popup audio').forEach(el => { try{ el.pause(); el.removeAttribute('src'); el.load(); }catch(e){} });
+}
+
+async function _lmsNftFetchBalance(wallet){
+  const res = await _lmsRpcCall('getTokenAccountsByOwner', [wallet, { mint: LMS_SOLANA_MINT }, { encoding: 'jsonParsed' }]);
+  const accs = (res && res.value) || [];
+  let total = 0n, dec = null;
+  accs.forEach(a => {
+    const ta = a && a.account && a.account.data && a.account.data.parsed && a.account.data.parsed.info && a.account.data.parsed.info.tokenAmount;
+    if(!ta) return;
+    total += BigInt(ta.amount || '0');
+    dec = ta.decimals;
+  });
+  if(dec === null) dec = await _lmsGetTokenDecimals();
+  return _lmsFormatTokenAmount(total, dec);
+}
+
+async function _lmsNftFetch(force){
+  const w = _lmsNftActiveWallet(), st = _lmsNftState;
+  if(!w){ st.wallet = null; st.items = []; st.balance = null; _lmsNftRender(); return; }
+  if(st.loading) return;
+  if(!force && st.wallet === w && (Date.now() - st.loadedAt) < _LMS_NFT_COOLDOWN_MS){ _lmsNftRender(); return; }
+  st.loading = true; st.error = false; st.wallet = w; st.selectedId = null;
+  _lmsNftRender();
+  try{
+    let all = [];
+    for(let page = 1; page <= 5; page++){
+      const r = await _lmsRpcCall('getAssetsByOwner', { ownerAddress: w, page, limit: 1000 });
+      const items = (r && r.items) || [];
+      all = all.concat(items);
+      if(items.length < 1000) break;
+    }
+    st.items = all.filter(a => a && !a.burnt && a.interface !== 'FungibleToken' && a.interface !== 'FungibleAsset');
+    st.loadedAt = Date.now();
+  }catch(e){
+    console.warn('[nft] chargement échoué:', e);
+    st.error = true; st.items = [];
+  }
+  try{ st.balance = await _lmsNftFetchBalance(w); }catch(e){ st.balance = null; }
+  st.loading = false;
+  if(_lmsNftActiveWallet() !== w) return _lmsNftFetch(true); // wallet changé pendant le chargement
+  _lmsNftRender();
+}
+
+function _lmsNftRender(){
+  const body = document.getElementById('nft-popup-body');
+  if(!body) return;
+  _lmsNftStopAudio();
+  const title = document.getElementById('nft-popup-title');
+  if(title) title.textContent = t('nftTitle');
+  const st = _lmsNftState, w = _lmsNftActiveWallet();
+  const chip = 'font-family:inherit;font-weight:700;font-size:12px;letter-spacing:1px;border-radius:20px;padding:6px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;color:#fff;';
+  let h = '';
+
+  if(!w){
+    h += '<div style="font-size:13px;color:rgba(220,200,255,0.8);line-height:1.4;padding:10px 0;">' + _lmsEsc(t('nftNeedWallet')) + '</div>';
+    body.innerHTML = h;
+    return;
+  }
+
+  // Détail d'un NFT
+  const sel = st.selectedId && st.items.find(a => a.id === st.selectedId);
+  if(sel){
+    const meta = (sel.content && sel.content.metadata) || {};
+    const img = _lmsNftImage(sel), audio = _lmsNftAudioUrl(sel), attrs = Array.isArray(meta.attributes) ? meta.attributes : [];
+    h += '<button type="button" onclick="_lmsNftBack()" style="' + chip + 'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);margin-bottom:12px;">' + _lmsEsc(t('nftBack')) + '</button>';
+    if(img) h += '<img src="' + _lmsEsc(img) + '" alt="" style="width:100%;height:auto;display:block;border-radius:12px;background:#000;margin-bottom:12px;" onerror="this.style.display=\'none\'">';
+    h += '<div style="font-size:18px;font-weight:800;letter-spacing:1px;color:#fff;margin-bottom:6px;">' + _lmsEsc(_lmsNftName(sel)) + '</div>';
+    if(meta.description) h += '<div style="font-size:13px;color:rgba(220,200,255,0.75);line-height:1.4;margin-bottom:12px;">' + _lmsEsc(meta.description) + '</div>';
+    if(audio) h += '<audio controls preload="none" src="' + _lmsEsc(audio) + '" style="width:100%;margin-bottom:12px;"></audio>';
+    if(attrs.length){
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+      attrs.forEach(a => {
+        h += '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.25);border-radius:10px;padding:8px 10px;">'
+          + '<div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#22d3ee;margin-bottom:2px;">' + _lmsEsc(a && a.trait_type) + '</div>'
+          + '<div style="font-size:13px;color:#fff;">' + _lmsEsc(a && a.value) + '</div></div>';
+      });
+      h += '</div>';
+    }
+    h += '<div style="font-size:10px;color:rgba(220,200,255,0.45);margin-top:14px;word-break:break-all;">Mint: ' + _lmsEsc(sel.id) + '</div>';
+    body.innerHTML = h;
+    return;
+  }
+
+  // En-tête : wallet + solde
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:8px 12px;margin-bottom:12px;">'
+    + '<div style="min-width:0;"><div style="font-size:12px;letter-spacing:1px;color:rgba(220,180,255,0.9);">' + _lmsEsc(_lmsShortAddr(w)) + '</div>'
+    + '<div style="font-size:10px;letter-spacing:1px;color:rgba(220,200,255,0.5);margin-top:2px;">' + _lmsEsc(t('nftBalanceLabel')) + '</div></div>'
+    + '<div style="font-size:18px;font-weight:800;color:#ffd24a;white-space:nowrap;">' + (st.balance == null ? '—' : _lmsEsc(st.balance)) + '</div></div>';
+
+  // Filtres
+  const musicCount = st.items.filter(a => _lmsNftAudioUrl(a)).length;
+  const on = 'background:rgba(160,60,255,0.45);border:1px solid rgba(200,120,255,0.8);';
+  const off = 'background:transparent;border:1px solid rgba(160,60,255,0.3);color:rgba(220,200,255,0.7);';
+  h += '<div style="display:flex;gap:8px;margin-bottom:12px;">'
+    + '<button type="button" onclick="_lmsNftSetFilter(\'all\')" style="' + chip + (st.filter === 'all' ? on : off) + '">' + _lmsEsc(t('nftFilterAll')) + ' (' + st.items.length + ')</button>'
+    + '<button type="button" onclick="_lmsNftSetFilter(\'music\')" style="' + chip + (st.filter === 'music' ? on : off) + '">' + _lmsEsc(t('nftFilterMusic')) + ' (' + musicCount + ')</button></div>';
+
+  // Grille
+  if(st.loading){
+    h += '<div style="text-align:center;color:rgba(220,200,255,0.6);font-size:13px;padding:30px 0;">' + _lmsEsc(t('nftLoading')) + '</div>';
+  } else if(st.error){
+    h += '<div style="text-align:center;color:#ff7a7a;font-size:13px;padding:30px 0;">' + _lmsEsc(t('nftError')) + '</div>';
+  } else {
+    const list = st.filter === 'music' ? st.items.filter(a => _lmsNftAudioUrl(a)) : st.items;
+    if(!list.length){
+      h += '<div style="text-align:center;color:rgba(220,200,255,0.6);font-size:13px;padding:30px 0;">' + _lmsEsc(t(st.filter === 'music' ? 'nftEmptyMusic' : 'nftEmpty')) + '</div>';
+    } else {
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+      list.forEach(a => {
+        const img = _lmsNftImage(a), isMusic = !!_lmsNftAudioUrl(a);
+        h += '<div data-nft-id="' + _lmsEsc(a.id) + '" onclick="_lmsNftSelect(this.getAttribute(\'data-nft-id\'))" style="background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.25);border-radius:12px;overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent;">'
+          + '<div style="position:relative;aspect-ratio:1/1;background:#000;">'
+          + (img ? '<img src="' + _lmsEsc(img) + '" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.visibility=\'hidden\'">' : '')
+          + (isMusic ? '<div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.65);border-radius:10px;padding:2px 6px;font-size:12px;">🎵</div>' : '')
+          + '</div><div style="padding:7px 9px;font-size:12px;font-weight:700;letter-spacing:0.5px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _lmsEsc(_lmsNftName(a)) + '</div></div>';
+      });
+      h += '</div>';
+    }
+  }
+  body.innerHTML = h;
+}
+
+function _lmsNftOpenPopup(){
+  const el = document.getElementById('nft-popup');
+  if(!el) return;
+  _lmsNftState.selectedId = null;
+  el.style.display = 'flex';
+  _lmsNftRender();
+  _lmsNftFetch(false);
+}
+function _lmsNftClosePopup(){
+  _lmsNftStopAudio();
+  const el = document.getElementById('nft-popup');
+  if(el) el.style.display = 'none';
+}
+function _lmsNftSetFilter(f){ _lmsNftState.filter = f; _lmsNftRender(); }
+function _lmsNftSelect(id){ _lmsNftState.selectedId = id; _lmsNftRender(); const c = document.querySelector('#nft-popup > div'); if(c) c.scrollTop = 0; }
+function _lmsNftBack(){ _lmsNftState.selectedId = null; _lmsNftRender(); }
+// Libellés + visibilité de la ligne dans les Réglages (appelé par _syncSettingsUI).
+function _lmsNftSyncSettingsRow(){
+  const row = document.getElementById('settings-nft-row');
+  if(!row) return;
+  const l = document.getElementById('settings-nft-label'), b = document.getElementById('settings-nft-btn');
+  if(l) l.textContent = t('settingsNftLabel');
+  if(b) b.textContent = t('settingsNftBtn');
+}
+
 function openSettingsPopup(){
   const popup = document.getElementById('settings-popup');
   if(!popup) return;
@@ -20638,6 +21139,7 @@ async function _uiRedeemSyncCode(){
 }
 
 function closeSettingsPopup(){
+  if(typeof _lmsNftClosePopup === 'function') _lmsNftClosePopup();
   closeSyncPopup(); // évite un popup de sync orphelin si les réglages se ferment pendant qu'il est ouvert par-dessus
   const popup = document.getElementById('settings-popup');
   if(popup) popup.style.display = 'none';
@@ -20665,6 +21167,7 @@ function _syncSettingsUI(){
   if(f('settings-vibrations-label')) f('settings-vibrations-label').textContent = t('settingsVibrationsLabel');
   if(f('settings-vibrations-btn')) f('settings-vibrations-btn').textContent = _vibrationsEnabled ? t('settingsOn') : t('settingsOff');
   _lmsSyncWalletButton();
+  _lmsNftSyncSettingsRow();
   // Sensibilité joystick
   if(f('settings-joysens-label')) f('settings-joysens-label').textContent = t('settingsJoySensLabel');
   {
@@ -62023,6 +62526,8 @@ function _lmsSyncWalletUI(){
   // de désactiver de nouveau la feature entière.
   const _hide = (!_isCapacitorApp || isAndroidTV());
   if(_walletRow) _walletRow.style.display = _hide ? 'none' : 'flex';
+  const _wGroup = document.getElementById('settings-wallet-group');
+  if(_wGroup) _wGroup.style.display = _hide ? 'none' : 'flex';
   const _deadlineLabel = document.getElementById('settings-claim-deadline-label');
   if(_deadlineLabel) _deadlineLabel.style.display = _hide ? 'none' : 'block';
   if(!_hide) _lmsUpdateClaimDeadlineLabel();
@@ -76320,13 +76825,31 @@ function closeSkinCards(){
 //  • Le receveur voit « X t'offre la carte Y » → Accepter / Refuser. Refuser = rien n'est débloqué.
 //  • Le donneur est toujours l'initiateur : aucun tie-break d'uid, indépendant du résultat d'un duel.
 // Garde-fous : jamais de skin seekerNft (lié au NFT) ni premium:true (achat IAP) ; plafond de
-// _LMS_GIFT_DAILY_MAX cartes reçues par jour et par appareil ; boutons masqués hors Android/Nearby
+// plafond de cartes reçues par jour et par appareil (Seeker 3 / Android 1, voir _lmsGiftDailyMax) ; boutons masqués hors Android/Nearby
 // (TV, pas de BLE, Android < 12, navigateur) via _lmsNearbyPlugin() + _lmsNearbySupported.
 // Isolation avec RADAR : les listeners Nearby partagés routent vers _lmsGift* tant qu'une session
 // cadeau est active, et RADAR ignore tout pair "G!" / payload 'lms-gift'.
 // ═══════════════════════════════════════════════════
 const _LMS_GIFT_KEY_PREFIX = 'G!';
-const _LMS_GIFT_DAILY_MAX = 3;
+// v2304 : plafond de cartes REÇUES par jour selon l'appareil du RECEVEUR (jamais celui du donneur) :
+// Seeker (Seed Vault présent, voir _lmsCheckSeedVault) = 3, Android normal = 1. Dans un échange
+// Seeker <-> Android, l'avantage du Seeker persiste donc naturellement : le Seeker reçoit jusqu'à 3,
+// l'Android 1. Calculé localement (aucune valeur lue dans un payload radio, donc non falsifiable
+// par le pair).
+const _LMS_GIFT_DAILY_MAX_SEEKER = 3;
+const _LMS_GIFT_DAILY_MAX_STD = 1;
+function _lmsGiftDailyMax(){
+  return (typeof _lmsSeedVaultAvailable !== 'undefined' && _lmsSeedVaultAvailable === true)
+    ? _LMS_GIFT_DAILY_MAX_SEEKER : _LMS_GIFT_DAILY_MAX_STD;
+}
+function _lmsGiftLimitMsg(){
+  const n = _lmsGiftDailyMax();
+  return _lmsGiftT(
+    'Limite atteinte : ' + n + (n > 1 ? ' cartes reçues par jour' : ' carte reçue par jour') + '. Reviens demain !',
+    'Limit reached: ' + n + (n > 1 ? ' cards' : ' card') + ' received per day. Come back tomorrow!');
+}
+// Cartes jamais offrables en plus des règles seekerNft / premium (filet explicite : Racki Ultime payant).
+const _LMS_GIFT_BLOCKED = ['racki_ultime1', 'racki_ultime2'];
 const _LMS_GIFT_SCAN_TIMEOUT_MS = 60000;
 const _LMS_GIFT_WAIT_TIMEOUT_MS = 90000;
 function _lmsGiftFresh(){
@@ -76340,7 +76863,7 @@ function _lmsGiftIsGiftable(id){
   // "__proto__" passeraient (AI_SKIN_REGISTRY['constructor'] est truthy via le prototype d'Object).
   if(typeof id !== 'string' || !Object.prototype.hasOwnProperty.call(AI_SKIN_REGISTRY, id)) return false;
   const e = AI_SKIN_REGISTRY[id];
-  return !!(e && !e.seekerNft && !e.premium);
+  return !!(e && !e.seekerNft && !e.premium && _LMS_GIFT_BLOCKED.indexOf(id) === -1);
 }
 function _lmsGiftRecvToday(){
   const o = _lsGet('giftRecv', null);
@@ -76447,13 +76970,20 @@ function _lmsGiftGiveDone(){
 // ── RECEVEUR ─────────────────────────────────────────────────────────
 function _lmsGiftStartReceive(){
   if(_lmsGift.active) return;
+  // v2304 : le plafond dépend du Seed Vault (Seeker) — on attend le résultat du check avant de
+  // calculer la limite, sinon un vrai Seeker serait traité en Android normal au 1er appui.
+  Promise.resolve(typeof _lmsCheckSeedVault === 'function' ? _lmsCheckSeedVault() : null)
+    .catch(() => {}).then(() => _lmsGiftStartReceiveNow());
+}
+function _lmsGiftStartReceiveNow(){
+  if(_lmsGift.active) return;
   const plugin = _lmsNearbyPlugin();
   if(!plugin) return;
   _lmsGift = _lmsGiftFresh();
   _lmsGift.active = true; _lmsGift.role = 'receive';
   _lmsGiftOpenOverlay();
-  if(_lmsGiftRecvToday() >= _LMS_GIFT_DAILY_MAX){
-    _lmsGiftSetState('info', { msg: _lmsGiftT("Limite atteinte : " + _LMS_GIFT_DAILY_MAX + " cartes reçues par jour. Reviens demain !", "Limit reached: " + _LMS_GIFT_DAILY_MAX + " cards received per day. Come back tomorrow!") });
+  if(_lmsGiftRecvToday() >= _lmsGiftDailyMax()){
+    _lmsGiftSetState('info', { msg: _lmsGiftLimitMsg() });
     return;
   }
   if(_lmsNearbyScanning) _lmsNearbyStop();
@@ -76478,13 +77008,13 @@ function _lmsGiftReceiveOffer(p){
   _lmsGift.stopTimer = setTimeout(_lmsGiftStopNearby, 1500);
   if(!_lmsGiftIsGiftable(id)) return _lmsGiftSetState('info', { msg: _lmsGiftT("Cette carte ne peut pas être offerte.", "This card can't be gifted.") });
   if(getOwnedItems('skins').includes(id)) return _lmsGiftSetState('info', { msg: _lmsGiftT("Tu possèdes déjà cette carte.", "You already own this card.") });
-  if(_lmsGiftRecvToday() >= _LMS_GIFT_DAILY_MAX) return _lmsGiftSetState('info', { msg: _lmsGiftT("Limite atteinte : " + _LMS_GIFT_DAILY_MAX + " cartes reçues par jour. Reviens demain !", "Limit reached: " + _LMS_GIFT_DAILY_MAX + " cards received per day. Come back tomorrow!") });
+  if(_lmsGiftRecvToday() >= _lmsGiftDailyMax()) return _lmsGiftSetState('info', { msg: _lmsGiftLimitMsg() });
   _lmsGiftSetState('recv-offer', { skinId: id, peerName: from });
 }
 function _lmsGiftAccept(){
   if(_lmsGift.role !== 'receive' || _lmsGift.state !== 'recv-offer') return;
   const id = _lmsGift.skinId;
-  if(!_lmsGiftIsGiftable(id) || getOwnedItems('skins').includes(id) || _lmsGiftRecvToday() >= _LMS_GIFT_DAILY_MAX){
+  if(!_lmsGiftIsGiftable(id) || getOwnedItems('skins').includes(id) || _lmsGiftRecvToday() >= _lmsGiftDailyMax()){
     _lmsGiftSetState('info', { msg: _lmsGiftT("Cette carte ne peut plus être ajoutée.", "This card can't be added anymore.") });
     return;
   }
@@ -76623,7 +77153,7 @@ function _lmsGiftRender(){
       p(T('🎁 Carte envoyée à ' + g.peerName + ' !', '🎁 Card sent to ' + g.peerName + '!'), 'lms-gift-ok'); row().appendChild(closeB()); break;
     case 'recv-wait': {
       p(T("Tu es visible des joueurs proches. Demande à ton ami d'appuyer sur OFFRIR.", 'You are visible to nearby players. Ask your friend to tap GIVE.'));
-      const left = Math.max(0, _LMS_GIFT_DAILY_MAX - _lmsGiftRecvToday());
+      const left = Math.max(0, _lmsGiftDailyMax() - _lmsGiftRecvToday());
       p(T("Cartes restantes aujourd'hui : " + left, 'Cards left today: ' + left), 'lms-gift-sub');
       row().appendChild(cancel()); break;
     }
@@ -79895,11 +80425,7 @@ function drawRackiFinalEntry(){
   CTX.fillText(t('rackiUltimateSub'), camCX, rackiY - rsc*80 + sz*1.4);
   CTX.restore();
 }
-function devAddTokens(){
-  addTokens(500);
-  const toast = document.getElementById('unlock-toast');
-  if(toast){ toast.textContent='🛠 +500 🪙 DEV'; toast.style.background='linear-gradient(135deg,rgba(0,160,60,.95),rgba(0,100,30,.95))'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2000); }
-}
+// F-10 (audit v2314) : devAddTokens() (+500 jetons) supprimée — elle concurrençait les packs de jetons payants.
 function devReset(){
   // Effacer toutes les clés lms_ (progression, trophées, casque faucon inclus)
   // IMPORTANT : on capture la liste AVANT de vider localStorage, pour pouvoir aussi
@@ -79942,7 +80468,12 @@ function devUnlockWorld13(){
   refreshWorldUI();
   refreshWorld13UI();
   // Débloquer aussi tous les skins IA (armurerie complète pour tester)
-  _lsSet('own_skins', Object.keys(AI_SKIN_REGISTRY));
+  // F-10 (audit v2314) : jamais de skin payant (premium:true = IAP) ni de skin Seeker (seekerNft =
+  // possession vérifiée on-chain, JAMAIS dans own_skins). On FUSIONNE avec les skins déjà possédés
+  // (au lieu d'écraser own_skins) pour ne pas retirer un achat IAP légitime (racki_ultime1).
+  const _devSkins = Object.keys(AI_SKIN_REGISTRY).filter(id => !AI_SKIN_REGISTRY[id].premium && !AI_SKIN_REGISTRY[id].seekerNft);
+  const _keptOwned = getOwnedItems('skins').filter(id => !(AI_SKIN_REGISTRY[id] && AI_SKIN_REGISTRY[id].seekerNft));
+  _lsSet('own_skins', Array.from(new Set([..._keptOwned, ..._devSkins])));
   if(typeof renderShop==='function' && document.getElementById('shop-overlay').classList.contains('active')) renderShop();
   // Sélectionner automatiquement le monde 13
   currentWorld = 13;
@@ -79950,7 +80481,7 @@ function devUnlockWorld13(){
   refreshWorldUI();
   const toast = document.getElementById('unlock-toast');
   if(toast){
-    toast.textContent = '👑 MONDE 13 + TOUS LES SKINS DÉBLOQUÉS (mode test)';
+    toast.textContent = '👑 MONDE 13 + SKINS DÉBLOQUÉS (hors premium/Seeker)';
     toast.style.background = 'linear-gradient(135deg,rgba(80,50,0,0.97),rgba(120,80,0,0.97))';
     toast.style.border = '2px solid rgba(255,215,0,0.9)';
     toast.style.color = '#ffd700';
@@ -81858,6 +82389,16 @@ if(typeof window !== 'undefined'){
     </div>
   </div>
 </div>
+<!-- ── Popup MES NFT (v2305) ── grille de visuels, filtre NFT musicaux, détail + lecteur audio. -->
+<div id="nft-popup" style="display:none;position:fixed;inset:0;z-index:10000;pointer-events:all;touch-action:manipulation;background:rgba(0,0,20,0.95);align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);">
+  <div style="background:linear-gradient(160deg,rgba(10,5,30,0.98),rgba(20,5,45,0.98));border:1.5px solid rgba(160,60,255,0.4);border-radius:16px;padding:18px;width:min(420px,94vw);max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 10px 40px rgba(0,0,0,0.6);font-family:'Barlow Condensed',sans-serif;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div id="nft-popup-title" style="font-size:15px;font-weight:800;letter-spacing:2px;color:rgba(220,160,255,0.95);">🖼️ MES NFT</div>
+      <button class="lms-x-badge" aria-label="Close" onclick="_lmsNftClosePopup()" ontouchstart="_lmsNftClosePopup();event.stopPropagation();event.preventDefault();">✕</button>
+    </div>
+    <div id="nft-popup-body"></div>
+  </div>
+</div>
 <!-- ── Popup RÉGLAGES ── structure en liste extensible : chaque réglage futur
      est une simple ".settings-row" copiée-collée dans #settings-list. -->
 <div id="settings-popup" style="display:none;position:fixed;inset:0;z-index:9999;pointer-events:all;touch-action:manipulation;background:rgba(0,0,20,0.95);align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);">
@@ -81878,13 +82419,15 @@ if(typeof window !== 'undefined'){
           onkeydown="if(event.key==='Enter'){this.blur();}"
           style="flex:1;min-width:0;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(160,60,255,0.35);border-radius:8px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;padding:7px 10px;outline:none;text-align:right;">
       </div>
+      <!-- v2306 : groupe WALLET + NFT — cadre doré pour l'isoler visuellement du reste des réglages. -->
+      <div id="settings-wallet-group" style="display:flex;flex-direction:column;gap:8px;padding:8px;border:1.5px solid rgba(255,200,0,0.55);border-radius:14px;background:rgba(255,200,0,0.04);box-shadow:0 0 12px rgba(255,200,0,0.14),inset 0 0 8px rgba(255,200,0,0.05);">
       <!-- ── Wallet Solana (Clock In Hackathon) ── connexion MWA native, jamais de clé privée
            côté JS — le plugin Kotlin gère tout l'échange avec l'app wallet installée. -->
-      <div class="settings-row" id="settings-wallet-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:10px 12px;">
-        <div id="settings-wallet-label" style="font-size:12px;letter-spacing:1px;color:rgba(220,180,255,0.9);flex:1;min-width:0;">🔗 WALLET SOLANA</div>
-        <button type="button" tabindex="0" id="settings-wallet-btn" onclick="_lmsConnectSolanaWallet()" style="flex-shrink:0;background:rgba(160,60,255,0.15);border:1px solid rgba(160,60,255,0.35);border-radius:20px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-width:110px;text-align:center;">CONNECTER</button>
+      <div class="settings-row" id="settings-wallet-row" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:10px 12px;">
+        <div id="settings-wallet-label" style="font-size:12px;letter-spacing:1px;color:rgba(220,180,255,0.9);flex:1 1 100%;min-width:0;white-space:nowrap;">🔗 WALLET SOLANA</div>
+        <button type="button" tabindex="0" id="settings-wallet-btn" onclick="_lmsConnectSolanaWallet()" style="flex:1 1 0;background:rgba(160,60,255,0.15);border:1px solid rgba(160,60,255,0.35);border-radius:20px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-width:110px;text-align:center;">CONNECTER</button>
         <button type="button" tabindex="0" id="settings-wallet-disconnect-btn" onclick="_lmsDisconnectSolanaWallet()" style="display:none;flex-shrink:0;background:rgba(255,60,60,0.15);border:1px solid rgba(255,60,60,0.4);border-radius:14px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;width:26px;height:26px;line-height:24px;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;text-align:center;">×</button>
-        <button type="button" tabindex="0" id="settings-claim-btn" onclick="_lmsClaimPoolReward()" style="flex-shrink:0;background:rgba(255,200,0,0.15);border:1px solid rgba(255,200,0,0.4);border-radius:20px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-width:110px;text-align:center;">RÉCLAMER</button>
+        <button type="button" tabindex="0" id="settings-claim-btn" onclick="_lmsClaimPoolReward()" style="flex:1 1 0;background:rgba(255,200,0,0.15);border:1px solid rgba(255,200,0,0.4);border-radius:20px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-width:110px;text-align:center;">RÉCLAMER</button>
       </div>
       <!-- Info deadline "molle" de réclamation : le bouton RÉCLAMER ne regarde que
            la semaine en cours (_lmsWeekKey()) — une fois la semaine changée (lundi
@@ -81893,6 +82436,12 @@ if(typeof window !== 'undefined'){
            informatif, aucune valeur on-chain associée (voir discussion limitation
            multi-semaines). -->
       <div id="settings-claim-deadline-label" style="font-size:10px;letter-spacing:0.5px;color:rgba(255,200,0,0.75);text-align:right;padding:0 4px 2px;"></div>
+      <!-- v2305 : espace NFT du wallet (visuels + NFT musicaux). Ouvre #nft-popup. -->
+      <div class="settings-row" id="settings-nft-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:10px 12px;">
+        <div id="settings-nft-label" style="font-size:12px;letter-spacing:1px;color:rgba(220,180,255,0.9);flex:1;min-width:0;">🖼️ MES NFT</div>
+        <button type="button" tabindex="0" id="settings-nft-btn" onclick="_lmsNftOpenPopup()" style="flex-shrink:0;background:rgba(160,60,255,0.15);border:1px solid rgba(160,60,255,0.35);border-radius:20px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-width:110px;text-align:center;">VOIR</button>
+      </div>
+      </div><!-- /settings-wallet-group -->
       <!-- Côté joystick -->
       <div class="settings-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:10px 12px;">
         <div id="settings-joystick-label" style="font-size:12px;letter-spacing:1px;color:rgba(220,180,255,0.9);flex:1;min-width:0;">🕹️ CÔTÉ JOYSTICK</div>
@@ -82144,6 +82693,10 @@ if(typeof window !== 'undefined'){
   <div style="background:linear-gradient(160deg,rgba(0,35,35,0.98),rgba(0,50,45,0.98));border:1.5px solid rgba(0,230,200,0.4);border-radius:16px;padding:20px;width:min(380px,92vw);box-sizing:border-box;box-shadow:0 10px 40px rgba(0,0,0,0.6);text-align:center;">
     <div id="proximity-mint-title" style="font-size:16px;font-weight:800;letter-spacing:1.5px;color:rgba(120,255,220,0.95);margin-bottom:10px;">🤝 RENCONTRE CONFIRMÉE</div>
     <div id="proximity-mint-status" style="font-family:'Barlow Condensed',sans-serif;font-size:14px;color:rgba(255,255,255,.75);min-height:40px;display:flex;align-items:center;justify-content:center;"></div>
+    <div id="proximity-mint-actions" style="display:none;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;">
+      <button type="button" tabindex="0" id="proximity-mint-view-btn" onclick="_lmsProximityMintViewNft()" style="background:rgba(0,230,200,0.18);border:1.5px solid rgba(0,230,200,0.6);color:rgba(150,255,235,0.98);border-radius:10px;padding:10px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1.5px;font-size:15px;cursor:pointer;"></button>
+      <button type="button" tabindex="0" id="proximity-mint-ok-btn" onclick="_lmsProximityMintClose()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.8);border-radius:10px;padding:10px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1.5px;font-size:15px;cursor:pointer;"></button>
+    </div>
   </div>
 </div>
 

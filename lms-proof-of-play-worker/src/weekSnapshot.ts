@@ -63,3 +63,42 @@ export function computeWeeklyDeltas(
     return { uid: current.uid, name: current.name, stats: { duelWins, ffaWins } };
   });
 }
+
+export interface WalletWeeklyGroup {
+  walletAddress: string;
+  uids: string[];
+  names: string[];
+  /** Somme des deltas de TOUS les uid rattachés à ce wallet (le plafond de scoring.ts s'applique ensuite sur ce total). */
+  stats: WeeklyStats;
+}
+
+/**
+ * Regroupe les deltas par ADRESSE WALLET. submit_score écrase le PlayerScore (PDA dérivé de weekId + wallet) :
+ * avec un envoi par uid, deux uid du même wallet (réinstallation, changement d'appareil en cours de semaine)
+ * s'écrasaient et seul le dernier traité survivait, quel que soit son score. En additionnant les deltas AVANT
+ * de calculer le score, le plafond hebdomadaire (21 duels / 14 FFA) reste appliqué par wallet.
+ * Un wallet associé à un seul uid donne exactement le même résultat qu'avant.
+ */
+export function groupDeltasByWallet(
+  deltas: PlayerWeeklyDelta[],
+  wallets: Record<string, string>
+): { groups: WalletWeeklyGroup[]; noWallet: PlayerWeeklyDelta[] } {
+  const byWallet = new Map<string, WalletWeeklyGroup>();
+  const noWallet: PlayerWeeklyDelta[] = [];
+  for (const d of deltas) {
+    const walletAddress = wallets[d.uid];
+    if (!walletAddress) {
+      noWallet.push(d);
+      continue;
+    }
+    const g = byWallet.get(walletAddress);
+    if (g) {
+      g.uids.push(d.uid);
+      g.names.push(d.name);
+      g.stats = { duelWins: g.stats.duelWins + d.stats.duelWins, ffaWins: g.stats.ffaWins + d.stats.ffaWins };
+    } else {
+      byWallet.set(walletAddress, { walletAddress, uids: [d.uid], names: [d.name], stats: { ...d.stats } });
+    }
+  }
+  return { groups: [...byWallet.values()], noWallet };
+}

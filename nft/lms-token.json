@@ -1,0 +1,12 @@
+{
+  "name": "Last Man Skating",
+  "symbol": "LMS",
+  "description": "Jeton de récompense de Last Man Skating",
+  "image": "https://kristen.fr/KristenStudiosGames/nft/lms-token.png",
+  "external_url": "https://kristen.fr/KristenStudiosGames/lms.html",
+  "attributes": [
+    { "trait_type": "Jeu", "value": "Last Man Skating" },
+    { "trait_type": "Type", "value": "Jeton de récompense" },
+    { "trait_type": "Réseau", "value": "Solana" }
+  ]
+}

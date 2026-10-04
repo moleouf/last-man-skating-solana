@@ -18,3 +18,13 @@ local.properties
 capacitor-solana-mwa/android/build/
 *.apk
 *.apk.idsig
+
+# Secrets
+.dev.vars
+**/.dev.vars
+keystore.properties
+
+# Déchets
+lms-proof-of-play-worker/dist-check/
+*_old.json
+*_old.ts

@@ -37,7 +37,12 @@
   // puis colle l'id retourné ci-dessous (remplace "METS-TON-KV-ID-ICI").
   "kv_namespaces": [
     { "binding": "WEEK_SNAPSHOT_KV", "id": "22d3cf9e9cf64b059980c14e3a18ffb0" }
-  ]
+  ],
+
+  // Ajouté le 03/10/2026 : conserve les logs du Worker (console.log du règlement
+  // hebdomadaire) consultables ensuite dans la console Cloudflare > Observability,
+  // sans avoir à laisser `wrangler tail` ouvert pendant le cron.
+  "observability": { "enabled": true }
 
   // Secrets à définir via `wrangler secret put <NOM>` (jamais dans ce fichier,
   // jamais commités) :
