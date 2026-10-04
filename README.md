@@ -46,6 +46,10 @@ natively packaged for Android via Capacitor.
   **"Sanctuaire Seeker"** trophy NFT (Metaplex Core) for each of the two players
   — see the dedicated section below.
 
+## SKR integration — roadmap (not implemented in this build)
+
+Planned for the mainnet release: weekly Proof of Play pool funded in SKR (in addition to LMS), SKR-priced skins, and a bonus for SKR holders. None of this is implemented in the hackathon build.
+
 ## Build prerequisites
 
 - Node.js + npm
@@ -634,6 +638,10 @@ packagé nativement pour Android via Capacitor.
   double signature wallet on-chain, qui mint atomiquement un NFT trophée
   **"Sanctuaire Seeker"** (Metaplex Core) pour chacun des deux joueurs — voir
   section dédiée ci-dessous.
+
+## Intégration SKR — feuille de route (non implémentée dans cette version)
+
+Prévu pour la version mainnet : cagnotte hebdomadaire Proof of Play alimentée en SKR (en plus du LMS), skins payables en SKR, bonus pour les détenteurs de SKR. Rien de cela n'est implémenté dans la version hackathon.
 
 ## Prérequis pour builder
 
