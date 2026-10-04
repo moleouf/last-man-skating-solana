@@ -49,16 +49,20 @@ natively packaged for Android via Capacitor.
 ## SKR integration (Solana Mobile) — read-only holder detection
 
 When a wallet is connected, the game reads its **SKR balance on mainnet** (read-only
-`getTokenAccountsByOwner` on a public mainnet RPC — no signature, no transaction, the
-game itself still runs on devnet). Official SKR mint:
+`getTokenAccountsByOwner`, via Helius mainnet with public RPCs as fallback — no
+signature, no transaction, the game itself still runs on devnet). Official SKR mint:
 `SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3` (see [solanamobile.com/skr](https://solanamobile.com/skr)).
 
-- **"SKR Holder" skin** (cosmetic): unlocked when the wallet holds at least 1 SKR; it
-  appears in the Seeker skins section of the shop.
+- **"SKR Holder" skin**: unlocked when the wallet holds at least 1 SKR; it appears
+  in the Seeker skins section of the shop. It uses the same dash power as the
+  Seeker skins (a fan of 13 magic-fist arcs, with a red look). Many other skins
+  of the registry also have a dash power, so this is not specific to SKR.
 - **"SKR : n" badge** next to the LMS balance in the "MY NFTs" wallet area.
-- **Cosmetic only, client-side check**: no gameplay advantage, no score or prize-pool
-  effect (consistent with the *Proof of Play* model). Not testable on devnet by judges
-  (SKR only exists on mainnet): see the demo video.
+- **Client-side check, read-only**: the unlock is verified on the client, like the
+  other Seeker skins (known and accepted limitation). The dash power has a limited
+  impact on play; the weekly pool still depends only on the server-side score,
+  with no stake and no draw. Not testable on devnet by judges (SKR only exists on
+  mainnet): see the demo video.
 
 **Not implemented (mainnet roadmap):** weekly Proof of Play pool funded in SKR, and
 SKR-priced skins.
@@ -359,7 +363,7 @@ End-of-match screen dedicated to Proximity mode, in `www/index.html`:
   `auth.uid` and can no longer change once set. (Fixed on 02/10/2026: this README
   said "no constraint on `uid`", which no longer matched the rules in place.)
 - **Skin gift cards (Proof of Meet, v2268–v2274)**: dedicated tab accessible from
-  the Armory, one card per skin (56 entries of `AI_SKIN_REGISTRY`) rendered by a
+  the Armory, one card per skin (57 entries of `AI_SKIN_REGISTRY`) rendered by a
   reusable canvas template per rarity, with a 3D flip animation (CSS `rotateY` +
   `perspective`). Transmission **over Nearby face to face only** (no remote
   version, no NFT): the giver initiates (one-way, one card per meeting),
@@ -547,15 +551,17 @@ Settings.
   used in RADAR duels (3 replaced assets + dedicated music), not a tenth world —
   the catalog still has **9 worlds** (ids 1, 2, 3, 4, 6, 9, 10, 12, 13). No change
   to gameplay or netcode.
-- **Skin cards**: 56 entries in `AI_SKIN_REGISTRY` (common 10, rare 18, epic 10,
-  legendary 5, mythic 13). Gift over Nearby only, daily reception cap depending
+- **Skin cards**: 57 entries in `AI_SKIN_REGISTRY` (common 10, rare 18, epic 10,
+  legendary 5, mythic 14). Gift over Nearby only, daily reception cap depending
   on the receiver's device (see above).
 
 ## RPC keys and external dependencies (02/10/2026)
 
-- **Helius**: the devnet key is in `LMS_SOLANA_RPC` (`www/index.html`), the only
-  place where it appears — the Kotlin plugin embeds neither a key nor an RPC URL
-  (it only chooses the cluster). Risk accepted on devnet. **Before mainnet**: a
+- **Helius**: the key is in `LMS_SOLANA_RPC` (`www/index.html`), the only place
+  where it appears — the Kotlin plugin embeds neither a key nor an RPC URL (it only
+  chooses the cluster). The same key works on devnet and mainnet: the read-only SKR
+  detection derives its mainnet URL from it at runtime (host replaced, no second
+  key). Risk accepted on devnet. **Before mainnet**: a
   new, distinct key, then either Helius's "Secure URL" (hides the key, limited to
   5 req/s per IP — to be tested on the 7 methods used: `getAccountInfo`,
   `sendTransaction`, `getLatestBlockhash`, `getAssetsByOwner`,
@@ -655,16 +661,20 @@ packagé nativement pour Android via Capacitor.
 ## Intégration SKR (Solana Mobile) — détection des détenteurs, en lecture seule
 
 À la connexion du wallet, le jeu lit son **solde SKR sur mainnet** (`getTokenAccountsByOwner`
-en lecture seule via un RPC mainnet public — aucune signature, aucune transaction ; le jeu
-lui-même reste sur devnet). Mint officiel SKR :
+en lecture seule, via Helius mainnet avec RPC publics en secours — aucune signature, aucune
+transaction ; le jeu lui-même reste sur devnet). Mint officiel SKR :
 `SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3` (voir [solanamobile.com/skr](https://solanamobile.com/skr)).
 
-- **Skin « Holder SKR »** (cosmétique) : débloqué si le wallet détient au moins 1 SKR ;
-  il apparaît dans la section des skins Seeker de la boutique.
+- **Skin « Holder SKR »** : débloqué si le wallet détient au moins 1 SKR ; il apparaît
+  dans la section des skins Seeker de la boutique. Il utilise le même pouvoir de dash que
+  les skins Seeker (éventail de 13 arcs de poing magique, en rouge). Beaucoup d'autres
+  skins du registre ont aussi un pouvoir de dash : ce n'est pas propre au SKR.
 - **Badge « SKR : n »** à côté du solde LMS dans l'espace wallet « MES NFT ».
-- **Cosmétique uniquement, contrôle côté client** : aucun avantage de gameplay, aucun effet
-  sur le score ni sur la cagnotte (cohérent avec le modèle *Proof of Play*). Non testable
-  en devnet par le jury (SKR n'existe que sur mainnet) : voir la vidéo de démo.
+- **Contrôle côté client, en lecture seule** : le déblocage est vérifié côté client,
+  comme pour les autres skins Seeker (limite connue et assumée). Le pouvoir de dash a un
+  impact limité sur le jeu ; la cagnotte hebdomadaire ne dépend toujours que du score
+  côté serveur, sans mise ni tirage au sort. Non testable en devnet par le jury (SKR
+  n'existe que sur mainnet) : voir la vidéo de démo.
 
 **Non implémenté (feuille de route mainnet) :** cagnotte hebdomadaire Proof of Play
 alimentée en SKR, et skins payables en SKR.
@@ -995,7 +1005,7 @@ deux appareils.
   posés. (Corrigé le 02/10/2026 : ce README indiquait « pas de contrainte sur
   `uid` », ce qui ne correspondait plus aux rules en place.)
 - **Cartes de skins à s'offrir (Proof of Meet, v2268–v2274)** : onglet
-  dédié accessible depuis l'Armurerie, une carte par skin (56 entrées de
+  dédié accessible depuis l'Armurerie, une carte par skin (57 entrées de
   `AI_SKIN_REGISTRY`) rendue par un template canvas réutilisable par rareté,
   avec animation flip 3D (CSS `rotateY` + `perspective`). Transmission
   **Nearby en tête-à-tête uniquement** (pas de version à distance, pas de
@@ -1174,15 +1184,17 @@ connecté, dans les Réglages.
   utilisé en duel RADAR (3 assets remplacés + musique dédiée), pas un dixième
   monde — le catalogue compte toujours **9 mondes** (ids 1, 2, 3, 4, 6, 9, 10,
   12, 13). Aucun changement de gameplay ni de netcode.
-- **Cartes de skins** : 56 entrées dans `AI_SKIN_REGISTRY` (commune 10, rare 18,
-  épique 10, légendaire 5, mythique 13). Don en Nearby uniquement, plafond de
+- **Cartes de skins** : 57 entrées dans `AI_SKIN_REGISTRY` (commune 10, rare 18,
+  épique 10, légendaire 5, mythique 14). Don en Nearby uniquement, plafond de
   réception par jour selon l'appareil du receveur (voir plus haut).
 
 ## Clés RPC et dépendances externes (02/10/2026)
 
-- **Helius** : la clé devnet est dans `LMS_SOLANA_RPC` (`www/index.html`), seul
-  endroit où elle apparaît — le plugin Kotlin n'embarque ni clé ni URL RPC
-  (il ne choisit que le cluster). Risque accepté sur devnet. **Avant le mainnet** :
+- **Helius** : la clé est dans `LMS_SOLANA_RPC` (`www/index.html`), seul endroit
+  où elle apparaît — le plugin Kotlin n'embarque ni clé ni URL RPC (il ne choisit
+  que le cluster). La même clé fonctionne en devnet et en mainnet : la détection SKR
+  en lecture seule en dérive l'URL mainnet à l'exécution (hôte remplacé, pas de
+  seconde clé). Risque accepté sur devnet. **Avant le mainnet** :
   nouvelle clé distincte, puis soit la « Secure URL » Helius (masque la clé,
   limitée à 5 req/s par IP — à tester sur les 7 méthodes utilisées :
   `getAccountInfo`, `sendTransaction`, `getLatestBlockhash`,
