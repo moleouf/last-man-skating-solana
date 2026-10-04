@@ -12243,6 +12243,7 @@ function _lmsOwnedSkinsWithSeeker(){
     if(typeof _lmsWalletAddress !== 'undefined' && _lmsWalletAddress && typeof _lmsSeekerNftCache !== 'undefined'){
       if(_lmsSeekerNftCache.classic && !base.includes('seeker')) base.push('seeker');
       if(_lmsSeekerNftCache.premium && !base.includes('seeker_premium')) base.push('seeker_premium');
+      if(typeof _lmsSkrIsHolder === 'function' && _lmsSkrIsHolder() && !base.includes('seeker_skr')) base.push('seeker_skr'); // v2318 : Holder SKR
     }
   }catch(e){}
   return base;
@@ -18948,6 +18949,7 @@ function _lmsConnectSolanaWallet(){
     try{ localStorage.setItem('lms_wallet_address', _lmsWalletAddress); }catch(e){}
     try{ localStorage.setItem('lms_wallet_auth_token', result.authToken || ''); }catch(e){}
     _lmsRefreshSeekerNftCache(); // possession NFT Sanctuaire Seeker peut avoir changé (nouveau wallet)
+    if(typeof _lmsRefreshSkrCache === 'function') _lmsRefreshSkrCache(true); // v2318 : détection SKR mainnet (lecture seule)
     // Écriture RTDB — même convention que le reste du jeu (_lmsFbDb.ref(...).set(...)).
     // Nécessite une règle Firebase dédiée sur le nœud "wallets" (pas encore ajoutée
     // dans rules.json au moment où ce code est écrit — à faire avant de tester).
@@ -19011,6 +19013,7 @@ function _lmsDisconnectSolanaWallet(){
     try{ localStorage.removeItem('lms_wallet_address'); }catch(e){}
     try{ localStorage.removeItem('lms_wallet_auth_token'); }catch(e){}
     _lmsSeekerNftCache = { wallet: null, lastCheckedAt: Date.now(), loading: false, classic: false, premium: false }; // reverrouille les skins Seeker
+    _lmsSkrCache = { wallet: null, lastCheckedAt: Date.now(), loading: false, ui: null, text: null, holder: false }; // v2318 : reverrouille le skin Holder SKR
     _syncSettingsUI();
   };
 
@@ -20012,6 +20015,94 @@ async function _lmsRefreshSeekerNftCache(){
   if(_scOv && _scOv.classList.contains('active') && typeof _scRender === 'function') _scRender();
 }
 
+// ── SKR (Solana Mobile) — détection MAINNET en lecture seule (v2318) ─────────────────────
+// Le jeu tourne sur devnet (LMS_SOLANA_RPC), mais SKR n'existe que sur mainnet : on interroge
+// donc un RPC mainnet public, séparé, uniquement pour lire le solde SKR du wallet connecté
+// (getTokenAccountsByOwner). Aucune signature, aucune écriture, aucun changement on-chain.
+// Mint officiel : voir https://solanamobile.com/skr (attention aux faux jetons « SKR »).
+// Contrôle CLIENT uniquement → n'ouvre qu'un avantage COSMÉTIQUE (skin + badge), jamais de
+// gameplay, de score ou de cagnotte.
+const LMS_SKR_MINT = 'SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3';
+// Les RPC publics renvoient 403 depuis le WebView → Helius MAINNET en premier (même clé que le devnet,
+// dérivée de LMS_SOLANA_RPC), RPC publics en secours.
+const LMS_SKR_RPC_LIST = (function(){
+  const l = [];
+  try{ if(typeof LMS_SOLANA_RPC === 'string' && LMS_SOLANA_RPC.indexOf('devnet.helius-rpc.com') >= 0) l.push(LMS_SOLANA_RPC.replace('devnet.helius-rpc.com', 'mainnet.helius-rpc.com')); }catch(e){}
+  l.push('https://solana-rpc.publicnode.com', 'https://api.mainnet-beta.solana.com');
+  return l;
+})();
+const LMS_SKR_MIN_UI = 1; // seuil « holder » : au moins 1 SKR (évite qu'une poussière envoyée suffise)
+const _LMS_SKR_CACHE_COOLDOWN_MS = 60000;
+let _lmsSkrCache = { wallet: null, lastCheckedAt: 0, loading: false, ui: null, text: null, holder: false };
+
+function _lmsSkrIsHolder(){
+  return !!(_lmsWalletAddress && _lmsSkrCache.wallet === _lmsWalletAddress && _lmsSkrCache.holder);
+}
+
+async function _lmsSkrRpcCall(method, params){
+  let lastErr = null;
+  for(const url of LMS_SKR_RPC_LIST){
+    try{
+      const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      const tm = ctrl ? setTimeout(() => ctrl.abort(), 8000) : null;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+        signal: ctrl ? ctrl.signal : undefined,
+      });
+      if(tm) clearTimeout(tm);
+      const json = await res.json();
+      if(json.error) throw new Error(json.error.message || JSON.stringify(json.error));
+      return json.result;
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error('SKR RPC indisponible');
+}
+
+async function _lmsSkrFetchBalance(wallet){
+  const res = await _lmsSkrRpcCall('getTokenAccountsByOwner', [wallet, { mint: LMS_SKR_MINT }, { encoding: 'jsonParsed' }]);
+  const accs = (res && res.value) || [];
+  let total = 0n, dec = 6;
+  accs.forEach(a => {
+    const ta = a && a.account && a.account.data && a.account.data.parsed && a.account.data.parsed.info && a.account.data.parsed.info.tokenAmount;
+    if(!ta) return;
+    total += BigInt(ta.amount || '0');
+    if(typeof ta.decimals === 'number') dec = ta.decimals;
+  });
+  const min = BigInt(LMS_SKR_MIN_UI) * (10n ** BigInt(dec));
+  return { text: _lmsFormatTokenAmount(total, dec), holder: total >= min };
+}
+
+async function _lmsRefreshSkrCache(force){
+  if(!_lmsWalletAddress){
+    _lmsSkrCache = { wallet: null, lastCheckedAt: Date.now(), loading: false, ui: null, text: null, holder: false };
+    return;
+  }
+  if(_lmsSkrCache.loading) return;
+  const sameWallet = _lmsSkrCache.wallet === _lmsWalletAddress;
+  const withinCooldown = (Date.now() - _lmsSkrCache.lastCheckedAt) < _LMS_SKR_CACHE_COOLDOWN_MS;
+  if(!force && sameWallet && withinCooldown) return;
+  const w = _lmsWalletAddress;
+  const wasHolder = sameWallet && _lmsSkrCache.holder;
+  _lmsSkrCache = { ...(sameWallet ? _lmsSkrCache : { ui: null, text: null, holder: false }), wallet: w, loading: true };
+  try{
+    const r = await _lmsSkrFetchBalance(w);
+    if(_lmsWalletAddress !== w){ _lmsSkrCache = { ..._lmsSkrCache, loading: false }; return; } // wallet changé pendant l'appel
+    _lmsSkrCache = { wallet: w, lastCheckedAt: Date.now(), loading: false, ui: null, text: r.text, holder: r.holder };
+    if(r.holder && !wasHolder) _lmsAnnounceSeekerSkinUnlock('seeker_skr');
+  }catch(e){
+    // Échec réseau/RPC : on garde l'état précédent (jamais de faux déverrouillage) et on respecte le cooldown.
+    _lmsSkrCache = { ..._lmsSkrCache, lastCheckedAt: Date.now(), loading: false };
+    console.warn('[skr] vérification du solde SKR échouée:', e);
+  }
+  const overlay = document.getElementById('shop-overlay');
+  if(overlay && overlay.classList.contains('active')) _renderShopSkinsSeeker();
+  const _scOv = document.getElementById('skin-cards-overlay');
+  if(_scOv && _scOv.classList.contains('active') && typeof _scRender === 'function') _scRender();
+  if(typeof _lmsNftRender === 'function' && _lmsNftState && !_lmsNftState.selectedId) _lmsNftRender(); // badge « SKR : n »
+}
+
 // Toast + fanfare quand un skin Seeker vient d'être confirmé possédé (transition détectée
 // dans _lmsRefreshSeekerNftCache) — même helper de toast (_lmsShowUnlockToastHTML) et même
 // style de fanfare ascendante que unlockWorld()/déblocage Kristen, pour rester cohérent
@@ -20940,6 +21031,7 @@ async function _lmsNftFetch(force){
     st.error = true; st.items = [];
   }
   try{ st.balance = await _lmsNftFetchBalance(w); }catch(e){ st.balance = null; }
+  try{ await _lmsRefreshSkrCache(); }catch(e){} // v2318 : badge « SKR : n » (lecture seule mainnet)
   st.loading = false;
   if(_lmsNftActiveWallet() !== w) return _lmsNftFetch(true); // wallet changé pendant le chargement
   _lmsNftRender();
@@ -20989,7 +21081,10 @@ function _lmsNftRender(){
   h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(160,60,255,0.2);border-radius:10px;padding:8px 12px;margin-bottom:12px;">'
     + '<div style="min-width:0;"><div style="font-size:12px;letter-spacing:1px;color:rgba(220,180,255,0.9);">' + _lmsEsc(_lmsShortAddr(w)) + '</div>'
     + '<div style="font-size:10px;letter-spacing:1px;color:rgba(220,200,255,0.5);margin-top:2px;">' + _lmsEsc(t('nftBalanceLabel')) + '</div></div>'
-    + '<div style="font-size:18px;font-weight:800;color:#ffd24a;white-space:nowrap;">' + (st.balance == null ? '—' : _lmsEsc(st.balance)) + '</div></div>';
+    + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
+    + '<div style="font-size:18px;font-weight:800;color:#ffd24a;white-space:nowrap;">' + (st.balance == null ? '—' : _lmsEsc(st.balance)) + '</div>'
+    + ((_lmsSkrCache.wallet === w && _lmsSkrCache.text != null) ? '<div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#c9a6ff;background:rgba(153,69,255,0.18);border:1px solid rgba(153,69,255,0.55);border-radius:12px;padding:2px 8px;white-space:nowrap;">SKR : ' + _lmsEsc(_lmsSkrCache.text) + '</div>' : '')
+    + '</div></div>';
 
   // Filtres
   const musicCount = st.items.filter(a => _lmsNftAudioUrl(a)).length;
@@ -22835,6 +22930,7 @@ function _fistArcColors(variant){
   // intense/électrique (core blanc-bleu quasi éblouissant) : au-dessus du violet en puissance
   // (voir ARC_COUNT/ARC_POWER dans _lmsSpawnMagicFistArcs), doit aussi se voir dans la couleur.
   if(variant === 'seeker') return { trailHot:'#00eaff', trailA:'#22aaff', trailB:'#0066ee', haloShadow:'#0055cc', halo:'#0055cc', main:'#22aaff', mainShadow:'#88ddff', core:'#eafcff', sparkA:'rgba(220,250,255,0.98)', sparkB:'rgba(0,200,255,0.6)', sparkC:'rgba(0,90,200,0.0)' };
+  if(variant === 'seeker_skr') return { trailHot:'#ff8a66', trailA:'#ff3a22', trailB:'#cc0000', haloShadow:'#aa0000', halo:'#aa0000', main:'#ff3030', mainShadow:'#ffb8a8', core:'#fff0ea', sparkA:'rgba(255,238,228,0.98)', sparkB:'rgba(255,60,40,0.6)', sparkC:'rgba(170,0,0,0.0)' }; // v2318 : Holder SKR (rouge)
   if(variant === 'seeker_premium') return { trailHot:'#aaf6ff', trailA:'#44d0ff', trailB:'#0088ff', haloShadow:'#0066dd', halo:'#0066dd', main:'#66ddff', mainShadow:'#ffffff', core:'#ffffff', sparkA:'rgba(255,255,255,1)', sparkB:'rgba(60,220,255,0.7)', sparkC:'rgba(0,120,220,0.0)' };
   // bleu = référence
   return { trailHot:'#2299ff', trailA:'#3388ff', trailB:'#0055dd', haloShadow:'#0044aa', halo:'#0044aa', main:'#3388ff', mainShadow:'#66bbff', core:'#d6f0ff', sparkA:'rgba(210,240,255,0.95)', sparkB:'rgba(0,130,255,0.55)', sparkC:'rgba(0,50,160,0.0)' };
@@ -23758,8 +23854,8 @@ function _lmsSpawnMagicFistArcs(pl, variant, aimAngle){
   const _fistVariant = variant || 'blue';
   // Seeker/Seeker Premium : au-dessus du violet (10/2.0), cohérent avec "très fort" — trophée
   // NFT du hackathon, doit se sentir clairement au-dessus de tout ce qui existait avant.
-  const ARC_COUNT = _fistVariant === 'seeker_premium' ? 16 : _fistVariant === 'seeker' ? 13 : _fistVariant === 'violet' ? 10 : _fistVariant === 'orange' ? 7 : 5;
-  const ARC_POWER = _fistVariant === 'seeker_premium' ? 2.9 : _fistVariant === 'seeker' ? 2.4 : _fistVariant === 'violet' ? 2.0 : _fistVariant === 'orange' ? 1.5 : 1.0;
+  const ARC_COUNT = _fistVariant === 'seeker_premium' ? 16 : (_fistVariant === 'seeker' || _fistVariant === 'seeker_skr') ? 13 : _fistVariant === 'violet' ? 10 : _fistVariant === 'orange' ? 7 : 5;
+  const ARC_POWER = _fistVariant === 'seeker_premium' ? 2.9 : (_fistVariant === 'seeker' || _fistVariant === 'seeker_skr') ? 2.4 : _fistVariant === 'violet' ? 2.0 : _fistVariant === 'orange' ? 1.5 : 1.0;
   const SPREAD    = Math.PI * 0.55; // angle total de l'éventail
   for(let i = 0; i < ARC_COUNT; i++){
     const offset = -SPREAD/2 + (SPREAD / (ARC_COUNT - 1)) * i;
@@ -23786,11 +23882,11 @@ function _lmsSpawnMagicFistArcs(pl, variant, aimAngle){
   }
   spawnShockwave(pl.wx, pl.wy, '#ff4400', pl.r * 4.5, 28);
   spawnShockwave(pl.wx, pl.wy, '#ffaa00', pl.r * 2.8, 18);
-  shakeTimer = Math.max(shakeTimer, _fistVariant === 'seeker_premium' ? 40 : _fistVariant === 'seeker' ? 36 : _fistVariant === 'violet' ? 32 : _fistVariant === 'orange' ? 26 : 22);
+  shakeTimer = Math.max(shakeTimer, _fistVariant === 'seeker_premium' ? 40 : (_fistVariant === 'seeker' || _fistVariant === 'seeker_skr') ? 36 : _fistVariant === 'violet' ? 32 : _fistVariant === 'orange' ? 26 : 22);
   sloMoTimer = Math.max(sloMoTimer, Math.floor(SLO_MO_DURATION * 0.6));
   if(_lmsHumanLike(pl)) pl.humanShootAnim = 48;
   if(typeof sndDragonBallImpact === 'function') sndDragonBallImpact();
-  const _fistMsgCol = _fistVariant === 'seeker_premium' ? '#aaf6ff' : _fistVariant === 'seeker' ? '#22aaff' : _fistVariant === 'violet' ? '#aa44ff' : _fistVariant === 'orange' ? '#ff8800' : '#ff4400';
+  const _fistMsgCol = _fistVariant === 'seeker_premium' ? '#aaf6ff' : _fistVariant === 'seeker_skr' ? '#ff4a3a' : _fistVariant === 'seeker' ? '#22aaff' : _fistVariant === 'violet' ? '#aa44ff' : _fistVariant === 'orange' ? '#ff8800' : '#ff4400';
   showCommentator(`👊 POING MAGIQUE ×${ARC_COUNT} !`, _fistMsgCol, 2200);
 }
 
@@ -24270,7 +24366,7 @@ const _LMS_SKIN_DASH_POWERS = {
   // Skins Seeker (trophées NFT du mode Proximité) — réutilise le système d'arcs magic_fist
   // (voir _lmsSpawnMagicFistArcs), variants 'seeker'/'seeker_premium' : au-dessus de TOUS les
   // autres pouvoirs en puissance, y compris ultime_wrath/violet — c'est voulu (trophée rare).
-  seeker:'seeker_arc', seeker_premium:'seeker_arc_premium',
+  seeker:'seeker_arc', seeker_premium:'seeker_arc_premium', seeker_skr:'seeker_arc_skr', // v2318 : Holder SKR → arcs de feu rouges
   // Tier 1 — pouvoir à distance déjà écrit côté IA, juste rebranché
   moine_small:'monk_ki', moine_med:'monk_ki', moine_big:'monk_ki',
   sumo_big:'sumo_fire',
@@ -24364,14 +24460,14 @@ function _lmsFireSkinDashPower(pl, powerId, dirX, dirY, isEcho){
     spawnUltimeWrathArc(pl.wx, pl.wy, tx, ty, pl);
     if(isEcho) _lmsMarkNetEchoProjectile(projectiles[projectiles.length-1]);
     spawnShockwave(pl.wx, pl.wy, '#ffd700', pl.r*4.5, 16); // shockwave au lancer, en plus de celle à l'impact
-  } else if(powerId === 'seeker_arc' || powerId === 'seeker_arc_premium'){
+  } else if(powerId === 'seeker_arc' || powerId === 'seeker_arc_premium' || powerId === 'seeker_arc_skr'){
     // Réutilise tel quel l'éventail d'arcs magic_fist (voir _lmsSpawnMagicFistArcs) avec les
     // variants renforcés 'seeker'/'seeker_premium' — même pipeline de dégâts/collision que le
     // power-up caisse, donc rien à écrire côté impact. isEcho est géré nativement par
     // _lmsSpawnMagicFistArcs via projectiles.push (marquage après coup, comme les autres).
     const aimAngle = Math.atan2(dirY, dirX);
     const _beforeCount = projectiles.length;
-    _lmsSpawnMagicFistArcs(pl, powerId === 'seeker_arc_premium' ? 'seeker_premium' : 'seeker', aimAngle);
+    _lmsSpawnMagicFistArcs(pl, powerId === 'seeker_arc_premium' ? 'seeker_premium' : powerId === 'seeker_arc_skr' ? 'seeker_skr' : 'seeker', aimAngle);
     if(isEcho){ for(let i = _beforeCount; i < projectiles.length; i++) _lmsMarkNetEchoProjectile(projectiles[i]); }
   } else if(powerId === 'monk_ki'){
     spawnMonkKiArc(pl.wx, pl.wy, tx, ty, pl);
@@ -66527,6 +66623,7 @@ function _loadKristenGirlViolet(){ /* déjà chargée au parse, rien à faire */
 // _renderShopSkinsSeeker() pour la section boutique dédiée.
 const _SEEKERPNG = {};
 const _SEEKERPREMIUMPNG = {};
+const _SEEKERSKRPNG = {}; // v2318 : skin Holder SKR (même gabarit que seeker_premium)
 (function(){
   const FRAME_H = 250;
   const FRAME_DEFS = [
@@ -66554,11 +66651,13 @@ const _SEEKERPREMIUMPNG = {};
   }
   buildInto(_SEEKERPNG, 'assets/sprites/lac/spritesheet_seeker.png');
   buildInto(_SEEKERPREMIUMPNG, 'assets/sprites/lac/spritesheet_seeker_premium.png');
+  buildInto(_SEEKERSKRPNG, 'assets/sprites/lac/spritesheet_seeker_skr.png');
 })();
 // Chargées eagerly ci-dessus, comme _KGVPNG — loaders no-op pour respecter la convention
 // {dict, loader} du registre.
 function _loadSeekerSkin(){ /* déjà chargée au parse, rien à faire */ }
 function _loadSeekerPremiumSkin(){ /* déjà chargée au parse, rien à faire */ }
+function _loadSeekerSkrSkin(){ /* déjà chargée au parse, rien à faire */ }
 // ── ÉLOAN — PNG sprites depuis assets/sprites/eloan/ingame/ ──
 const _ELOANPNG = {};
 (function () {
@@ -66905,6 +67004,9 @@ const AI_SKIN_REGISTRY = {
   // _lmsSeekerNftCache/_lmsRefreshSeekerNftCache.
   seeker:         { label:'Seeker', labelEN:'Seeker', dict:()=>_SEEKERPNG, loader:_loadSeekerSkin, rarity:'mythique', world:1, seekerNft:'classic' },
   seeker_premium: { label:'Seeker Premium', labelEN:'Seeker Premium', dict:()=>_SEEKERPREMIUMPNG, loader:_loadSeekerPremiumSkin, rarity:'mythique', world:1, seekerNft:'premium' },
+  // v2318 : skin cosmétique « Holder SKR » — débloqué si le wallet détient >= LMS_SKR_MIN_UI SKR (mainnet,
+  // lecture seule, voir _lmsRefreshSkrCache). Même exclusions que les skins Seeker (seekerNft truthy).
+  seeker_skr:     { label:'Holder SKR', labelEN:'SKR Holder', dict:()=>_SEEKERSKRPNG, loader:_loadSeekerSkrSkin, rarity:'mythique', world:1, seekerNft:'skr' },
   // ── Glace Spatiale (monde 2) ──
   grey_small:   { label:'Petit Gris', labelEN:'Little Grey',     dict:()=>_GREYLITTLEPNG,  loader:_loadSpatialGreySmall,   rarity:'commune',    world:2  },
   grey_med:     { label:'Gris Confirmé', labelEN:'Veteran Grey',  dict:()=>_GREYMEDPNG,     loader:_loadSpatialGreyMed,     rarity:'rare',       world:2  },
@@ -76573,18 +76675,19 @@ const _SC_THEME = {
   mythique:       { bg:['#64092f','#10030a'], frame:['#ffd6ea','#ff2e6e'], glow:'#ff2e6e', tex:'holo' },
   seeker:         { bg:['#062a3a','#050b1c'], frame:['#b6fff0','#14a3d8'], glow:'#22aaff', tex:'holo' },
   seeker_premium: { bg:['#3a2a00','#07121a'], frame:['#fff2b0','#14F195'], glow:'#14F195', tex:'holo' },
+  seeker_skr:     { bg:['#2a0a4a','#06061a'], frame:['#e6d4ff','#9945FF'], glow:'#9945FF', tex:'holo' },
 };
 let _scFilter = 'all';
 let _scObserver = null;
 
 function _scThemeKey(id, entry){
-  if(entry && entry.seekerNft) return entry.seekerNft === 'premium' ? 'seeker_premium' : 'seeker';
+  if(entry && entry.seekerNft) return entry.seekerNft === 'premium' ? 'seeker_premium' : entry.seekerNft === 'skr' ? 'seeker_skr' : 'seeker';
   return (entry && _SC_THEME[entry.rarity]) ? entry.rarity : 'commune';
 }
 function _scIsOwned(id){
   const e = AI_SKIN_REGISTRY[id];
   if(e && e.seekerNft){
-    return !!(_lmsWalletAddress && (e.seekerNft === 'premium' ? _lmsSeekerNftCache.premium : _lmsSeekerNftCache.classic));
+    return !!(_lmsWalletAddress && (e.seekerNft === 'premium' ? _lmsSeekerNftCache.premium : e.seekerNft === 'skr' ? _lmsSkrIsHolder() : _lmsSeekerNftCache.classic));
   }
   try{ return getOwnedItems('skins').includes(id); }catch(err){ return false; }
 }
@@ -76664,7 +76767,7 @@ function _scDrawCard(cv, id, idx, total, tries){
   // Ligne rareté (gauche) + étoiles (droite)
   const rObj = CARD_RARITY_BY_ID[entry.rarity] || CARD_RARITY_BY_ID.commune;
   const rankN = entry.seekerNft ? 5 : (_SC_RANK[entry.rarity] || 1);
-  const rTxt = entry.seekerNft ? (entry.seekerNft === 'premium' ? 'PREMIUM' : 'SEEKER') : ((_lang === 'en' && rObj.labelEN) ? rObj.labelEN : rObj.label).toUpperCase();
+  const rTxt = entry.seekerNft ? (entry.seekerNft === 'premium' ? 'PREMIUM' : entry.seekerNft === 'skr' ? 'SKR' : 'SEEKER') : ((_lang === 'en' && rObj.labelEN) ? rObj.labelEN : rObj.label).toUpperCase();
   ctx.textBaseline = 'middle';
   // Étoiles mesurées d'abord, puis le libellé de rareté se réduit si besoin pour ne jamais les chevaucher
   // (police de repli plus large si Barlow Condensed n'est pas encore chargée au 1er dessin).
@@ -77219,15 +77322,15 @@ function _renderShopSkinsSeeker(){
   const el = document.getElementById('shop-skins-seeker'); if(!el) return;
   const equipped = getEquipped('skins');
   el.innerHTML = '';
-  if(_lmsWalletAddress) _lmsRefreshSeekerNftCache(); // gère lui-même le cooldown/anti-spam, voir sa doc
-  ['seeker','seeker_premium'].forEach(id => {
+  if(_lmsWalletAddress){ _lmsRefreshSeekerNftCache(); _lmsRefreshSkrCache(); } // gèrent eux-mêmes le cooldown/anti-spam, voir leur doc
+  ['seeker','seeker_premium','seeker_skr'].forEach(id => {
     const entry = AI_SKIN_REGISTRY[id];
     if(!entry) return;
     const isOwned = _lmsWalletAddress
-      ? (id === 'seeker' ? _lmsSeekerNftCache.classic : _lmsSeekerNftCache.premium)
+      ? (id === 'seeker' ? _lmsSeekerNftCache.classic : id === 'seeker_premium' ? _lmsSeekerNftCache.premium : _lmsSkrIsHolder())
       : false; // pas de wallet connecté = jamais possédé, on ne devine pas
     const isEq = equipped === id;
-    const col = '#22aaff'; // même famille que le pouvoir associé (voir _fistArcColors 'seeker')
+    const col = id === 'seeker_skr' ? '#9945ff' : '#22aaff'; // 'seeker' : même famille que le pouvoir associé (voir _fistArcColors) ; SKR : violet Solana
     const div = document.createElement('div');
     div.dataset.skinId = id;
     div.className = 'shop-item' + (isEq ? ' equipped rarity-owned' : isOwned ? ' owned rarity-owned' : ' locked-item rarity-locked');
@@ -77240,7 +77343,9 @@ function _renderShopSkinsSeeker(){
       ? `<div class="shop-item-price equipped-label">✓ ${_lang==='en'?'EQUIPPED':'ÉQUIPÉ'}</div>`
       : isOwned
         ? `<div class="shop-item-price free">${_lang==='en'?'EQUIP':'ÉQUIPER'}</div>`
-        : `<div class="shop-item-price">🔒 ${_lang==='en'?'Meet a player IRL':'Rencontre IRL requise'}</div>`;
+        : (id === 'seeker_skr'
+            ? `<div class="shop-item-price">🔒 ${_lang==='en'?'Hold SKR (mainnet)':'Détenir du SKR (mainnet)'}</div>`
+            : `<div class="shop-item-price">🔒 ${_lang==='en'?'Meet a player IRL':'Rencontre IRL requise'}</div>`);
     div.innerHTML = `<div class="rarity-top-bar" style="background:${isOwned?col:'#555'};opacity:0.95;"></div>` +
       `<canvas class="shop-item-icon shop-skin-icon${isOwned?'':' icon-locked'}" width="112" height="112" style="width:56px;height:56px;display:block;margin:0 auto;filter:${isOwned?`drop-shadow(0 0 4px ${col}) drop-shadow(0 0 10px ${col}aa)`:'grayscale(1) brightness(0.5)'};"></canvas>` +
       `<div class="shop-item-name" style="color:${isOwned?col:'#888'}">${_skinLabel(entry)}</div>` + price;
