@@ -46,9 +46,22 @@ natively packaged for Android via Capacitor.
   **"Sanctuaire Seeker"** trophy NFT (Metaplex Core) for each of the two players
   — see the dedicated section below.
 
-## SKR integration — roadmap (not implemented in this build)
+## SKR integration (Solana Mobile) — read-only holder detection
 
-Planned for the mainnet release: weekly Proof of Play pool funded in SKR (in addition to LMS), SKR-priced skins, and a bonus for SKR holders. None of this is implemented in the hackathon build.
+When a wallet is connected, the game reads its **SKR balance on mainnet** (read-only
+`getTokenAccountsByOwner` on a public mainnet RPC — no signature, no transaction, the
+game itself still runs on devnet). Official SKR mint:
+`SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3` (see [solanamobile.com/skr](https://solanamobile.com/skr)).
+
+- **"SKR Holder" skin** (cosmetic): unlocked when the wallet holds at least 1 SKR; it
+  appears in the Seeker skins section of the shop.
+- **"SKR : n" badge** next to the LMS balance in the "MY NFTs" wallet area.
+- **Cosmetic only, client-side check**: no gameplay advantage, no score or prize-pool
+  effect (consistent with the *Proof of Play* model). Not testable on devnet by judges
+  (SKR only exists on mainnet): see the demo video.
+
+**Not implemented (mainnet roadmap):** weekly Proof of Play pool funded in SKR, and
+SKR-priced skins.
 
 ## Build prerequisites
 
@@ -251,7 +264,7 @@ Debug session triggered by a player (the dev himself) unable to claim the
   `LMS_CLAIM_PENDING_WEEKS_MAX`, which were previously covered only up to 7 past
   weeks by this automatic safety net (the 8th was covered only via the more
   fragile local/Firebase tracking).
-- **Rebranding "SKR" → "LMS" (historical; the token is LMS everywhere)** in all
+- **Rebranding "SKR" → "LMS" (historical; the token is LMS everywhere; "SKR" was only a provisional dev name, unrelated to Solana Mobile's SKR)** in all
   player-visible texts (Solana tutorial FR/EN, HOF notice, amount shown on the
   claim card) — provisional dev token name replaced by the game's.
 - New debug endpoint on the Worker side, `/debug-submit-score`, to build
@@ -639,9 +652,22 @@ packagé nativement pour Android via Capacitor.
   **"Sanctuaire Seeker"** (Metaplex Core) pour chacun des deux joueurs — voir
   section dédiée ci-dessous.
 
-## Intégration SKR — feuille de route (non implémentée dans cette version)
+## Intégration SKR (Solana Mobile) — détection des détenteurs, en lecture seule
 
-Prévu pour la version mainnet : cagnotte hebdomadaire Proof of Play alimentée en SKR (en plus du LMS), skins payables en SKR, bonus pour les détenteurs de SKR. Rien de cela n'est implémenté dans la version hackathon.
+À la connexion du wallet, le jeu lit son **solde SKR sur mainnet** (`getTokenAccountsByOwner`
+en lecture seule via un RPC mainnet public — aucune signature, aucune transaction ; le jeu
+lui-même reste sur devnet). Mint officiel SKR :
+`SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3` (voir [solanamobile.com/skr](https://solanamobile.com/skr)).
+
+- **Skin « Holder SKR »** (cosmétique) : débloqué si le wallet détient au moins 1 SKR ;
+  il apparaît dans la section des skins Seeker de la boutique.
+- **Badge « SKR : n »** à côté du solde LMS dans l'espace wallet « MES NFT ».
+- **Cosmétique uniquement, contrôle côté client** : aucun avantage de gameplay, aucun effet
+  sur le score ni sur la cagnotte (cohérent avec le modèle *Proof of Play*). Non testable
+  en devnet par le jury (SKR n'existe que sur mainnet) : voir la vidéo de démo.
+
+**Non implémenté (feuille de route mainnet) :** cagnotte hebdomadaire Proof of Play
+alimentée en SKR, et skins payables en SKR.
 
 ## Prérequis pour builder
 
@@ -864,7 +890,7 @@ côté jeu :
   visées par `LMS_CLAIM_PENDING_WEEKS_MAX`, qui n'étaient auparavant
   couvertes qu'à hauteur de 7 semaines passées par ce filet automatique
   (la 8e ne l'était que via le tracking local/Firebase, plus fragile).
-- **Rebranding "SKR" → "LMS" (historique ; le jeton est LMS partout)** dans tous les textes visibles du joueur
+- **Rebranding "SKR" → "LMS" (historique ; le jeton est LMS partout ; « SKR » n'était qu'un nom provisoire de dev, sans lien avec le SKR de Solana Mobile)** dans tous les textes visibles du joueur
   (tutoriel Solana FR/EN, notice HOF, montant affiché sur la carte de
   réclamation) — nom de jeton provisoire de dev remplacé par celui du jeu.
 - Nouvel endpoint de debug côté Worker, `/debug-submit-score`, pour
