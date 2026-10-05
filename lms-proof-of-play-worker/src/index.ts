@@ -1,9 +1,16 @@
 import { getRtdbAccessToken } from "./firebaseAuth";
 import { fetchCurrentTotals, fetchWallets } from "./rtdbQuery";
-import { loadPreviousSnapshot, saveSnapshot, computeWeeklyDeltas, groupDeltasByWallet } from "./weekSnapshot";
+import {
+  loadPreviousSnapshot,
+  saveSnapshot,
+  holdBackTotals,
+  computeWeeklyDeltas,
+  groupDeltasByWallet,
+} from "./weekSnapshot";
 import { computeWeeklyScore } from "./scoring";
 import { submitWeeklyScoresOnChain } from "./solanaSubmit";
 import { ensureWeeklyPoolInitialized } from "./poolLifecycle";
+import { readPoolState, inspectPool } from "./poolInspect";
 
 export interface Env {
   SOLANA_RPC_URL: string;
@@ -59,7 +66,40 @@ function weekIdBeingSettled(now: Date): string {
   return isoWeekId(new Date(now.getTime() - 5 * 60 * 1000)); // recul de 5 min, marge de sécurité
 }
 
-async function runWeeklySettlement(env: Env, weekId: string): Promise<Response> {
+interface SettlementOptions {
+  /** Calcule et renvoie le plan sans rien soumettre ni toucher au snapshot / au journal KV. */
+  dryRun?: boolean;
+  /** Ignore le garde-fou "pool absente / finalisée / non financée". */
+  force?: boolean;
+}
+
+/**
+ * Renvoie le rapport en JSON et, sauf dry-run, le conserve dans le KV
+ * (clé settlement-log:<weekId>:<horodatage>) : les logs Observability
+ * expirent vite, pas le KV. Relisible via GET /last-settlement?weekId=...
+ */
+async function respond(
+  env: Env,
+  weekId: string,
+  report: Record<string, unknown>,
+  persist: boolean
+): Promise<Response> {
+  const body = JSON.stringify(report, null, 2);
+  if (persist) {
+    try {
+      await env.WEEK_SNAPSHOT_KV.put(`settlement-log:${weekId}:${new Date().toISOString()}`, body);
+    } catch (err) {
+      console.error("[settlement] écriture du journal KV impossible:", err);
+    }
+  }
+  return new Response(body, { headers: { "Content-Type": "application/json" } });
+}
+
+async function runWeeklySettlement(
+  env: Env,
+  weekId: string,
+  opts: SettlementOptions = {}
+): Promise<Response> {
   const accessToken = await getRtdbAccessToken(env.FIREBASE_SERVICE_ACCOUNT_JSON);
 
   const [currentTotals, wallets, previousSnapshot] = await Promise.all([
@@ -84,6 +124,68 @@ async function runWeeklySettlement(env: Env, weekId: string): Promise<Response> 
     .filter((g) => g.uids.length > 1)
     .map((g) => ({ walletAddress: g.walletAddress, uids: g.uids, score: g.score }));
 
+  const isFirstRun = previousSnapshot === null;
+
+  // Rapport de base, commun à tous les cas de sortie. "plan" détaille, pour
+  // chaque wallet, les uid regroupés, le delta brut et le score soumis : c'est
+  // ce qui permet de vérifier les merges après coup.
+  const report: Record<string, unknown> = {
+    weekId,
+    ranAt: new Date().toISOString(),
+    dryRun: !!opts.dryRun,
+    isFirstRun,
+    eligiblePlayers: withWallet.length + missingWallet.length,
+    plan: withWallet.map((g) => ({
+      walletAddress: g.walletAddress,
+      uids: g.uids,
+      names: g.names,
+      stats: g.stats,
+      score: g.score,
+    })),
+    mergedWallets, // wallets dont plusieurs uid ont été additionnés (vide dans le cas normal)
+    skippedNoWallet: missingWallet.map((d) => ({ uid: d.uid, name: d.name, stats: d.stats, score: d.score })),
+  };
+
+  if (opts.dryRun) return respond(env, weekId, report, false);
+
+  // GARDE-FOU : finalize_pool est irréversible ET fund_pool refuse une pool
+  // finalisée. Si on règle une pool non financée (totalPot = 0), elle devient
+  // définitivement non financable et claim_scratch échoue pour tout le monde
+  // (PayoutTooSmall). On s'arrête donc AVANT de soumettre/finaliser, sans
+  // faire avancer le snapshot (sauf au tout premier run, pour poser la
+  // baseline). Si la lecture on-chain elle-même échoue, on ne bloque pas.
+  if (!opts.force && withWallet.length > 0) {
+    let blockReason: string | null = null;
+    try {
+      const pool = await readPoolState(env, weekId);
+      if (!pool) blockReason = "pool introuvable on-chain (jamais initialisée)";
+      else if (pool.finalized) blockReason = "pool déjà finalisée";
+      else if (pool.totalPot === 0n) blockReason = "pool non financée (totalPot = 0)";
+    } catch (err) {
+      console.error("[settlement] lecture de la pool impossible, garde-fou ignoré:", err);
+    }
+    if (blockReason) {
+      if (isFirstRun) await saveSnapshot(env.WEEK_SNAPSHOT_KV, currentTotals);
+      return respond(
+        env,
+        weekId,
+        {
+          ...report,
+          aborted: true,
+          abortReason: blockReason,
+          hint:
+            "Rien n'a été soumis ni finalisé. Finance la pool (/init-pool?weekId=" + weekId +
+            "&amount=...) puis relance /run-settlement?weekId=" + weekId +
+            " — ou ajoute &force=1 pour passer outre.",
+          submitted: 0,
+          failed: 0,
+          snapshotAdvanced: isFirstRun,
+        },
+        true
+      );
+    }
+  }
+
   // NOTE (mise à jour 15/09/2026) : initialize_weekly_pool + fund_pool pour
   // ce weekId sont maintenant déclenchés automatiquement par ce même
   // Worker, juste avant ce règlement (voir scheduled() ci-dessous et
@@ -100,47 +202,38 @@ async function runWeeklySettlement(env: Env, weekId: string): Promise<Response> 
   const failed = results.filter((r) => r.error);
   const succeeded = results.filter((r) => r.signature);
 
-  // FIX : on ne fait avancer le snapshot QUE si au moins une soumission a
-  // réussi. Avant, saveSnapshot() était appelé inconditionnellement juste
-  // après submitWeeklyScoresOnChain(), donc même un run où TOUTES les
-  // soumissions échouaient (ex. PoolAlreadyFinalized sur 100% des joueurs)
-  // faisait quand même avancer le snapshot vers currentTotals -> le delta
-  // de cette semaine était perdu (ni payé, ni reporté à la semaine
-  // suivante). Avec cette garde, un run entièrement raté laisse le
-  // snapshot inchangé, donc le prochain run recalculera le même delta (ou
-  // plus, si le joueur a continué à jouer) et pourra le soumettre.
+  // Le snapshot n'avance que si au moins une soumission a réussi (sinon un run
+  // entièrement raté perdrait le delta de la semaine), ou au premier run (KV
+  // jamais rempli : sans cette exception la baseline ne serait jamais posée).
   //
-  // FIX (2026-09-14) : au tout premier run (KV jamais rempli),
-  // previousSnapshot est null -> computeWeeklyDeltas renvoie 0 pour tout le
-  // monde -> rien n'est éligible -> rien n'est soumis -> succeeded reste à
-  // 0 -> sans ce cas particulier, le snapshot n'est JAMAIS sauvegardé, et le
-  // run suivant repart avec previousSnapshot encore null : blocage permanent
-  // dès le tout premier lancement du Worker, y compris en prod avec de
-  // vrais joueurs actifs. On sauvegarde donc aussi au premier run, même
-  // sans rien soumettre : ça ne "perd" aucun delta puisqu'il n'y avait de
-  // toute façon rien de payable sans baseline — ça pose juste le point de
-  // départ pour la semaine suivante.
-  const isFirstRun = previousSnapshot === null;
-  if (succeeded.length > 0 || isFirstRun) {
-    await saveSnapshot(env.WEEK_SNAPSHOT_KV, currentTotals);
+  // NOUVEAU : même quand il avance, il n'avance PAS pour les uid non payés :
+  //  - wallet dont la soumission a échoué (les autres wallets ont réussi, mais
+  //    celui-ci perdait sa semaine) ;
+  //  - joueurs sans wallet (skippedNoWallet) : leurs victoires étaient perdues.
+  // Leur delta reste dans le snapshot et sera repris au prochain règlement.
+  const failedWallets = new Set(failed.map((r) => r.walletAddress));
+  const holdBackUids = new Set<string>(missingWallet.map((d) => d.uid));
+  for (const g of withWallet) {
+    if (failedWallets.has(g.walletAddress)) for (const u of g.uids) holdBackUids.add(u);
   }
 
-  return new Response(
-    JSON.stringify(
-      {
-        weekId,
-        eligiblePlayers: withWallet.length + missingWallet.length,
-        mergedWallets, // wallets dont plusieurs uid ont été additionnés (vide dans le cas normal)
-        submitted: succeeded.length,
-        failed: failed.length,
-        failedDetails: failed,
-        skippedNoWallet: missingWallet.map((d) => ({ uid: d.uid, name: d.name, score: d.score })),
-        snapshotAdvanced: succeeded.length > 0 || isFirstRun,
-      },
-      null,
-      2
-    ),
-    { headers: { "Content-Type": "application/json" } }
+  const snapshotAdvanced = succeeded.length > 0 || isFirstRun;
+  if (snapshotAdvanced) {
+    await saveSnapshot(env.WEEK_SNAPSHOT_KV, holdBackTotals(currentTotals, previousSnapshot, holdBackUids));
+  }
+
+  return respond(
+    env,
+    weekId,
+    {
+      ...report,
+      submitted: succeeded.length,
+      failed: failed.length,
+      failedDetails: failed,
+      heldBackUids: [...holdBackUids], // uid dont le delta est reporté au prochain règlement
+      snapshotAdvanced,
+    },
+    true
   );
 }
 
@@ -153,6 +246,18 @@ export default {
       runWeeklySettlement(env, weekBeingSettled)
         .then((r) => r.text())
         .then(console.log)
+        .catch(async (err) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error("[settlement] crash:", msg);
+          try {
+            await env.WEEK_SNAPSHOT_KV.put(
+              `settlement-log:${weekBeingSettled}:${new Date().toISOString()}`,
+              JSON.stringify({ weekId: weekBeingSettled, crashed: msg }, null, 2)
+            );
+          } catch {
+            /* rien de plus à faire */
+          }
+        })
     );
 
     // Ouvre (et finance, si AUTO_FUND_AMOUNT est défini) la pool de la
@@ -179,7 +284,44 @@ export default {
 
     if (url.pathname === "/run-settlement") {
       const weekId = url.searchParams.get("weekId") ?? weekIdBeingSettled(new Date());
-      return runWeeklySettlement(env, weekId);
+      // ?dryRun=1 : plan seul, rien soumis. ?force=1 : ignore le garde-fou pool.
+      return runWeeklySettlement(env, weekId, {
+        dryRun: url.searchParams.get("dryRun") === "1",
+        force: url.searchParams.get("force") === "1",
+      });
+    }
+
+    // Relit les rapports de règlement conservés dans le KV (survivent aux logs Observability).
+    if (url.pathname === "/last-settlement") {
+      const weekId = url.searchParams.get("weekId");
+      if (!weekId) return new Response("Paramètre weekId manquant (ex. ?weekId=2026-W40)", { status: 400 });
+      const list = await env.WEEK_SNAPSHOT_KV.list({ prefix: `settlement-log:${weekId}:` });
+      const logs = await Promise.all(
+        list.keys.map(async (k) => ({
+          key: k.name,
+          report: JSON.parse((await env.WEEK_SNAPSHOT_KV.get(k.name)) ?? "null"),
+        }))
+      );
+      return new Response(JSON.stringify({ weekId, count: logs.length, logs }, null, 2), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Lecture seule de l'état on-chain : pool (pot, vault, finalisée), score d'un
+    // wallet (?wallet=...) ou de tous les wallets de la semaine (?all=1), avec le
+    // montant que claim_scratch versera.
+    if (url.pathname === "/inspect-pool") {
+      const weekId = url.searchParams.get("weekId");
+      if (!weekId) return new Response("Paramètre weekId manquant (ex. ?weekId=2026-W40)", { status: 400 });
+      try {
+        const out = await inspectPool(env, weekId, {
+          wallet: url.searchParams.get("wallet") ?? undefined,
+          all: url.searchParams.get("all") === "1",
+        });
+        return new Response(JSON.stringify(out, null, 2), { headers: { "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(`inspect-pool: ${err instanceof Error ? err.message : String(err)}`, { status: 500 });
+      }
     }
 
     if (url.pathname === "/init-pool") {

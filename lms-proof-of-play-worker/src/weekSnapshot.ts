@@ -14,6 +14,10 @@ import type { WeeklyStats } from "./scoring";
  */
 
 const SNAPSHOT_KEY = "latest-totals-snapshot";
+// Copie de l'avant-dernier snapshot, écrite juste avant d'écraser SNAPSHOT_KEY.
+// Permet de recalculer a posteriori les deltas d'un règlement déjà passé
+// (current - previous) au lieu de les perdre définitivement.
+const SNAPSHOT_PREV_KEY = "previous-totals-snapshot";
 
 interface StoredSnapshot {
   takenAt: string; // ISO, pour debug/logs uniquement
@@ -28,8 +32,35 @@ export async function loadPreviousSnapshot(kv: KVNamespace): Promise<RawPlayerTo
 }
 
 export async function saveSnapshot(kv: KVNamespace, totals: RawPlayerTotals[]): Promise<void> {
+  const existing = await kv.get(SNAPSHOT_KEY);
+  if (existing) await kv.put(SNAPSHOT_PREV_KEY, existing);
   const payload: StoredSnapshot = { takenAt: new Date().toISOString(), totals };
   await kv.put(SNAPSHOT_KEY, JSON.stringify(payload));
+}
+
+/**
+ * Totaux à sauvegarder quand certains uid n'ont PAS été payés ce run (soumission
+ * en échec, ou joueur sans wallet). Pour ces uid on garde les anciennes valeurs
+ * du snapshot : leur delta n'est pas "consommé" et sera recalculé (cumulé) au
+ * prochain règlement. Un uid absent de l'ancien snapshot (nouveau joueur) est
+ * enregistré à 0/0 : sa baseline théorique, cohérente avec computeWeeklyDeltas
+ * qui compte ses totaux entiers comme delta. Ses victoires non payées ce run
+ * seront donc payées au suivant.
+ */
+export function holdBackTotals(
+  currentTotals: RawPlayerTotals[],
+  previousSnapshot: RawPlayerTotals[] | null,
+  holdBackUids: Set<string>
+): RawPlayerTotals[] {
+  if (!previousSnapshot || holdBackUids.size === 0) return currentTotals;
+  const previousByUid = new Map(previousSnapshot.map((p) => [p.uid, p]));
+  return currentTotals.map((c) => {
+    if (!holdBackUids.has(c.uid)) return c;
+    const prev = previousByUid.get(c.uid);
+    return prev
+      ? { ...c, duelWins: prev.duelWins, ffaWins: prev.ffaWins }
+      : { ...c, duelWins: 0, ffaWins: 0 };
+  });
 }
 
 export interface PlayerWeeklyDelta {
@@ -41,25 +72,42 @@ export interface PlayerWeeklyDelta {
 /**
  * Delta = totaux actuels - totaux au dernier snapshot.
  *
- * Deux cas particuliers volontairement traités "safe" plutôt qu'optimistes :
- *  - uid absent du snapshot précédent (nouveau joueur, ou tout premier run
- *    du Worker) -> delta = 0. On ne peut pas prouver que ses victoires
- *    cumulées actuelles datent de cette semaine, donc on ne les paye pas
- *    plutôt que de risquer de payer plusieurs mois d'historique d'un coup.
- *  - delta négatif (ne devrait pas arriver vu la Rule monotone croissante,
- *    sauf fusion de compte via un syncCode qui recopie des totaux d'un
- *    autre device — voir _lmsCopyProgressBetweenUids côté jeu) -> clampé à 0.
+ * Nouveau joueur (uid absent du snapshot précédent) : son delta = ses totaux
+ * ACTUELS (baseline 0/0), pour qu'un joueur qui crée son compte et joue pendant
+ * la semaine soit payé dès le premier lundi.
+ *
+ * Pourquoi c'est sûr : duelStats/ffaStats/{uid} n'existent qu'à partir du premier
+ * résultat de match en ligne enregistré par ce uid. Un uid absent du snapshot de
+ * la semaine précédente n'avait donc encore joué aucun match en ligne à ce moment-là :
+ * toutes ses victoires datent d'après. Exception : un uid qui reçoit un historique
+ * COPIÉ (code de synchro / migration, voir _lmsCopyProgressBetweenUids côté jeu) —
+ * il serait payé pour cet historique, mais le plafond hebdomadaire par wallet de
+ * scoring.ts (21 duels / 14 FFA) borne le gain à un seul "plein" de semaine.
+ *
+ * Exception volontaire : au TOUT premier run (previousSnapshot === null), personne
+ * n'est payé — on n'a pas de baseline, on la pose seulement (voir isFirstRun dans index.ts).
+ *
+ * Delta négatif (ne devrait pas arriver vu la Rule monotone croissante, sauf copie
+ * de totaux via syncCode) -> clampé à 0.
  */
 export function computeWeeklyDeltas(
   currentTotals: RawPlayerTotals[],
   previousSnapshot: RawPlayerTotals[] | null
 ): PlayerWeeklyDelta[] {
+  const hasBaseline = previousSnapshot !== null;
   const previousByUid = new Map((previousSnapshot ?? []).map((p) => [p.uid, p]));
 
   return currentTotals.map((current) => {
     const prev = previousByUid.get(current.uid);
-    const duelWins = prev ? Math.max(0, current.duelWins - prev.duelWins) : 0;
-    const ffaWins = prev ? Math.max(0, current.ffaWins - prev.ffaWins) : 0;
+    let duelWins = 0;
+    let ffaWins = 0;
+    if (prev) {
+      duelWins = Math.max(0, current.duelWins - prev.duelWins);
+      ffaWins = Math.max(0, current.ffaWins - prev.ffaWins);
+    } else if (hasBaseline) {
+      duelWins = current.duelWins; // nouveau joueur : tout ce qu'il a gagné date d'après le dernier snapshot
+      ffaWins = current.ffaWins;
+    }
     return { uid: current.uid, name: current.name, stats: { duelWins, ffaWins } };
   });
 }

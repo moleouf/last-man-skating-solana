@@ -160,8 +160,9 @@ validated in real conditions, not only in Playground tests.
     whose several `uid`s were summed; empty in the normal case) — to be looked at
     on the next cron run (`wrangler tail`). Tested outside the Worker (pure
     function, 4 cases); `wrangler deploy --dry-run` and the deployment pass.
-    **Not yet executed in real conditions** (the settlement of Monday 05/10/2026,
-    00:01 UTC, will be the first). Does not cover two `uid`s linked to two
+    **Confirmed in real conditions on 05/10/2026** (first real settlement,
+    `2026-W40`: `mergedWallets` correctly listed 2 wallets, 3 and 14 `uid`s
+    summed — see point 17). Does not cover two `uid`s linked to two
     *different* wallets (accepted behavior, see the program README).
 16. **New `/debug-submit-score` endpoint** (`index.ts`) — submits a **fixed**
     score (not computed from Firebase) for a single given wallet/`weekId`, via
@@ -179,12 +180,64 @@ validated in real conditions, not only in Playground tests.
     README/changelog of the `last_man_skating` repo, not this one).
 
 
+✅ Done (continued) — first real settlement (`2026-W40`, Monday 05/10/2026, 00:01 UTC):
+17. **Discovery, FIXED on 05/10/2026: accounts created during the week were not
+    paid at their first Monday.** The run itself was clean (log: `submitted: 2`,
+    `failed: 0`, `snapshotAdvanced: true`; `mergedWallets`: `APrJ…` = 3 `uid`s,
+    score 90, and `6pDn…` = 14 `uid`s, score 10, both matching the `wallets`
+    export). But `computeWeeklyDeltas` gave a delta of **0** to any `uid` absent
+    from the previous snapshot (a "safe" rule meant to avoid paying months of
+    history), and the snapshot then recorded that `uid`'s totals — so its wins
+    only counted from the *following* week: first payout two Mondays after the
+    first match. Wins of W40 for accounts created that week (estimated ~59 duel
+    wins + ~6 FFA wins on 9 wallets) were lost: pool finalized and snapshot
+    already advanced, no automatic recovery.
+    **Fix (05/10/2026, deployed)**: once a baseline exists, a `uid` absent from
+    the previous snapshot is a new player and its delta = its **current totals**
+    (baseline 0/0). Why it is safe: `duelStats/{uid}` / `ffaStats/{uid}` only
+    exist from the first recorded online match, so an absent `uid` had played no
+    online match before the previous snapshot. The very first run
+    (`previousSnapshot === null`) still pays nobody (no baseline).
+    **Known limit**: a `uid` that receives a *copied* history (sync code /
+    migration, `_lmsCopyProgressBetweenUids` on the game side) is paid for it —
+    bounded by the per-wallet weekly cap in `scoring.ts` (21 duels / 14 FFA =
+    294 points), i.e. at most one full week.
+    Checked on the live Worker with `/run-settlement?...&dryRun=1`: accounts
+    created that day appear in `plan` with their score.
+18. **Unpaid `uid`s no longer consume their delta (05/10/2026).** Until then the
+    snapshot advanced for **everyone** as soon as one submission succeeded
+    (point 10 only covered the "all failed" case): a wallet whose submission
+    failed, or a player with no linked wallet (`skippedNoWallet`), silently lost
+    the week. New `holdBackTotals()` (`weekSnapshot.ts`) keeps the previous
+    snapshot values for those `uid`s (a new `uid` is stored at 0/0), so their
+    delta is recomputed and paid at the next settlement. Consequence: a player
+    who has not linked a wallet yet accumulates wins and is paid when they link
+    one (still capped per week by `scoring.ts`).
+19. **Safeguard + diagnostics (05/10/2026).**
+    - **Pool guard**: before submitting, `runWeeklySettlement` reads the pool
+      on-chain. If it is missing, already finalized, or **not funded**
+      (`totalPot = 0`), it aborts (`aborted: true`, `abortReason`) without
+      submitting, finalizing or advancing the snapshot (except at the very first
+      run, to set the baseline). Reason: `finalize_pool` is irreversible and
+      `fund_pool` refuses a finalized pool, so settling an unfunded pool would
+      make every claim fail with `PayoutTooSmall`. Bypass with `?force=1`.
+    - **Settlement journal in the KV**: every report is stored under
+      `settlement-log:<weekId>:<ISO time>` (Cloudflare Observability logs expire
+      quickly and hide empty arrays such as `failedDetails`). A cron crash is
+      journaled too. The report now has a per-wallet `plan` (uids, raw wins,
+      score) and `heldBackUids`.
+    - The KV key `previous-totals-snapshot` keeps a copy of the snapshot that
+      was just replaced, to allow recomputing a past delta.
+    - New endpoints and options, see "Diagnostic endpoints" below; new file
+      `src/poolInspect.ts` (read-only on-chain reading, replicates the
+      `claim_scratch` formula).
+
 ⏳ Still to do before final submission:
 - Decision: test LMS mint (devnet) vs mainnet LMS mint for the demo
 - Anti-cheat limitation (collusion/self-play) still open — documented, fix
   postponed until after the hackathon
 - ~~Grouping by wallet (not by `uid`) for score computation~~: fixed on
-  03/10/2026 (see point 15 above); to be confirmed at the first real settlement
+  03/10/2026 (see point 15 above); confirmed at the first real settlement on 05/10/2026
   (`mergedWallets` field).
 - ~~Multi-week limitation~~: fixed on the client side on 13/09/2026 — the CLAIM
   button now catches up on up to 8 weeks of unclaimed winnings (see root README,
@@ -242,6 +295,14 @@ version of the on-chain program, which stays at `0.29.0` (see
   upcoming week's pool (`initialize_weekly_pool` + `fund_pool`), called from the
   same cron as the settlement. See "Pool opening automation" above and the note
   on the Anchor JS version above.
+
+- `weekSnapshot.ts` (05/10/2026): new `uid`s are paid from their current totals
+  (once a baseline exists), `holdBackTotals()` for unpaid `uid`s, copy of the
+  previous snapshot in the KV.
+- `index.ts` (05/10/2026): pool guard, KV settlement journal, `dryRun`/`force`
+  options, endpoints `/last-settlement` and `/inspect-pool`.
+- `poolInspect.ts` (new, 05/10/2026): read-only on-chain inspection of a pool
+  and of the players' scores.
 
 ## Installation
 
@@ -318,6 +379,28 @@ curl -X POST "http://localhost:8787/debug-submit-score?weekId=2026-W33&wallet=<p
   -H "X-Trigger-Secret: <your MANUAL_TRIGGER_SECRET value>"
 ```
 
+## Diagnostic endpoints (05/10/2026)
+
+All protected by the same `X-Trigger-Secret` header. They never write on-chain
+(except `/run-settlement` without `dryRun`, which is the real settlement).
+
+```bash
+# Simulate a settlement: nothing submitted, snapshot and journal untouched.
+# Shows per wallet the merged uids, raw wins and score (`plan`), `mergedWallets`,
+# `skippedNoWallet`.
+curl -H "X-Trigger-Secret: <value>" "https://<worker>.workers.dev/run-settlement?weekId=2026-W41&dryRun=1"
+
+# On-chain state of a pool: pot, vault balance, finalized, diagnostics;
+# add &wallet=<pubkey> for one player, or &all=1 for every score of the week
+# with the amount each wallet will receive.
+curl -H "X-Trigger-Secret: <value>" "https://<worker>.workers.dev/inspect-pool?weekId=2026-W40&all=1"
+
+# Reports of past settlements, kept in the KV (survive Observability logs).
+curl -H "X-Trigger-Secret: <value>" "https://<worker>.workers.dev/last-settlement?weekId=2026-W40"
+```
+
+`/run-settlement?...&force=1` bypasses the pool guard (point 19).
+
 ## Deployment
 
 ```bash
@@ -359,14 +442,17 @@ records the first snapshot. It is the *next* run, a week later (or the next
 manual call after a new game played), that will produce the first real
 settlement.
 
+Once a baseline exists, a `uid` that is absent from the snapshot (new player) is
+paid from its current totals — see point 17. Only the very first run pays nobody.
+
 ## Points of attention (audit of 02/10/2026)
 
 The Worker code was re-read on 03/10/2026 (no blocking flaw found other than
 point 15, since fixed); these points also come from the READMEs, the RTDB rules
 and the client.
 
-- **Point 15 (grouping by wallet)**: fixed on 03/10/2026 (see above); to be
-  confirmed at the first real settlement via the `mergedWallets` field.
+- **Point 15 (grouping by wallet)**: fixed on 03/10/2026 (see above); confirmed
+  at the first real settlement (05/10/2026) via the `mergedWallets` field.
 - **RPC endpoint**: QuickNode is no longer used; the Worker must point to Helius
   devnet via the `SOLANA_RPC_URL` secret. A `.dev.vars` only applies to `wrangler
   dev`: for production, `npx wrangler secret put SOLANA_RPC_URL` (secret values
@@ -565,8 +651,9 @@ Playground.
     (wallets dont plusieurs `uid` ont été additionnés ; vide dans le cas
     normal) — à regarder au premier cron suivant (`wrangler tail`).
     Testé hors Worker (fonction pure, 4 cas) ; `wrangler deploy --dry-run`
-    et le déploiement passent. **Pas encore exécuté en conditions réelles**
-    (le règlement du lundi 05/10/2026, 00:01 UTC, sera le premier).
+    et le déploiement passent. **Confirmé en conditions réelles le 05/10/2026**
+    (premier règlement réel, `2026-W40` : `mergedWallets` a bien listé 2
+    wallets, 3 et 14 `uid` additionnés — voir point 17).
     Ne couvre pas deux `uid` liés à deux wallets *différents*
     (comportement assumé, voir le README du programme).
 16. **Nouvel endpoint `/debug-submit-score`** (`index.ts`) — soumet un
@@ -587,13 +674,71 @@ Playground.
     README/changelog du repo `last_man_skating`, pas celui-ci).
 
 
+✅ Fait (suite) — premier règlement réel (`2026-W40`, lundi 05/10/2026, 00:01 UTC) :
+17. **Découverte, CORRIGÉE le 05/10/2026 : les comptes créés pendant la semaine
+    n'étaient pas payés au premier lundi.** Le run lui-même était propre (log :
+    `submitted: 2`, `failed: 0`, `snapshotAdvanced: true` ; `mergedWallets` :
+    `APrJ…` = 3 `uid`, score 90, et `6pDn…` = 14 `uid`, score 10, conformes à
+    l'export de `wallets`). Mais `computeWeeklyDeltas` donnait un delta de **0**
+    à tout `uid` absent du snapshot précédent (règle « prudente » pour ne pas
+    payer des mois d'historique), puis le snapshot enregistrait les totaux de ce
+    `uid` — ses victoires ne comptaient donc qu'à partir de la semaine
+    *suivante* : premier gain deux lundis après le premier match. Les victoires
+    W40 des comptes créés cette semaine-là (estimé ~59 victoires en duel + ~6 en
+    FFA sur 9 wallets) sont perdues : pool finalisée et snapshot déjà avancé,
+    aucun rattrapage automatique.
+    **Correctif (05/10/2026, déployé)** : dès qu'une baseline existe, un `uid`
+    absent du snapshot précédent est un nouveau joueur et son delta = ses
+    **totaux actuels** (baseline 0/0). Pourquoi c'est sûr : `duelStats/{uid}` /
+    `ffaStats/{uid}` n'existent qu'à partir du premier match en ligne enregistré,
+    donc un `uid` absent n'avait joué aucun match en ligne avant le snapshot
+    précédent. Le tout premier run (`previousSnapshot === null`) ne paie toujours
+    personne (pas de baseline).
+    **Limite connue** : un `uid` qui reçoit un historique *copié* (code de
+    synchro / migration, `_lmsCopyProgressBetweenUids` côté jeu) est payé pour
+    cet historique — borné par le plafond hebdomadaire par wallet de
+    `scoring.ts` (21 duels / 14 FFA = 294 points), soit au plus une semaine
+    pleine.
+    Vérifié sur le Worker en ligne avec `/run-settlement?...&dryRun=1` : les
+    comptes créés le jour même apparaissent dans `plan` avec leur score.
+18. **Les `uid` non payés ne consomment plus leur delta (05/10/2026).** Jusque-là
+    le snapshot avançait pour **tout le monde** dès qu'une soumission réussissait
+    (le point 10 ne couvrait que le cas « tout a échoué ») : un wallet dont la
+    soumission échouait, ou un joueur sans wallet lié (`skippedNoWallet`),
+    perdait sa semaine sans bruit. Nouveau `holdBackTotals()`
+    (`weekSnapshot.ts`) : ces `uid` gardent leurs anciennes valeurs dans le
+    snapshot (un `uid` nouveau est enregistré à 0/0), leur delta est donc
+    recalculé et payé au règlement suivant. Conséquence : un joueur qui n'a pas
+    encore lié de wallet cumule ses victoires et est payé quand il en lie un
+    (toujours plafonné par semaine par `scoring.ts`).
+19. **Garde-fou + diagnostics (05/10/2026).**
+    - **Garde-fou de pool** : avant de soumettre, `runWeeklySettlement` lit la
+      pool on-chain. Si elle est absente, déjà finalisée ou **non financée**
+      (`totalPot = 0`), il s'arrête (`aborted: true`, `abortReason`) sans
+      soumettre, finaliser ni faire avancer le snapshot (sauf au tout premier
+      run, pour poser la baseline). Raison : `finalize_pool` est irréversible et
+      `fund_pool` refuse une pool finalisée, donc régler une pool non financée
+      ferait échouer toutes les réclamations en `PayoutTooSmall`. Contournable
+      avec `?force=1`.
+    - **Journal des règlements dans le KV** : chaque rapport est conservé sous
+      `settlement-log:<weekId>:<horodatage ISO>` (les logs Observability de
+      Cloudflare expirent vite et masquent les tableaux vides comme
+      `failedDetails`). Un crash du cron est aussi journalisé. Le rapport
+      contient maintenant un `plan` par wallet (uid, victoires brutes, score) et
+      `heldBackUids`.
+    - La clé KV `previous-totals-snapshot` garde une copie du snapshot qui vient
+      d'être remplacé, pour pouvoir recalculer un delta passé.
+    - Nouveaux endpoints et options : voir « Endpoints de diagnostic » plus bas ;
+      nouveau fichier `src/poolInspect.ts` (lecture on-chain seule, reproduit la
+      formule de `claim_scratch`).
+
 ⏳ Reste à faire avant soumission finale :
 - Décision mint LMS de test (devnet) vs mint LMS mainnet pour la démo
 - Limitation anti-triche (collusion/self-play) toujours ouverte —
   documentée, correctif reporté après le hackathon
 - ~~Regroupement par wallet (pas par `uid`) pour le calcul du score~~ :
-  réglé le 03/10/2026 (voir point 15 ci-dessus) ; à confirmer au premier
-  règlement réel (champ `mergedWallets`).
+  réglé le 03/10/2026 (voir point 15 ci-dessus) ; confirmé au premier
+  règlement réel le 05/10/2026 (champ `mergedWallets`).
 - ~~Limitation multi-semaines~~ : réglée côté client le 13/09/2026 — le
   bouton RÉCLAMER rattrape maintenant jusqu'à 8 semaines de gains non
   réclamés (voir README racine, section "Réclamation multi-semaines").
@@ -656,6 +801,14 @@ correspondre entre elles.
   (`initialize_weekly_pool` + `fund_pool`), appelés depuis le même cron que
   le règlement. Voir "Automatisation de l'ouverture de pool" ci-dessus et
   le point d'attention sur la version d'Anchor JS ci-dessus.
+
+- `weekSnapshot.ts` (05/10/2026) : les nouveaux `uid` sont payés sur leurs totaux
+  actuels (dès qu'une baseline existe), `holdBackTotals()` pour les `uid` non
+  payés, copie du snapshot précédent dans le KV.
+- `index.ts` (05/10/2026) : garde-fou de pool, journal des règlements dans le KV,
+  options `dryRun`/`force`, endpoints `/last-settlement` et `/inspect-pool`.
+- `poolInspect.ts` (nouveau, 05/10/2026) : inspection on-chain en lecture seule
+  d'une pool et des scores des joueurs.
 
 ## Installation
 
@@ -735,6 +888,28 @@ curl -X POST "http://localhost:8787/debug-submit-score?weekId=2026-W33&wallet=<p
   -H "X-Trigger-Secret: <ta valeur de MANUAL_TRIGGER_SECRET>"
 ```
 
+## Endpoints de diagnostic (05/10/2026)
+
+Tous protégés par le même en-tête `X-Trigger-Secret`. Aucun n'écrit on-chain
+(sauf `/run-settlement` sans `dryRun`, qui est le vrai règlement).
+
+```bash
+# Simuler un règlement : rien n'est soumis, snapshot et journal intacts.
+# Montre par wallet les uid regroupés, les victoires brutes et le score (`plan`),
+# `mergedWallets`, `skippedNoWallet`.
+curl -H "X-Trigger-Secret: <valeur>" "https://<worker>.workers.dev/run-settlement?weekId=2026-W41&dryRun=1"
+
+# État on-chain d'une pool : pot, solde du vault, finalisée, diagnostics ;
+# ajouter &wallet=<pubkey> pour un joueur, ou &all=1 pour tous les scores de la
+# semaine avec le montant que chaque wallet recevra.
+curl -H "X-Trigger-Secret: <valeur>" "https://<worker>.workers.dev/inspect-pool?weekId=2026-W40&all=1"
+
+# Rapports des règlements passés, conservés dans le KV (survivent aux logs Observability).
+curl -H "X-Trigger-Secret: <valeur>" "https://<worker>.workers.dev/last-settlement?weekId=2026-W40"
+```
+
+`/run-settlement?...&force=1` contourne le garde-fou de pool (point 19).
+
 ## Déploiement
 
 ```bash
@@ -778,6 +953,9 @@ n'est payé) et se contente d'enregistrer le premier snapshot. C'est le run
 *suivant*, une semaine plus tard (ou le prochain appel manuel après une
 nouvelle partie jouée), qui produira le premier vrai règlement.
 
+Une fois la baseline posée, un `uid` absent du snapshot (nouveau joueur) est payé
+sur ses totaux actuels — voir point 17. Seul le tout premier run ne paie personne.
+
 ## Points d'attention (audit du 02/10/2026)
 
 Le code du Worker a été relu le 03/10/2026 (aucun défaut bloquant trouvé hors
@@ -785,7 +963,7 @@ le point 15, corrigé depuis) ; ces points viennent aussi des README, des rules
 RTDB et du client.
 
 - **Point 15 (regroupement par wallet)** : corrigé le 03/10/2026 (voir plus haut) ;
-  à confirmer au premier règlement réel via le champ `mergedWallets`.
+  confirmé au premier règlement réel (05/10/2026) via le champ `mergedWallets`.
 - **Endpoint RPC** : QuickNode n'est plus utilisé ; le Worker doit pointer vers
   Helius devnet via le secret `SOLANA_RPC_URL`. Un `.dev.vars` ne vaut que pour
   `wrangler dev` : pour la production, `npx wrangler secret put SOLANA_RPC_URL`
