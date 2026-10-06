@@ -1249,3 +1249,4 @@ bug, juste l'absence de frais de transaction devnet.
 ## Licence / Auteur
 
 Développé en solo par Moleouf (Kristen Studios Games).
+Dédié à mon Papa !
