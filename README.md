@@ -13,8 +13,8 @@
 Financially rewarding real mobile competition almost always falls into the
 gambling category (stake + chance = unauthorized lottery in France/ANJ,
 forbidden by Google Play) — **Proof of Play** distributes the weekly prize pool
-according to the players' real competitive performance (server-side score, no
-stake and no draw), hence outside the scope of gambling. **Solana Mobile**
+according to the players' real competitive performance (score computed server-side, no
+stake and no draw — see [Known limitations](#known-limitations)), hence outside the scope of gambling. **Solana Mobile**
 provides the native self-custodial wallet (Mobile Wallet Adapter + the Seeker's
 Seed Vault) needed for this, without any detour through an exchange or custodial
 KYC.
@@ -116,9 +116,9 @@ New `mint_meeting_nft` instruction (+ `initialize_mint_counter`) in the same
   is possible (eliminates by construction the risk of a wrong owner or a
   half-done mint).
 - **On-chain co-signature by both players** (`player_a`, `player_b` both
-  `Signer`): this double signature is the verifiable proof of the physical
-  meeting, not the Nearby detection itself (which only puts the two players in
-  contact on the client side).
+  `Signer`): this double signature is the on-chain proof that two distinct wallets
+  agreed to the meeting; physical proximity itself is enforced client-side by
+  the Nearby detection (see [Known limitations](#known-limitations)).
 - **Per-tier scarcity via PDA counters** (`MintCounter`: `classic_minted_count`
   / `premium_minted_count`, capped at `CLASSIC_TIER_CAP = 10 000` /
   `PREMIUM_TIER_CAP = 1 000`) rather than via `supply` on a single mint (it would
@@ -193,6 +193,16 @@ Status as of 30/09/2026: multi-week claim validated in real conditions on a
 device (Phantom, devnet) after three additional fixes (dead MWA authToken on
 `signAndSendTransactions`, on-chain confirmation broken by a signature format,
 end-of-queue UX) — details in "Claim & RADAR debug session (30/09/2026)" below.
+
+Status as of 05/10/2026: first real weekly settlement (`2026-W40`) ran on its
+own at 00:01 UTC — 2 wallets paid, 0 failure, merged `uid`s correctly summed
+(3 and 14 `uid`s on two wallets). It exposed a flaw: accounts created during the
+week were not paid at their first Monday (a new `uid` had a delta of 0). Fixed and
+deployed the same day: a new account is now paid from its first online win, from
+the first Monday; unpaid `uid`s (failed submission, wallet not yet linked) are
+carried over instead of lost; the Worker refuses to finalize an unfunded pool.
+Details in `lms-proof-of-play-worker/README.md` (points 17-19). Wins of `2026-W40`
+for accounts created that week are not recoverable (pool finalized).
 
 ### Multi-week claim (13/09/2026)
 
@@ -591,6 +601,15 @@ weeks read from Firebase (`slice(-8)`), the scope of the dev tools in production
 (they unlock paid skins), the device clock for daily rewards, the SRI of web3.js,
 and the two test problems above. Full details in `AUDIT_RESTE_A_FAIRE.md`.
 
+<a id="known-limitations"></a>
+
+## Known limitations (security review, 06/10/2026)
+
+- **Score trust model.** The Worker computes weekly scores from the `duelStats` / `ffaStats` win counters in Firebase RTDB, which each client writes for its own anonymous `uid` (the rules only forbid decreasing them). Matches are not yet verified server-side. The Worker's weekly caps (21 duel / 14 FFA wins) bound each account, not the number of accounts. Acceptable on devnet with a test token; before any real-value pool: server-side match validation.
+- **Proof of Meet.** Proximity is enforced client-side (Nearby Connections). On-chain, `mint_meeting_nft` only checks that two distinct wallets co-sign; limited to one mint per wallet per 24 h.
+- **Pool opening.** `initialize_weekly_pool` is permissionless (the first signer to create a week's pool becomes its authority). Planned fix: pin the authority to the Worker key in the next program upgrade, not deployed during judging so the tested program does not change.
+- **Automated audit.** The Radiants advisory scan flagged CPI-target and duplicate-account patterns in `lib.rs`; manual review found them already covered (`address = MPL_CORE_ID`, hard-coded `program_id`, `require_keys_neq!`). Dependency advisories come from Capacitor CLI/assets build tooling and transitive Anchor/Solana crates.
+
 ## Testing the application (judges / testers)
 
 The app is 100% installable and working, with a single condition on the Solana
@@ -627,13 +646,13 @@ Developed solo by Moleouf (Kristen Studios Games).
 Récompenser financièrement la compétition mobile réelle tombe presque toujours dans la
 case gambling (mise + hasard = loterie non autorisée en France/ANJ, interdite par Google
 Play) — **Proof of Play** distribue la cagnotte hebdomadaire selon la performance
-compétitive réelle des joueurs (score serveur, sans mise ni tirage au sort), donc hors
+compétitive réelle des joueurs (score calculé côté serveur, sans mise ni tirage au sort — voir [Limites connues](#limites-connues)), donc hors
 du champ du gambling. **Solana Mobile** apporte le wallet self-custodial natif
 (Mobile Wallet Adapter + Seed Vault du Seeker) nécessaire pour ça, sans détour par un
 exchange ou du KYC custodial.
 
 Adaptation de [Last Man Skating](https://play.google.com/store/apps/details?id=fr.kristen.lastmanskating)
-(2000+ installs organiques sur Google Play) pour le **Clock In Hackathon** (RadiantsDAO / Solana Mobile).
+(3000+ installs organiques sur Google Play) pour le **Clock In Hackathon** (RadiantsDAO / Solana Mobile).
 
 Last Man Skating est un battle royale de skate isométrique en HTML5 canvas (9 mondes,
 boss, système de skins, missions quotidiennes, multi temps réel via Firebase),
@@ -730,9 +749,9 @@ programme `lms_proof_of_play` :
   intermédiaire possible (élimine par construction le risque de owner erroné ou
   de mint à moitié).
 - **Co-signature on-chain des deux joueurs** (`player_a`, `player_b` tous deux
-  `Signer`) : c'est cette double signature qui constitue la preuve vérifiable de
-  la rencontre physique, pas la détection Nearby elle-même (qui ne fait que
-  mettre les deux joueurs en contact côté client).
+  `Signer`) : cette double signature est la preuve on-chain que deux wallets distincts
+  ont consenti à la rencontre ; la proximité physique elle-même est contrôlée
+  côté client par la détection Nearby (voir [Limites connues](#limites-connues)).
 - **Rareté par tier via compteurs PDA** (`MintCounter` : `classic_minted_count`
   / `premium_minted_count`, plafonnés à `CLASSIC_TIER_CAP = 10 000` /
   `PREMIUM_TIER_CAP = 1 000`) plutôt que via `supply` sur un mint unique
@@ -813,6 +832,17 @@ réelles sur device (Phantom, devnet) après trois correctifs supplémentaires
 (authToken MWA mort sur `signAndSendTransactions`, confirmation on-chain
 cassée par un format de signature, UX de fin de file) — détail dans
 "Session de debug réclamation & RADAR (30/09/2026)" plus bas.
+
+Statut au 05/10/2026 : premier règlement hebdomadaire réel (`2026-W40`), lancé
+seul à 00:01 UTC — 2 wallets payés, 0 échec, `uid` fusionnés correctement
+additionnés (3 et 14 `uid` sur deux wallets). Il a révélé un défaut : les comptes
+créés pendant la semaine n'étaient pas payés au premier lundi (un nouvel `uid`
+avait un delta de 0). Corrigé et déployé le jour même : un nouveau compte est
+désormais payé dès sa première victoire en ligne, dès le premier lundi ; les `uid`
+non payés (soumission en échec, wallet pas encore lié) sont reportés au lieu
+d'être perdus ; le Worker refuse de finaliser une pool non financée. Détail dans
+`lms-proof-of-play-worker/README.md` (points 17-19). Les victoires de `2026-W40`
+des comptes créés cette semaine-là ne sont pas récupérables (pool finalisée).
 
 ### Réclamation multi-semaines (13/09/2026)
 
@@ -1222,6 +1252,15 @@ point 15). Restent, par priorité : plafonner les semaines `claimPendingWeeks` l
 le périmètre des dev tools en production (ils débloquent les skins payants), l'horloge appareil des récompenses
 quotidiennes, le SRI de web3.js, et les deux problèmes de test ci-dessus. Détail complet dans
 `AUDIT_RESTE_A_FAIRE.md`.
+
+<a id="limites-connues"></a>
+
+## Limites connues (revue de sécurité, 06/10/2026)
+
+- **Modèle de confiance du score.** Le Worker calcule les scores hebdo à partir des compteurs `duelStats` / `ffaStats` de Firebase RTDB, que chaque client écrit pour son `uid` anonyme (les rules interdisent seulement de les faire baisser). Les matchs ne sont pas encore vérifiés côté serveur. Les plafonds hebdo du Worker (21 duels / 14 FFA) bornent chaque compte, pas le nombre de comptes. Acceptable en devnet avec un jeton de test ; avant toute cagnotte de valeur réelle : validation serveur des matchs.
+- **Proof of Meet.** La proximité est contrôlée côté client (Nearby Connections). On-chain, `mint_meeting_nft` vérifie seulement que deux wallets distincts co-signent ; limité à un mint par wallet et par 24 h.
+- **Ouverture de pool.** `initialize_weekly_pool` est sans permission (le premier signataire qui crée la pool d'une semaine en devient l'autorité). Correctif prévu : épingler l'autorité sur la clé du Worker à la prochaine mise à jour du programme, non déployé pendant le jugement pour ne pas changer le programme testé.
+- **Audit automatisé.** Le scan Radiants a signalé des motifs de CPI et de comptes dupliqués dans `lib.rs` ; la relecture manuelle les a trouvés déjà couverts (`address = MPL_CORE_ID`, `program_id` en dur, `require_keys_neq!`). Les alertes de dépendances viennent de l'outillage de build Capacitor CLI/assets et de crates transitives Anchor/Solana.
 
 ## Pour tester l'application (juges / testeurs)
 
